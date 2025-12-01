@@ -626,41 +626,13 @@ struct FocusView: View {
     }
 
     private func levelUpOverlay(level: Int) -> some View {
-        ZStack {
-            Color.black.opacity(0.75)
-                .ignoresSafeArea()
-
-            VStack(spacing: 16) {
-                Text("\(QuestChatStrings.FocusView.levelUpTitlePrefix) \(level)")
-                    .font(.system(size: 40, weight: .black, design: .rounded))
-                    .foregroundStyle(.mint)
-
-                Text(QuestChatStrings.FocusView.levelUpSubtitle)
-                    .multilineTextAlignment(.center)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Button {
-                    withAnimation {
-                        statsStore.pendingLevelUp = nil
-                    }
-                } label: {
-                    Text(QuestChatStrings.FocusView.levelUpButtonTitle)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.mint)
+        LevelUpModalView(level: level) {
+            withAnimation {
+                statsStore.pendingLevelUp = nil
             }
-            .padding(24)
-            .frame(maxWidth: 320)
-            .background(Color(uiColor: .secondarySystemBackground).opacity(0.95))
-            .cornerRadius(24)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
-            )
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .background(Color.black.opacity(0.75).ignoresSafeArea())
     }
 
     private func sessionCompleteOverlay(summary: FocusViewModel.SessionSummary) -> some View {
