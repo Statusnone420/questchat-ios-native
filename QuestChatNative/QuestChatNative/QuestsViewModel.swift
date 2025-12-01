@@ -31,6 +31,14 @@ final class QuestsViewModel: ObservableObject {
         dailyQuests = Self.seedQuests(with: completedQuestIDs(for: Date(), calendar: calendar, userDefaults: userDefaults))
     }
 
+    var completedQuestsCount: Int {
+        dailyQuests.filter { $0.isCompleted }.count
+    }
+
+    var totalQuestsCount: Int {
+        dailyQuests.count
+    }
+
     func toggleQuest(_ quest: Quest) {
         guard let index = dailyQuests.firstIndex(where: { $0.id == quest.id }) else { return }
 

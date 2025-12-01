@@ -77,6 +77,18 @@ final class SessionStatsStore: ObservableObject {
         100
     }
 
+    var focusSecondsToday: Int {
+        todaySessions
+            .filter { $0.modeRawValue == FocusTimerMode.focus.rawValue }
+            .reduce(0) { $0 + $1.durationSeconds }
+    }
+
+    var selfCareSecondsToday: Int {
+        todaySessions
+            .filter { $0.modeRawValue == FocusTimerMode.selfCare.rawValue }
+            .reduce(0) { $0 + $1.durationSeconds }
+    }
+
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
         focusSeconds = userDefaults.integer(forKey: Keys.focusSeconds)
@@ -157,6 +169,14 @@ final class SessionStatsStore: ObservableObject {
         static let xp = "xp"
         static let sessionHistory = "sessionHistory"
         static let lastKnownLevel = "lastKnownLevel"
+    }
+
+    private var todaySessions: [SessionRecord] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        return sessionHistory.filter { session in
+            calendar.isDate(session.date, inSameDayAs: today)
+        }
     }
 
     private func persist() {

@@ -9,7 +9,10 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            FocusView(viewModel: DependencyContainer.shared.makeFocusViewModel())
+            FocusView(
+                viewModel: DependencyContainer.shared.makeFocusViewModel(),
+                questsViewModel: DependencyContainer.shared.makeQuestsViewModel()
+            )
                 .tabItem { Label("Focus", systemImage: "timer") }
                 .tag(MainTab.focus)
 
@@ -17,7 +20,10 @@ struct ContentView: View {
                 .tabItem { Label("Quests", systemImage: "list.bullet.rectangle") }
                 .tag(MainTab.quests)
 
-            StatsView(store: DependencyContainer.shared.makeStatsStore())
+            StatsView(
+                store: DependencyContainer.shared.makeStatsStore(),
+                questsViewModel: DependencyContainer.shared.makeQuestsViewModel()
+            )
                 .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
                 .tag(MainTab.stats)
 

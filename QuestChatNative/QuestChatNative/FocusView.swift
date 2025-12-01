@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FocusView: View {
     @StateObject var viewModel: FocusViewModel
+    @ObservedObject var questsViewModel: QuestsViewModel
 
     private var formattedTime: String {
         let minutes = viewModel.secondsRemaining / 60
@@ -27,12 +28,24 @@ struct FocusView: View {
         return Int(progress * 100)
     }
 
+    private var focusMinutesToday: Int { viewModel.statsStore.focusSecondsToday / 60 }
+    private var selfCareMinutesToday: Int { viewModel.statsStore.selfCareSecondsToday / 60 }
+
     var body: some View {
         ZStack {
             NavigationStack {
                 ScrollView {
                     VStack(spacing: 24) {
                         xpStrip
+
+                        TodaySummaryView(
+                            completedQuests: questsViewModel.completedQuestsCount,
+                            totalQuests: questsViewModel.totalQuestsCount,
+                            focusMinutes: focusMinutesToday,
+                            selfCareMinutes: selfCareMinutesToday,
+                            dailyFocusTarget: 40,
+                            currentStreakDays: viewModel.statsStore.currentStreakDays
+                        )
 
                         timerCard
 
@@ -252,5 +265,9 @@ struct FocusView: View {
 }
 
 #Preview {
-    FocusView(viewModel: FocusViewModel())
+    let store = SessionStatsStore()
+    FocusView(
+        viewModel: FocusViewModel(statsStore: store),
+        questsViewModel: QuestsViewModel(statsStore: store)
+    )
 }

@@ -2,9 +2,12 @@ import SwiftUI
 
 struct StatsView: View {
     @ObservedObject var store: SessionStatsStore
+    @ObservedObject var questsViewModel: QuestsViewModel
 
     private var focusMinutes: Int { store.focusSeconds / 60 }
     private var selfCareMinutes: Int { store.selfCareSeconds / 60 }
+    private var focusMinutesToday: Int { store.focusSecondsToday / 60 }
+    private var selfCareMinutesToday: Int { store.selfCareSecondsToday / 60 }
     private var levelProgress: Double {
         let total = Double(store.xpForNextLevel)
         guard total > 0 else { return 0 }
@@ -19,6 +22,15 @@ struct StatsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
+                    TodaySummaryView(
+                        completedQuests: questsViewModel.completedQuestsCount,
+                        totalQuests: questsViewModel.totalQuestsCount,
+                        focusMinutes: focusMinutesToday,
+                        selfCareMinutes: selfCareMinutesToday,
+                        dailyFocusTarget: 40,
+                        currentStreakDays: store.currentStreakDays
+                    )
+
                     header
                     summaryTiles
                     sessionBreakdown
@@ -185,5 +197,6 @@ struct StatsView: View {
 }
 
 #Preview {
-    StatsView(store: SessionStatsStore())
+    let store = SessionStatsStore()
+    StatsView(store: store, questsViewModel: QuestsViewModel(statsStore: store))
 }
