@@ -2,7 +2,8 @@ import SwiftUI
 
 struct FocusView: View {
     @StateObject var viewModel: FocusViewModel
-    @ObservedObject var questsViewModel: QuestsViewModel
+    @EnvironmentObject var questsViewModel: QuestsViewModel
+    @Binding var selectedTab: MainTab
 
     private var formattedTime: String {
         let minutes = viewModel.secondsRemaining / 60
@@ -36,6 +37,8 @@ struct FocusView: View {
             NavigationStack {
                 ScrollView {
                     VStack(spacing: 24) {
+                        todayQuestBanner
+
                         xpStrip
 
                         TodaySummaryView(
@@ -87,6 +90,51 @@ struct FocusView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.statsStore.pendingLevelUp)
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
+    }
+
+    @ViewBuilder
+    private var todayQuestBanner: some View {
+        if let quest = questsViewModel.dailyQuests.first {
+            Button {
+                selectedTab = .quests
+            } label: {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Today's Quest")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        Text(quest.title)
+                            .font(.headline)
+                    }
+
+                    Spacer()
+
+                    if quest.isCompleted {
+                        Label("Completed", systemImage: "checkmark.circle.fill")
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.mint)
+                    } else {
+                        Text("+\(quest.xpReward) XP")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.mint.opacity(0.15))
+                            .foregroundStyle(.mint)
+                            .clipShape(Capsule())
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(.ultraThinMaterial.opacity(0.14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                )
+                .cornerRadius(14)
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     private var xpStrip: some View {
@@ -321,6 +369,7 @@ struct FocusView: View {
     let store = SessionStatsStore()
     FocusView(
         viewModel: FocusViewModel(statsStore: store),
-        questsViewModel: QuestsViewModel(statsStore: store)
+        selectedTab: .constant(.focus)
     )
+    .environmentObject(QuestsViewModel(statsStore: store))
 }
