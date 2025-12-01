@@ -3,6 +3,7 @@ import SwiftUI
 struct StatsView: View {
     @ObservedObject var store: SessionStatsStore
     @ObservedObject var questsViewModel: QuestsViewModel
+    @State private var showPlayerCard = false
 
     private var focusMinutes: Int { store.focusSeconds / 60 }
     private var selfCareMinutes: Int { store.selfCareSeconds / 60 }
@@ -42,6 +43,9 @@ struct StatsView: View {
             .navigationTitle("Stats")
             .toolbarBackground(Color.black, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            .sheet(isPresented: $showPlayerCard) {
+                PlayerCardView(store: store)
+            }
         }
     }
 
@@ -73,6 +77,18 @@ struct StatsView: View {
             .padding()
             .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
             .cornerRadius(14)
+        }
+        .overlay(alignment: .topTrailing) {
+            Button {
+                showPlayerCard = true
+            } label: {
+                Image(systemName: "person.crop.circle")
+                    .font(.title3)
+                    .padding(8)
+                    .background(Color(uiColor: .secondarySystemBackground).opacity(0.25))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
         }
     }
 
