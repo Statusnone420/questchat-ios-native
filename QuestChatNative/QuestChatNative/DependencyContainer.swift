@@ -6,7 +6,13 @@ final class DependencyContainer {
     static let shared = DependencyContainer()
     private init() {}
 
+    private let statsStore = SessionStatsStore()
+
     func makeFocusViewModel() -> FocusViewModel {
-        FocusViewModel()
+        FocusViewModel(statsStore: statsStore)
+    }
+
+    func makeStatsStore() -> SessionStatsStore {
+        statsStore
     }
 }

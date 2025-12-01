@@ -9,50 +9,184 @@ struct FocusView: View {
         return String(format: "%02d:%02d", minutes, seconds)
     }
 
+    private var accessoryText: String {
+        if viewModel.hasFinishedOnce {
+            return "Session complete. Ready for another round?"
+        }
+        switch viewModel.selectedMode {
+        case .focus:
+            return "Stay present. Every focus minute turns into XP."
+        case .selfCare:
+            return "Micro break to stretch, hydrate, and reset posture."
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                Text("Focus Timer")
-                    .font(.title.bold())
+            ScrollView {
+                VStack(spacing: 24) {
+                    xpStrip
 
-                Text(formattedTime)
-                    .font(.system(size: 64, weight: .heavy, design: .rounded))
-                    .monospacedDigit()
+                    timerCard
 
-                if viewModel.hasFinishedOnce {
-                    Text("Nice work. Start another?")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("Stay focused until the timer hits zero.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                    controlPanel
+
+                    reminderCard
                 }
-
-                HStack(spacing: 16) {
-                    Button(action: viewModel.startOrPause) {
-                        Label(viewModel.isRunning ? "Pause" : "Start",
-                              systemImage: viewModel.isRunning ? "pause.fill" : "play.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                    Button(role: .destructive, action: viewModel.reset) {
-                        Label("Reset", systemImage: "arrow.counterclockwise")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                }
-                .padding(.horizontal)
-
-                Spacer()
+                .padding(.vertical, 24)
+                .padding(.horizontal, 16)
             }
-            .padding(.top, 32)
+            .background(Color.black.ignoresSafeArea())
             .navigationTitle("Focus")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
+    }
+
+    private var xpStrip: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "sparkles")
+                .foregroundStyle(.mint)
+                .imageScale(.large)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("XP: \(viewModel.statsStore.xp)")
+                    .font(.title2.bold())
+                Text("Focus: \(minutes(from: viewModel.statsStore.focusSeconds)) min • Self care: \(minutes(from: viewModel.statsStore.selfCareSeconds)) min")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding()
+        .background(.ultraThinMaterial.opacity(0.15))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+        )
+        .cornerRadius(16)
+    }
+
+    private var timerCard: some View {
+        VStack(spacing: 16) {
+            Picker("Mode", selection: $viewModel.selectedMode) {
+                ForEach(FocusTimerMode.allCases) { mode in
+                    Label(mode.title, systemImage: mode.accentSystemImage)
+                        .tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            ZStack {
+                Circle()
+                    .stroke(Color.gray.opacity(0.35), lineWidth: 18)
+                Circle()
+                    .trim(from: 0, to: viewModel.progress)
+                    .stroke(AngularGradient(colors: [.mint, .cyan, .mint], center: .center), style: StrokeStyle(lineWidth: 18, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 0.3), value: viewModel.progress)
+
+                VStack(spacing: 8) {
+                    Text(formattedTime)
+                        .font(.system(size: 64, weight: .black, design: .rounded))
+                        .monospacedDigit()
+                    Text(accessoryText)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 280)
+            .padding(.vertical)
+        }
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
+        .cornerRadius(24)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+        )
+    }
+
+    private var controlPanel: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                Button(action: viewModel.startOrPause) {
+                    Label(viewModel.isRunning ? "Pause" : "Start",
+                          systemImage: viewModel.isRunning ? "pause.fill" : "play.fill")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.mint)
+
+                Button(role: .destructive, action: viewModel.reset) {
+                    Label("Reset", systemImage: "arrow.counterclockwise")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(.bordered)
+            }
+
+            HStack {
+                statPill(title: "Sessions", value: "\(viewModel.statsStore.sessionsCompleted)")
+                statPill(title: "Hydrate + Posture", value: viewModel.notificationAuthorized ? "On" : "Off")
+            }
+        }
+        .padding()
+        .background(.ultraThinMaterial.opacity(0.12))
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+    }
+
+    private var reminderCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "drop.fill")
+                    .foregroundStyle(.cyan)
+                VStack(alignment: .leading) {
+                    Text("Hydrate + posture when the timer ends")
+                        .font(.headline)
+                    Text("Notifications stay local for now. We'll sync stats to Supabase later.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+
+            Text("Tip: keep the display black to save battery on OLED. Your streak and XP stay stored on device even if you close the app.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.12))
+        .cornerRadius(18)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+        )
+    }
+
+    private func statPill(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title.uppercased())
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.headline.bold())
+        }
+        .frame(maxWidth: .infinity)
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
+        .cornerRadius(14)
+    }
+
+    private func minutes(from seconds: Int) -> Int {
+        seconds / 60
     }
 }
 

@@ -17,7 +17,7 @@ struct ContentView: View {
                 .tabItem { Label("Quests", systemImage: "list.bullet.rectangle") }
                 .tag(MainTab.quests)
 
-            StatsView()
+            StatsView(store: DependencyContainer.shared.makeStatsStore())
                 .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
                 .tag(MainTab.stats)
 
@@ -25,6 +25,9 @@ struct ContentView: View {
                 .tabItem { Label("More", systemImage: "ellipsis.circle") }
                 .tag(MainTab.more)
         }
+        .preferredColorScheme(.dark)
+        .tint(.mint)
+        .background(Color.black)
     }
 }
 
