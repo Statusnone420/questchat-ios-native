@@ -919,6 +919,8 @@ final class FocusViewModel: ObservableObject {
     private let notificationCenter = UNUserNotificationCenter.current()
     private let userDefaults = UserDefaults.standard
     private var hasInitialized = false
+    private let minimumSessionDuration: TimeInterval = 60
+    private var activeSessionDuration: Int?
 
     init(
         statsStore: SessionStatsStore = SessionStatsStore(),
@@ -990,7 +992,7 @@ final class FocusViewModel: ObservableObject {
     }
 
     var progress: Double {
-        let total = Double(currentDuration)
+        let total = Double(activeSessionDuration ?? currentDuration)
         guard total > 0 else { return 0 }
         let value = 1 - (Double(secondsRemaining) / total)
         return min(max(value, 0), 1)
@@ -1004,9 +1006,16 @@ final class FocusViewModel: ObservableObject {
     func start() {
         guard state == .idle || state == .paused else { return }
 
-        if secondsRemaining == 0 {
-            secondsRemaining = currentDuration
+        let rawDuration = secondsRemaining == 0 ? currentDuration : secondsRemaining
+        let clampedDuration = max(rawDuration, Int(minimumSessionDuration))
+
+        if secondsRemaining == 0 || state == .idle {
+            secondsRemaining = clampedDuration
             hasFinishedOnce = false
+        }
+
+        if activeSessionDuration == nil || state == .idle {
+            activeSessionDuration = clampedDuration
         }
 
         invalidateTimer()
@@ -1043,6 +1052,7 @@ final class FocusViewModel: ObservableObject {
         invalidateTimer()
         secondsRemaining = currentDuration
         hasFinishedOnce = false
+        activeSessionDuration = nil
         state = .idle
     }
 
@@ -1054,6 +1064,7 @@ final class FocusViewModel: ObservableObject {
         selectedMode = category.id.mode
         secondsRemaining = category.durationSeconds
         hasFinishedOnce = false
+        activeSessionDuration = nil
         state = .idle
     }
 
@@ -1072,6 +1083,7 @@ final class FocusViewModel: ObservableObject {
 
         if state == .idle {
             secondsRemaining = clamped
+            activeSessionDuration = nil
         }
     }
 
@@ -1097,7 +1109,8 @@ final class FocusViewModel: ObservableObject {
         statsStore.refreshDailyFocusTotal()
         let previousFocusTotal = statsStore.totalFocusSecondsToday
         let xpBefore = statsStore.progression.totalXP
-        _ = statsStore.recordSession(mode: selectedMode, duration: currentDuration)
+        let recordedDuration = activeSessionDuration ?? currentDuration
+        _ = statsStore.recordSession(mode: selectedMode, duration: recordedDuration)
         _ = statsStore.recordCategorySession(categoryID: selectedCategory)
         let streakLevelUp = statsStore.registerActiveToday()
         let totalXPGained = statsStore.progression.totalXP - xpBefore
@@ -1110,7 +1123,7 @@ final class FocusViewModel: ObservableObject {
         withAnimation(.easeInOut(duration: 0.25)) {
             lastCompletedSession = SessionSummary(
                 mode: selectedMode,
-                duration: currentDuration,
+                duration: recordedDuration,
                 xpGained: totalXPGained,
                 timestamp: Date()
             )

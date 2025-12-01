@@ -16,6 +16,10 @@ struct FocusView: View {
 
     @Namespace private var categoryAnimation
 
+    private var selectedDurationInSeconds: Int {
+        viewModel.durationForSelectedCategory()
+    }
+
     private var formattedTime: String {
         let minutes = viewModel.secondsRemaining / 60
         let seconds = viewModel.secondsRemaining % 60
@@ -468,8 +472,8 @@ struct FocusView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(.mint)
                 .scaleEffect(primaryButtonScale)
-                .disabled(viewModel.state == .running)
-                .opacity(viewModel.state == .running ? 0.6 : 1)
+                .disabled(viewModel.state == .running || selectedDurationInSeconds <= 0)
+                .opacity(viewModel.state == .running || selectedDurationInSeconds <= 0 ? 0.6 : 1)
 
                 Button(action: {
                     animateButtonPress(scale: $pauseButtonScale)
