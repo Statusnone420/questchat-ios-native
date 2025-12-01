@@ -157,6 +157,14 @@ final class SessionStatsStore: ObservableObject {
         let durationSeconds: Int
     }
 
+    struct WeeklyGoalDayStatus: Identifiable {
+        let date: Date
+        let goalHit: Bool
+        let isToday: Bool
+
+        var id: Date { date }
+    }
+
     @Published private(set) var focusSeconds: Int
     @Published private(set) var selfCareSeconds: Int
     @Published private(set) var sessionsCompleted: Int
@@ -167,6 +175,7 @@ final class SessionStatsStore: ObservableObject {
     @Published var pendingLevelUp: Int?
     @Published private(set) var dailyConfig: DailyConfig?
     @Published var shouldShowDailySetup: Bool = false
+    @Published private(set) var lastWeeklyGoalBonusAwardedDate: Date?
 
     private(set) var lastKnownLevel: Int
 
@@ -276,6 +285,8 @@ final class SessionStatsStore: ObservableObject {
         dailyConfig = storedConfig
         shouldShowDailySetup = !Self.isConfigValidForToday(storedConfig)
 
+        lastWeeklyGoalBonusAwardedDate = userDefaults.object(forKey: Keys.lastWeeklyGoalBonusAwardedDate) as? Date
+
         // Now that all stored properties are initialized, persist any needed resets.
         if needsDateReset {
             userDefaults.set(today, forKey: Keys.totalFocusDate)
@@ -292,6 +303,7 @@ final class SessionStatsStore: ObservableObject {
 
         refreshDailySetupIfNeeded()
         refreshMomentumIfNeeded()
+        evaluateWeeklyGoalBonus()
     }
 
     @discardableResult
@@ -332,6 +344,7 @@ final class SessionStatsStore: ObservableObject {
         lastSessionDate = now
         lastMomentumUpdate = now
         persist()
+        evaluateWeeklyGoalBonus()
         return totalXPAwarded
     }
 
@@ -395,12 +408,29 @@ final class SessionStatsStore: ObservableObject {
         momentum = 0
         lastSessionDate = nil
         lastMomentumUpdate = nil
+        lastWeeklyGoalBonusAwardedDate = nil
         persist()
     }
 
     var currentMomentum: Double {
         refreshMomentumIfNeeded()
         return momentum
+    }
+
+    var weeklyGoalProgress: [WeeklyGoalDayStatus] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let goalMinutes = dailyMinutesGoal ?? 40
+
+        let statuses: [WeeklyGoalDayStatus] = stride(from: -6, through: 0, by: 1).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: today) else { return nil }
+            let focusSecondsForDay = focusSeconds(on: date)
+            let goalHit = goalMinutes > 0 && focusSecondsForDay >= goalMinutes * 60
+            let isToday = calendar.isDate(date, inSameDayAs: today)
+            return WeeklyGoalDayStatus(date: date, goalHit: goalHit, isToday: isToday)
+        }
+
+        return statuses
     }
 
     private let userDefaults: UserDefaults
@@ -424,6 +454,7 @@ final class SessionStatsStore: ObservableObject {
         static let momentum = "momentum"
         static let lastSessionDate = "lastSessionDate"
         static let lastMomentumUpdate = "lastMomentumUpdate"
+        static let lastWeeklyGoalBonusAwardedDate = "lastWeeklyGoalBonusAwardedDate"
     }
 
     private var todaySessions: [SessionRecord] {
@@ -442,6 +473,7 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(lastKnownLevel, forKey: Keys.lastKnownLevel)
         userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
         userDefaults.set(Calendar.current.startOfDay(for: Date()), forKey: Keys.totalFocusDate)
+        persistWeeklyGoalBonus()
         persistMomentum()
         persistDailyConfig(dailyConfig)
         persistSessionHistory()
@@ -558,6 +590,37 @@ final class SessionStatsStore: ObservableObject {
             userDefaults.set(lastMomentumUpdate, forKey: Keys.lastMomentumUpdate)
         } else {
             userDefaults.removeObject(forKey: Keys.lastMomentumUpdate)
+        }
+    }
+
+    private func focusSeconds(on day: Date) -> Int {
+        let calendar = Calendar.current
+        let targetDay = calendar.startOfDay(for: day)
+        return sessionHistory
+            .filter { calendar.isDate($0.date, inSameDayAs: targetDay) }
+            .reduce(0) { $0 + $1.durationSeconds }
+    }
+
+    private func evaluateWeeklyGoalBonus() {
+        let progress = weeklyGoalProgress
+        guard let mostRecentDay = progress.last, mostRecentDay.isToday else { return }
+        guard progress.allSatisfy({ $0.goalHit }) else { return }
+
+        let calendar = Calendar.current
+        if let lastAwarded = lastWeeklyGoalBonusAwardedDate, calendar.isDate(lastAwarded, inSameDayAs: mostRecentDay.date) {
+            return
+        }
+
+        lastWeeklyGoalBonusAwardedDate = mostRecentDay.date
+        grantBonusXP(120)
+        persistWeeklyGoalBonus()
+    }
+
+    private func persistWeeklyGoalBonus() {
+        if let lastWeeklyGoalBonusAwardedDate {
+            userDefaults.set(lastWeeklyGoalBonusAwardedDate, forKey: Keys.lastWeeklyGoalBonusAwardedDate)
+        } else {
+            userDefaults.removeObject(forKey: Keys.lastWeeklyGoalBonusAwardedDate)
         }
     }
 }

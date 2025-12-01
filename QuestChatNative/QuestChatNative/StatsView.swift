@@ -39,6 +39,10 @@ struct StatsView: View {
         Array(store.sessionHistory.suffix(5).reversed())
     }
 
+    private var weeklyGoalProgress: [SessionStatsStore.WeeklyGoalDayStatus] {
+        store.weeklyGoalProgress
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -53,6 +57,7 @@ struct StatsView: View {
                     )
 
                     dailyGoalCard
+                    weeklyPathCard
 
                     header
                     summaryTiles
@@ -189,6 +194,47 @@ struct StatsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
+        .cornerRadius(14)
+    }
+
+    private var weeklyPathCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Weekly path", systemImage: "chart.dots.scatter")
+                .font(.headline)
+                .foregroundStyle(.mint)
+
+            HStack(spacing: 10) {
+                ForEach(weeklyGoalProgress) { day in
+                    ZStack {
+                        Circle()
+                            .fill(day.goalHit ? Color.mint : Color.clear)
+                            .frame(width: 16, height: 16)
+                            .overlay(
+                                Circle()
+                                    .stroke(day.goalHit ? Color.mint : Color.secondary.opacity(0.6), lineWidth: 2)
+                            )
+                            .opacity(day.goalHit ? 1 : 0.7)
+
+                        if day.isToday {
+                            Circle()
+                                .stroke(Color.white.opacity(0.35), lineWidth: 3)
+                                .frame(width: 24, height: 24)
+                        }
+                    }
+                    .accessibilityLabel(day.date.formatted(date: .abbreviated, time: .omitted))
+                    .accessibilityValue(day.goalHit ? "Goal met" : "Goal not met")
+                }
+            }
+
+            if weeklyGoalProgress.allSatisfy({ $0.goalHit }) {
+                Text("Weekly streak! +120 XP bonus unlocked")
+                    .font(.caption)
+                    .foregroundStyle(.mint)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
         .cornerRadius(14)
     }
