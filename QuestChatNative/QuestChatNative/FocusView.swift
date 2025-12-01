@@ -80,10 +80,10 @@ struct FocusView: View {
     }
 
     var body: some View {
-        ZStack {
-            NavigationStack {
+        NavigationStack {
+            ZStack {
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 16) {
                         HealthBarCardView(viewModel: healthBarViewModel, dailySummary: dailySummary)
                         todayQuestBanner
 
@@ -95,35 +95,36 @@ struct FocusView: View {
 
                         reminderCard
                     }
-                    .padding(.vertical, 24)
                     .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 24)
                 }
                 .background(Color.black.ignoresSafeArea())
-                .navigationTitle(QuestChatStrings.FocusView.navigationTitle)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbarBackground(Color.black, for: .navigationBar)
-                .toolbarColorScheme(.dark, for: .navigationBar)
-            }
 
-            if let session = viewModel.lastCompletedSession {
-                sessionCompleteOverlay(summary: session)
-                    .transition(
-                        .asymmetric(
-                            insertion: .opacity.combined(with: .scale(scale: 1.05)),
-                            removal: .opacity.combined(with: .scale(scale: 0.95))
+                if let session = viewModel.lastCompletedSession {
+                    sessionCompleteOverlay(summary: session)
+                        .transition(
+                            .asymmetric(
+                                insertion: .opacity.combined(with: .scale(scale: 1.05)),
+                                removal: .opacity.combined(with: .scale(scale: 0.95))
+                            )
                         )
-                    )
-                    .zIndex(2)
-            }
-
-            if let levelUp = statsStore.pendingLevelUp {
-                LevelUpModalView(level: levelUp) {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        statsStore.pendingLevelUp = nil
-                    }
+                        .zIndex(2)
                 }
-                .zIndex(3)
+
+                if let levelUp = statsStore.pendingLevelUp {
+                    LevelUpModalView(level: levelUp) {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            statsStore.pendingLevelUp = nil
+                        }
+                    }
+                    .zIndex(3)
+                }
             }
+            .navigationTitle(QuestChatStrings.FocusView.navigationTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
         .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)
