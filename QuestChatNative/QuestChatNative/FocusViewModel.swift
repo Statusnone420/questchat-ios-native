@@ -1071,6 +1071,8 @@ final class FocusViewModel: ObservableObject {
     @AppStorage("hydrateNudgesEnabled") private var hydrateNudgesEnabled: Bool = true
     private let notificationCenter = UNUserNotificationCenter.current()
     private let userDefaults = UserDefaults.standard
+    @available(iOS 16.1, *)
+    private let liveActivityManager = FocusTimerLiveActivityManager.shared
     private static let persistedSessionKey = "focus_current_session_v1"
     private var hasInitialized = false
     private let minimumSessionDuration: TimeInterval = 60
@@ -1308,6 +1310,16 @@ final class FocusViewModel: ObservableObject {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         scheduleCompletionNotification()
         startUITimer()
+        if #available(iOS 16.1, *) {
+            let category = selectedCategoryData ?? TimerCategory(id: selectedCategory, durationSeconds: currentDuration)
+            let sessionType = category.id.rawValue
+            let title = category.id.title
+            liveActivityManager.start(
+                endDate: session.endDate,
+                sessionType: sessionType,
+                title: title
+            )
+        }
         handleSessionCompletionIfNeeded()
     }
 
@@ -1332,6 +1344,9 @@ final class FocusViewModel: ObservableObject {
         hasFinishedOnce = false
         activeSessionDuration = nil
         clearPersistedSession()
+        if #available(iOS 16.1, *) {
+            liveActivityManager.cancel()
+        }
         state = .idle
     }
 
@@ -1427,6 +1442,9 @@ final class FocusViewModel: ObservableObject {
         clearPersistedSession()
         handleHydrationThresholds(previousTotal: previousFocusTotal, newTotal: statsStore.totalFocusSecondsToday)
         sendImmediateHydrationReminder()
+        if #available(iOS 16.1, *) {
+            liveActivityManager.end()
+        }
         onSessionComplete?()
     }
 
