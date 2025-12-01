@@ -604,6 +604,16 @@ struct FocusView: View {
         seconds / 60
     }
 
+    private func levelUpOverlay(level: Int) -> some View {
+        LevelUpModalView(level: level) {
+            withAnimation {
+                statsStore.pendingLevelUp = nil
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+        .background(Color.black.opacity(0.75).ignoresSafeArea())
+    }
+
     private func sessionCompleteOverlay(summary: FocusViewModel.SessionSummary) -> some View {
         ZStack {
             Color.black.opacity(0.75)
