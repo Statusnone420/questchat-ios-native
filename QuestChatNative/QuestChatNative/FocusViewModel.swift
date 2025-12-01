@@ -39,6 +39,18 @@ final class SessionStatsStore: ObservableObject {
     @Published private(set) var sessionsCompleted: Int
     @Published private(set) var xp: Int
 
+    var level: Int {
+        (xp / 100) + 1
+    }
+
+    var xpIntoCurrentLevel: Int {
+        xp % 100
+    }
+
+    var xpForNextLevel: Int {
+        100
+    }
+
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
         focusSeconds = userDefaults.integer(forKey: Keys.focusSeconds)

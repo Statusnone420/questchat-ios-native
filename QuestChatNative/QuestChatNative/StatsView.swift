@@ -5,6 +5,11 @@ struct StatsView: View {
 
     private var focusMinutes: Int { store.focusSeconds / 60 }
     private var selfCareMinutes: Int { store.selfCareSeconds / 60 }
+    private var levelProgress: Double {
+        let total = Double(store.xpForNextLevel)
+        guard total > 0 else { return 0 }
+        return Double(store.xpIntoCurrentLevel) / total
+    }
 
     var body: some View {
         NavigationStack {
@@ -24,12 +29,33 @@ struct StatsView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Experience")
                 .font(.title2.bold())
             Text("Everything is stored locally until Supabase sync lands.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .lastTextBaseline, spacing: 8) {
+                    Text("Level")
+                        .font(.headline)
+                        .foregroundStyle(.mint)
+                    Text("\(store.level)")
+                        .font(.largeTitle.bold())
+                }
+
+                ProgressView(value: levelProgress)
+                    .progressViewStyle(.linear)
+                    .tint(.mint)
+
+                Text("\(store.xpIntoCurrentLevel) / \(store.xpForNextLevel) XP into this level")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding()
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
+            .cornerRadius(14)
         }
     }
 

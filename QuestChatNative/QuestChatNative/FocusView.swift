@@ -21,6 +21,12 @@ struct FocusView: View {
         }
     }
 
+    private var levelProgressPercentage: Int {
+        let progress = Double(viewModel.statsStore.xpIntoCurrentLevel) / Double(viewModel.statsStore.xpForNextLevel)
+        guard progress.isFinite else { return 0 }
+        return Int(progress * 100)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -52,6 +58,9 @@ struct FocusView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("XP: \(viewModel.statsStore.xp)")
                     .font(.title2.bold())
+                Text("Level \(viewModel.statsStore.level) • \(levelProgressPercentage)% to next level")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
                 Text("Focus: \(minutes(from: viewModel.statsStore.focusSeconds)) min • Self care: \(minutes(from: viewModel.statsStore.selfCareSeconds)) min")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
