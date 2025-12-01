@@ -45,6 +45,8 @@ enum QuestChatStrings {
     }
 
     enum StatusLines {
+        static let none = "No status yet. Start a session to earn XP."
+
         static func streak(_ days: Int) -> String {
             "On a \(days)-day streak. Keep it going!"
         }
