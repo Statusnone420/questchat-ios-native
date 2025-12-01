@@ -3,22 +3,25 @@ import Foundation
 enum QuestChatStrings {
     enum TimerCategories {
         static let deepFocusTitle = "Deep focus"
-        static let deepFocusSubtitle = "Heads-down work, minimize distractions"
+        static let deepFocusSubtitle = "Heads-down work, no scrolling."
 
         static let workSprintTitle = "Work sprint"
-        static let workSprintSubtitle = "Ship tasks and quests fast"
+        static let workSprintSubtitle = "Ship stuff fast, no perfectionism."
 
         static let choresTitle = "Chores sprint"
-        static let choresSubtitle = "Quick tidy-up and reset"
+        static let choresSubtitle = "Put the room back on your side."
 
-        static let selfCareTitle = "Self care reset"
-        static let selfCareSubtitle = "Move, breathe, hydrate"
+        static let choresSprintTitle = "Chores sprint"
+        static let choresSprintSubtitle = "Put the room back on your side."
+
+        static let selfCareTitle = "Self-care reset"
+        static let selfCareSubtitle = "Move, breathe, hydrate, unclench."
 
         static let gamingResetTitle = "Gaming reset"
-        static let gamingResetSubtitle = "Stretch between matches"
+        static let gamingResetSubtitle = "Queue break. Stretch and sip."
 
         static let quickBreakTitle = "Quick break"
-        static let quickBreakSubtitle = "Step away and unplug"
+        static let quickBreakSubtitle = "Step away so your brain comes back sharper."
     }
 
     enum FocusTimerModeTitles {
@@ -61,8 +64,8 @@ enum QuestChatStrings {
         static let timerCompleteTitle = "Timer complete"
         static let timerCompleteBody = "Hydrate and check your posture. Your session just wrapped up!"
 
-        static let hydrateReminderTitle = "Great work!"
-        static let hydrateReminderBody = "Reward unlocked: stretch, hydrate, and maintain good posture."
+        static let hydrateReminderTitle = "Hydration break"
+        static let hydrateReminderBody = "Grab something that isn’t just caffeine or vibes."
 
         static let hydrateNudgeTitle = "Hydrate + posture check"
     }
@@ -110,7 +113,7 @@ enum QuestChatStrings {
         static let hydratePostureOff = "Off"
 
         static let reminderTitle = "Hydrate + posture when the timer ends"
-        static let reminderSubtitle = "Notifications stay local for now. We'll sync stats to Supabase later."
+        static let reminderSubtitle = "Reminders stay on this device for now. Your body still gets the buff."
         static let reminderTip = "Tip: keep the display black to save battery on OLED. Your streak and XP stay stored on device even if you close the app."
 
         static let hydrationBannerTitle = "Hydrate + posture check"
@@ -214,17 +217,17 @@ enum QuestChatStrings {
     }
 
     enum QuestsPool {
-        static let dailyCheckInTitle = "Daily check-in"
-        static let dailyCheckInDescription = "Set your intention and mood for the day."
+        static let dailyCheckInTitle = "Load today’s quest log"
+        static let dailyCheckInDescription = "Take 30 seconds to decide what actually matters."
 
-        static let hydrateTitle = "Hydrate"
-        static let hydrateDescription = "Drink a full glass of water before starting."
+        static let hydrateTitle = "Hydrate checkpoint"
+        static let hydrateDescription = "Drink a real glass of water before you start."
 
-        static let stretchTitle = "Stretch break"
-        static let stretchDescription = "Do a quick 2-minute stretch to reset."
+        static let stretchTitle = "IRL patch update"
+        static let stretchDescription = "Stretch for 2 minutes and un-gremlin your spine."
 
-        static let planTitle = "Plan a focus block"
-        static let planDescription = "Schedule at least one focused session today."
+        static let planTitle = "Plan one focus session"
+        static let planDescription = "Pick a timer and commit to at least one run today."
 
         static let deepFocusTitle = "Deep focus"
         static let deepFocusDescription = "Commit to 25 distraction-free minutes."
@@ -235,6 +238,64 @@ enum QuestChatStrings {
         static let coreTier = "Core"
         static let habitTier = "Habit"
         static let bonusTier = "Bonus"
+    }
+
+    enum QuestsCopy {
+        static let questDailyCheckInTitle = "Load today’s quest log"
+        static let questDailyCheckInSubtitle = "Take 30 seconds to decide what actually matters."
+
+        static let questHydrateTitle = "Hydrate checkpoint"
+        static let questHydrateSubtitle = "Drink a real glass of water before you start."
+
+        static let questStretchTitle = "IRL patch update"
+        static let questStretchSubtitle = "Stretch for 2 minutes and un-gremlin your spine."
+
+        static let questPlanFocusTitle = "Plan one focus session"
+        static let questPlanFocusSubtitle = "Pick a timer and commit to at least one run today."
+    }
+
+    enum TodayAndStreak {
+        static let todayTitle = "Today"
+        static let todayEmptySubtitle = "No runs yet. Tap a timer to start your day’s story."
+        static let todaySummaryFormat = "Quests: %d / %d • Focus: %d / %d min"
+        static let todayMinutesSummaryFormat = "%d minutes of actual brain time today."
+
+        static let streakTitle = "Streak"
+        static let streakSingleDaySubtitle = "1 day in a row. Tiny streak, still counts."
+        static let streakMultiDaySubtitleFormat = "%d-day streak. Don’t let today be the villain."
+        static let streakBrokenSubtitleFormat = "Last streak: %d days. That’s still lore. Start a new arc."
+    }
+
+    enum HydratePosture {
+        static let hydrateGoalFormat = "Goal: %d glasses today."
+        static let hydrateProgressFormat = "%d / %d hydration checkpoints cleared."
+
+        static let postureReminderTitle = "Posture check"
+        static let postureReminderBody = "Unclench your jaw, drop your shoulders, one slow breath."
+        static let postureGoalFormat = "Goal: %d posture checks today."
+        static let postureProgressFormat = "%d posture checks logged. Spine approves."
+        static let postureSnoozeHint = "Can’t move right now? Snooze it and come back to un-pretzel later."
+
+        static let hydrateReminderTitle = "Hydration break"
+        static let hydrateReminderBody = "Grab something that isn’t just caffeine or vibes."
+        static let hydratePostureInfoTitle = "Hydrate + posture when the timer ends"
+        static let hydratePostureInfoBody = "Reminders stay on this device for now. Your body still gets the buff."
+    }
+
+    enum PlayerCardCopy {
+        static let playerCardTitle = "Player card"
+        static let playerCardSubtitle = "Your little self-care stat sheet."
+        static let playerDefaultName = "Player One"
+        static let playerDefaultTitle = "Adventurer in progress"
+        static let playerLevelFormat = "Level %d"
+        static let playerXpToNextFormat = "%d XP to next level"
+        static let playerBadgesTitle = "Badges"
+        static let playerBadgesEmptySubtitle = "No badges yet. Quests, streaks, and focus runs will change that."
+        static let playerTitlesSectionTitle = "Title"
+        static let playerTitleHelper = "Pick one title to flex in stats and, later, in chat."
+        static let playerTitleEmpty = "No title equipped. Running nameless like a side character."
+        static let playerStatsSummaryFormat = "%d quests done • %d focus runs • %d days played"
+        static let playerEditHint = "Nickname, avatar, titles — this is where you dial in main-character energy."
     }
 
     enum MoreView {
