@@ -34,10 +34,18 @@ enum FocusTimerMode: String, CaseIterable, Identifiable {
 
 /// Stores session stats and persists them in UserDefaults for now.
 final class SessionStatsStore: ObservableObject {
+    struct SessionRecord: Identifiable, Codable {
+        let id: UUID
+        let date: Date
+        let modeRawValue: String
+        let durationSeconds: Int
+    }
+
     @Published private(set) var focusSeconds: Int
     @Published private(set) var selfCareSeconds: Int
     @Published private(set) var sessionsCompleted: Int
     @Published private(set) var xp: Int
+    @Published private(set) var sessionHistory: [SessionRecord]
 
     var level: Int {
         (xp / 100) + 1
@@ -57,6 +65,14 @@ final class SessionStatsStore: ObservableObject {
         selfCareSeconds = userDefaults.integer(forKey: Keys.selfCareSeconds)
         sessionsCompleted = userDefaults.integer(forKey: Keys.sessionsCompleted)
         xp = userDefaults.integer(forKey: Keys.xp)
+        if
+            let data = userDefaults.data(forKey: Keys.sessionHistory),
+            let decoded = try? JSONDecoder().decode([SessionRecord].self, from: data)
+        {
+            sessionHistory = decoded
+        } else {
+            sessionHistory = []
+        }
     }
 
     func recordSession(mode: FocusTimerMode, duration: Int) {
@@ -69,7 +85,22 @@ final class SessionStatsStore: ObservableObject {
             xp += 8
         }
         sessionsCompleted += 1
+        recordSessionHistory(mode: mode, duration: duration)
         persist()
+    }
+
+    func recordSessionHistory(mode: FocusTimerMode, duration: Int) {
+        let newRecord = SessionRecord(
+            id: UUID(),
+            date: Date(),
+            modeRawValue: mode.rawValue,
+            durationSeconds: duration
+        )
+        sessionHistory.append(newRecord)
+        if sessionHistory.count > 30 {
+            sessionHistory = Array(sessionHistory.suffix(30))
+        }
+        persistSessionHistory()
     }
 
     func grantBonusXP(_ amount: Int) {
@@ -83,6 +114,7 @@ final class SessionStatsStore: ObservableObject {
         selfCareSeconds = 0
         sessionsCompleted = 0
         xp = 0
+        sessionHistory = []
         persist()
     }
 
@@ -93,6 +125,7 @@ final class SessionStatsStore: ObservableObject {
         static let selfCareSeconds = "selfCareSeconds"
         static let sessionsCompleted = "sessionsCompleted"
         static let xp = "xp"
+        static let sessionHistory = "sessionHistory"
     }
 
     private func persist() {
@@ -100,6 +133,35 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(selfCareSeconds, forKey: Keys.selfCareSeconds)
         userDefaults.set(sessionsCompleted, forKey: Keys.sessionsCompleted)
         userDefaults.set(xp, forKey: Keys.xp)
+        persistSessionHistory()
+    }
+
+    private func persistSessionHistory() {
+        if let data = try? JSONEncoder().encode(sessionHistory) {
+            userDefaults.set(data, forKey: Keys.sessionHistory)
+        }
+    }
+
+    var currentStreakDays: Int {
+        let calendar = Calendar.current
+        let uniqueDays = Set(sessionHistory.map { calendar.startOfDay(for: $0.date) })
+
+        guard !uniqueDays.isEmpty else { return 0 }
+
+        let sortedDays = uniqueDays.sorted(by: >)
+        var streak = 1
+        var previousDay = sortedDays[0]
+
+        for day in sortedDays.dropFirst() {
+            if let dayDifference = calendar.dateComponents([.day], from: day, to: previousDay).day, dayDifference == 1 {
+                streak += 1
+                previousDay = day
+            } else {
+                break
+            }
+        }
+
+        return streak
     }
 }
 

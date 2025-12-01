@@ -11,6 +11,10 @@ struct StatsView: View {
         return Double(store.xpIntoCurrentLevel) / total
     }
 
+    private var recentSessions: [SessionStatsStore.SessionRecord] {
+        Array(store.sessionHistory.suffix(5).reversed())
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -18,6 +22,7 @@ struct StatsView: View {
                     header
                     summaryTiles
                     sessionBreakdown
+                    sessionHistorySection
                 }
                 .padding(20)
             }
@@ -60,9 +65,13 @@ struct StatsView: View {
     }
 
     private var summaryTiles: some View {
-        HStack(spacing: 12) {
-            statCard(title: "XP", value: "\(store.xp)", icon: "sparkles", tint: .mint)
-            statCard(title: "Sessions", value: "\(store.sessionsCompleted)", icon: "clock.badge.checkmark", tint: .cyan)
+        VStack(spacing: 12) {
+            HStack(spacing: 12) {
+                statCard(title: "XP", value: "\(store.xp)", icon: "sparkles", tint: .mint)
+                statCard(title: "Sessions", value: "\(store.sessionsCompleted)", icon: "clock.badge.checkmark", tint: .cyan)
+            }
+
+            streakCard
         }
     }
 
@@ -80,6 +89,27 @@ struct StatsView: View {
         }
     }
 
+    private var sessionHistorySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Session History")
+                .font(.headline)
+
+            if recentSessions.isEmpty {
+                Text("No sessions yet.")
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(recentSessions) { record in
+                        sessionHistoryRow(record)
+                    }
+                }
+                .padding()
+                .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
+                .cornerRadius(16)
+            }
+        }
+    }
+
     private func statCard(title: String, value: String, icon: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Label(title, systemImage: icon)
@@ -87,6 +117,23 @@ struct StatsView: View {
                 .foregroundStyle(tint)
             Text(value)
                 .font(.largeTitle.bold())
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
+        .cornerRadius(14)
+    }
+
+    private var streakCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Streak", systemImage: "calendar")
+                .font(.headline)
+                .foregroundStyle(.orange)
+            Text("\(store.currentStreakDays)")
+                .font(.largeTitle.bold())
+            Text("Consecutive days with at least one session.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -108,6 +155,32 @@ struct StatsView: View {
                 .tint(tint)
                 .progressViewStyle(.linear)
         }
+    }
+
+    private func sessionHistoryRow(_ record: SessionStatsStore.SessionRecord) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(modeTitle(for: record.modeRawValue))
+                    .font(.subheadline.bold())
+                Text(record.date.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(formattedDuration(seconds: record.durationSeconds))
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func formattedDuration(seconds: Int) -> String {
+        let minutes = seconds / 60
+        let remainingSeconds = seconds % 60
+        return String(format: "%d:%02d", minutes, remainingSeconds)
+    }
+
+    private func modeTitle(for rawValue: String) -> String {
+        FocusTimerMode(rawValue: rawValue)?.title ?? rawValue.capitalized
     }
 }
 
