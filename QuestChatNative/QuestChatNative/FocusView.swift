@@ -22,7 +22,7 @@ struct FocusView: View {
     }
 
     private var ringColors: [Color] {
-        let base = [Color.qcAccentPurpleBright, Color.qcAccentPurple, Color.qcAccentPurpleBright]
+        let base = [Color.mint, Color.cyan, Color.mint]
         let warning = [Color.orange, Color.red, Color.orange]
         return zip(base, warning).map { baseColor, warningColor in
             baseColor.blended(withFraction: warningFraction, of: warningColor)
@@ -77,10 +77,10 @@ struct FocusView: View {
                     .padding(.vertical, 24)
                     .padding(.horizontal, 16)
                 }
-                .background(Color.qcPrimaryBackground.ignoresSafeArea())
+                .background(Color.black.ignoresSafeArea())
                 .navigationTitle("Focus")
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbarBackground(Color.qcPrimaryBackground, for: .navigationBar)
+                .toolbarBackground(Color.black, for: .navigationBar)
                 .toolbarColorScheme(.dark, for: .navigationBar)
             }
 
@@ -121,11 +121,10 @@ struct FocusView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Today's Quest")
                             .font(.caption)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(.secondary)
 
                         Text(quest.title)
                             .font(.headline)
-                            .foregroundStyle(.white)
                     }
 
                     Spacer()
@@ -133,23 +132,23 @@ struct FocusView: View {
                     if quest.isCompleted {
                         Label("Completed", systemImage: "checkmark.circle.fill")
                             .font(.subheadline.bold())
-                            .foregroundStyle(.qcAccentPurpleBright)
+                            .foregroundStyle(.mint)
                     } else {
                         Text("+\(quest.xpReward) XP")
                             .font(.caption.bold())
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(Color.qcAccentPurple.opacity(0.2))
-                            .foregroundStyle(.qcAccentPurpleBright)
+                            .background(.mint.opacity(0.15))
+                            .foregroundStyle(.mint)
                             .clipShape(Capsule())
                     }
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
-                .background(Color.qcCardBackground)
+                .background(.ultraThinMaterial.opacity(0.14))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.qcAccentPurple.opacity(0.25), lineWidth: 1)
+                        .stroke(Color.gray.opacity(0.25), lineWidth: 1)
                 )
                 .cornerRadius(14)
             }
@@ -160,26 +159,25 @@ struct FocusView: View {
     private var xpStrip: some View {
         HStack(spacing: 12) {
             Image(systemName: "sparkles")
-                .foregroundStyle(.qcAccentPurpleBright)
+                .foregroundStyle(.mint)
                 .imageScale(.large)
             VStack(alignment: .leading, spacing: 4) {
                 Text("XP: \(viewModel.statsStore.xp)")
                     .font(.title2.bold())
-                    .foregroundStyle(.white)
                 Text("Level \(viewModel.statsStore.level) • \(levelProgressPercentage)% to next level")
                     .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.secondary)
                 Text("Focus: \(minutes(from: viewModel.statsStore.focusSeconds)) min • Self care: \(minutes(from: viewModel.statsStore.selfCareSeconds)) min")
                     .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.secondary)
             }
             Spacer()
         }
         .padding()
-        .background(Color.qcCardBackground)
+        .background(.ultraThinMaterial.opacity(0.15))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.qcAccentPurple.opacity(0.25), lineWidth: 1)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
         )
         .cornerRadius(16)
     }
@@ -231,7 +229,7 @@ struct FocusView: View {
                         .monospacedDigit()
                     Text(accessoryText)
                         .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
             }
@@ -240,11 +238,11 @@ struct FocusView: View {
             .padding(.vertical)
         }
         .padding()
-        .background(Color.qcCardBackground)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
         .cornerRadius(24)
         .overlay(
             RoundedRectangle(cornerRadius: 24)
-                .stroke(Color.qcAccentPurple.opacity(0.25), lineWidth: 1)
+                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
         )
         .overlay(alignment: .top) {
             if let nudge = viewModel.activeHydrationNudge {
@@ -268,7 +266,7 @@ struct FocusView: View {
                         .padding(.vertical, 14)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.qcAccentPurple)
+                .tint(.mint)
                 .scaleEffect(primaryButtonScale)
 
                 Button(role: .destructive, action: {
@@ -290,11 +288,11 @@ struct FocusView: View {
             }
         }
         .padding()
-        .background(Color.qcCardBackground)
+        .background(.ultraThinMaterial.opacity(0.12))
         .cornerRadius(20)
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.qcAccentPurple.opacity(0.2), lineWidth: 1)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
         )
     }
 
@@ -302,28 +300,27 @@ struct FocusView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "drop.fill")
-                    .foregroundStyle(.qcAccentPurpleBright)
+                    .foregroundStyle(.cyan)
                 VStack(alignment: .leading) {
                     Text("Hydrate + posture when the timer ends")
                         .font(.headline)
-                        .foregroundStyle(.white)
                     Text("Notifications stay local for now. We'll sync stats to Supabase later.")
                         .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
             }
 
             Text("Tip: keep the display black to save battery on OLED. Your streak and XP stay stored on device even if you close the app.")
                 .font(.footnote)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.secondary)
         }
         .padding()
-        .background(Color.qcCardBackground)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.12))
         .cornerRadius(18)
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .stroke(Color.qcAccentPurple.opacity(0.25), lineWidth: 1)
+                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
         )
     }
 
@@ -334,43 +331,42 @@ struct FocusView: View {
                     .frame(width: 20, height: 6)
                     .foregroundStyle(
                         index < viewModel.currentCycleIndex
-                            ? Color.qcAccentPurpleBright
+                            ? Color.mint
                             : index == viewModel.currentCycleIndex
-                                ? Color.qcAccentPurple.opacity(0.7)
-                                : Color.white.opacity(0.2)
+                                ? Color.mint.opacity(0.6)
+                                : Color.gray.opacity(0.4)
                     )
             }
             Spacer()
             Text("Focus block in progress")
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(10)
-        .background(Color.qcCardBackground)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
         .cornerRadius(12)
     }
 
     private func hydrationBanner(nudge: FocusViewModel.HydrationNudge) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "figure.walk")
-                .foregroundStyle(.qcAccentPurpleBright)
+                .foregroundStyle(.mint)
                 .imageScale(.large)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Hydrate + posture check")
                     .font(.headline)
-                    .foregroundStyle(.white)
                 Text(nudge.message)
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 0)
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
-        .background(Color.qcCardBackground)
+        .background(.ultraThinMaterial.opacity(0.85))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 6)
     }
@@ -379,14 +375,13 @@ struct FocusView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title.uppercased())
                 .font(.caption2)
-                .foregroundStyle(.white.opacity(0.6))
+                .foregroundStyle(.secondary)
             Text(value)
                 .font(.headline.bold())
-                .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity)
         .padding()
-        .background(Color.qcCardBackground)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
         .cornerRadius(14)
     }
 
@@ -413,12 +408,12 @@ struct FocusView: View {
             VStack(spacing: 16) {
                 Text("Level \(level)")
                     .font(.system(size: 40, weight: .black, design: .rounded))
-                    .foregroundStyle(.qcAccentPurpleBright)
+                    .foregroundStyle(.mint)
 
                 Text("Keep the momentum going! Your focus streak just leveled up.")
                     .multilineTextAlignment(.center)
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.secondary)
 
                 Button {
                     withAnimation {
@@ -430,15 +425,15 @@ struct FocusView: View {
                         .padding(.vertical, 12)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.qcAccentPurple)
+                .tint(.mint)
             }
             .padding(24)
             .frame(maxWidth: 320)
-            .background(Color.qcCardBackground)
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.95))
             .cornerRadius(24)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
-                    .stroke(Color.qcAccentPurple.opacity(0.25), lineWidth: 1)
+                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
             )
         }
     }
@@ -451,15 +446,13 @@ struct FocusView: View {
             VStack(spacing: 16) {
                 Text("Session complete")
                     .font(.system(size: 34, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
 
                 VStack(spacing: 6) {
                     Text("\(summary.mode.title) • \(minutes(from: summary.duration)) min")
                         .font(.headline)
-                        .foregroundStyle(.white)
                     Text("+\(summary.xpGained) XP")
                         .font(.subheadline.bold())
-                        .foregroundStyle(.qcAccentPurpleBright)
+                        .foregroundStyle(.mint)
                 }
                 .multilineTextAlignment(.center)
 
@@ -473,15 +466,15 @@ struct FocusView: View {
                         .padding(.vertical, 12)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.qcAccentPurple)
+                .tint(.mint)
             }
             .padding(24)
             .frame(maxWidth: 320)
-            .background(Color.qcCardBackground)
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.95))
             .cornerRadius(24)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)
-                    .stroke(Color.qcAccentPurple.opacity(0.25), lineWidth: 1)
+                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
             )
         }
     }

@@ -39,9 +39,9 @@ struct StatsView: View {
                 }
                 .padding(20)
             }
-            .background(Color.qcPrimaryBackground.ignoresSafeArea())
+            .background(Color.black.ignoresSafeArea())
             .navigationTitle("Stats")
-            .toolbarBackground(Color.qcPrimaryBackground, for: .navigationBar)
+            .toolbarBackground(Color.black, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(isPresented: $showPlayerCard) {
                 PlayerCardView(store: store)
@@ -53,31 +53,29 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Experience")
                 .font(.title2.bold())
-                .foregroundStyle(.white)
             Text("Everything is stored locally until Supabase sync lands.")
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .lastTextBaseline, spacing: 8) {
                     Text("Level")
                         .font(.headline)
-                        .foregroundStyle(.qcAccentPurple)
+                        .foregroundStyle(.mint)
                     Text("\(store.level)")
                         .font(.largeTitle.bold())
-                        .foregroundStyle(.white)
                 }
 
                 ProgressView(value: levelProgress)
                     .progressViewStyle(.linear)
-                    .tint(.qcAccentPurpleBright)
+                    .tint(.mint)
 
                 Text("\(store.xpIntoCurrentLevel) / \(store.xpForNextLevel) XP into this level")
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.secondary)
             }
             .padding()
-            .background(Color.qcCardBackground)
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
             .cornerRadius(14)
         }
         .overlay(alignment: .topTrailing) {
@@ -87,7 +85,7 @@ struct StatsView: View {
                 Image(systemName: "person.crop.circle")
                     .font(.title3)
                     .padding(8)
-                    .background(Color.qcCardBackground)
+                    .background(Color(uiColor: .secondarySystemBackground).opacity(0.25))
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
@@ -97,8 +95,8 @@ struct StatsView: View {
     private var summaryTiles: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                statCard(title: "XP", value: "\(store.xp)", icon: "sparkles", tint: .qcAccentPurpleBright)
-                statCard(title: "Sessions", value: "\(store.sessionsCompleted)", icon: "clock.badge.checkmark", tint: .qcAccentPurple)
+                statCard(title: "XP", value: "\(store.xp)", icon: "sparkles", tint: .mint)
+                statCard(title: "Sessions", value: "\(store.sessionsCompleted)", icon: "clock.badge.checkmark", tint: .cyan)
             }
 
             streakCard
@@ -109,13 +107,12 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Minutes")
                 .font(.headline)
-                .foregroundStyle(.white)
             VStack(spacing: 12) {
-                progressRow(title: "Focus", minutes: focusMinutes, totalSeconds: store.focusSeconds, tint: .qcAccentPurpleBright)
-                progressRow(title: "Self care", minutes: selfCareMinutes, totalSeconds: store.selfCareSeconds, tint: .qcAccentPurple)
+                progressRow(title: "Focus", minutes: focusMinutes, totalSeconds: store.focusSeconds, tint: .mint)
+                progressRow(title: "Self care", minutes: selfCareMinutes, totalSeconds: store.selfCareSeconds, tint: .cyan)
             }
             .padding()
-            .background(Color.qcCardBackground)
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
             .cornerRadius(16)
         }
     }
@@ -124,11 +121,10 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Session History")
                 .font(.headline)
-                .foregroundStyle(.white)
 
             if recentSessions.isEmpty {
                 Text("No sessions yet.")
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.secondary)
             } else {
                 VStack(spacing: 12) {
                     ForEach(recentSessions) { record in
@@ -136,7 +132,7 @@ struct StatsView: View {
                     }
                 }
                 .padding()
-                .background(Color.qcCardBackground)
+                .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
                 .cornerRadius(16)
             }
         }
@@ -149,11 +145,10 @@ struct StatsView: View {
                 .foregroundStyle(tint)
             Text(value)
                 .font(.largeTitle.bold())
-                .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color.qcCardBackground)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
         .cornerRadius(14)
     }
 
@@ -161,17 +156,16 @@ struct StatsView: View {
         VStack(alignment: .leading, spacing: 8) {
             Label("Streak", systemImage: "calendar")
                 .font(.headline)
-                .foregroundStyle(.qcAccentPurple)
+                .foregroundStyle(.orange)
             Text("\(store.currentStreakDays)")
                 .font(.largeTitle.bold())
-                .foregroundStyle(.white)
             Text("Consecutive days with at least one session.")
                 .font(.caption)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color.qcCardBackground)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
         .cornerRadius(14)
     }
 
@@ -180,11 +174,10 @@ struct StatsView: View {
             HStack {
                 Text(title)
                     .font(.subheadline.bold())
-                    .foregroundStyle(.white)
                 Spacer()
                 Text("\(minutes) min")
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.secondary)
             }
             ProgressView(value: Double(totalSeconds), total: 60 * 60)
                 .tint(tint)
@@ -197,15 +190,14 @@ struct StatsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(modeTitle(for: record.modeRawValue))
                     .font(.subheadline.bold())
-                    .foregroundStyle(.white)
                 Text(record.date.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.secondary)
             }
             Spacer()
             Text(formattedDuration(seconds: record.durationSeconds))
                 .font(.subheadline.monospacedDigit())
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(.secondary)
         }
     }
 

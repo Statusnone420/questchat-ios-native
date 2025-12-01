@@ -34,8 +34,8 @@ struct ContentView: View {
                 .tag(MainTab.more)
         }
         .preferredColorScheme(.dark)
-        .tint(.qcAccentPurpleBright)
-        .background(Color.qcPrimaryBackground)
+        .tint(.mint)
+        .background(Color.black)
     }
 }
 

@@ -15,7 +15,7 @@ struct QuestsView: View {
                         ZStack(alignment: .trailing) {
                             HStack(alignment: .firstTextBaseline, spacing: 12) {
                                 Image(systemName: quest.isCompleted ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(quest.isCompleted ? .qcAccentPurpleBright : .white.opacity(0.35))
+                                    .foregroundStyle(quest.isCompleted ? .mint : .gray)
                                     .imageScale(.large)
                                     .scaleEffect(bouncingQuestIDs.contains(quest.id) ? 1.15 : 1.0)
                                     .animation(.interpolatingSpring(stiffness: 250, damping: 12), value: bouncingQuestIDs.contains(quest.id))
@@ -24,13 +24,13 @@ struct QuestsView: View {
                                     HStack(spacing: 6) {
                                         Text(quest.title)
                                             .font(.headline)
-                                            .foregroundStyle(.white)
+                                            .foregroundStyle(.primary)
                                         tierPill(for: quest)
                                     }
 
                                     Text(quest.detail)
                                         .font(.subheadline)
-                                        .foregroundStyle(.white.opacity(0.7))
+                                        .foregroundStyle(.secondary)
                                 }
 
                                 Spacer()
@@ -39,8 +39,8 @@ struct QuestsView: View {
                                     .font(.caption)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 6)
-                                    .background(Color.qcAccentPurple.opacity(0.2))
-                                    .foregroundStyle(.qcAccentPurpleBright)
+                                    .background(.mint.opacity(0.15))
+                                    .foregroundStyle(.mint)
                                     .clipShape(Capsule())
                             }
 
@@ -48,7 +48,7 @@ struct QuestsView: View {
                         }
                     }
                     .buttonStyle(.plain)
-                    .listRowBackground(Color.qcCardBackground)
+                    .listRowBackground(Color(.secondarySystemBackground))
                     .onChange(of: quest.isCompleted) { isCompleted in
                         guard isCompleted else { return }
                         triggerCheckmarkBounce(for: quest)
@@ -69,7 +69,7 @@ struct QuestsView: View {
             .textCase(nil)
         }
         .scrollContentBackground(.hidden)
-        .background(Color.qcPrimaryBackground.ignoresSafeArea())
+        .background(Color.black.ignoresSafeArea())
         .overlay(alignment: .center) {
             if viewModel.hasQuestChestReady {
                 questChestOverlay()
@@ -107,8 +107,8 @@ private extension QuestsView {
             .font(.caption.bold())
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Color.qcAccentPurple.opacity(0.25))
-            .foregroundStyle(.qcAccentPurpleBright)
+            .background(.mint.opacity(0.2))
+            .foregroundStyle(.mint)
             .clipShape(Capsule())
             .opacity(isShowingBoost ? 1 : 0)
             .offset(y: isShowingBoost ? -8 : -20)
@@ -129,11 +129,11 @@ private extension QuestsView {
     func tierColor(for tier: Quest.Tier) -> Color {
         switch tier {
         case .core:
-            return .qcAccentPurpleBright
+            return .blue
         case .habit:
-            return .qcAccentPurple
+            return .teal
         case .bonus:
-            return .qcAccentPurple.opacity(0.85)
+            return .purple
         }
     }
 
@@ -151,12 +151,11 @@ private extension QuestsView {
                 Text("Daily quests cleared!")
                     .font(.title2.bold())
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(.white)
 
                 Text("You unlocked a Quest Chest for +\(viewModel.questChestRewardAmount) XP. Keep the streak alive!")
                     .font(.body)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.secondary)
                     .padding(.horizontal)
 
                 Button {
@@ -167,13 +166,13 @@ private extension QuestsView {
                         .padding(.horizontal, 18)
                         .padding(.vertical, 10)
                         .frame(maxWidth: .infinity)
-                        .background(Color.qcAccentPurple)
+                        .background(.mint)
                         .foregroundStyle(.white)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
             }
             .padding(24)
-            .background(Color.qcCardBackground)
+            .background(Color(.systemBackground))
             .cornerRadius(20)
             .shadow(radius: 16)
             .padding()

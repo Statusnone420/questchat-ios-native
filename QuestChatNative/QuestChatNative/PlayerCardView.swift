@@ -10,39 +10,38 @@ struct PlayerCardView: View {
             VStack(spacing: 4) {
                 TextField("Player name", text: $playerDisplayName)
                     .font(.title.bold())
-                    .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .textFieldStyle(.plain)
                 Text(store.playerTitle)
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(Color.qcCardBackground)
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
             .cornerRadius(14)
 
             VStack(alignment: .leading, spacing: 12) {
-                statRow(label: "Level", value: "\(store.level)", tint: .qcAccentPurpleBright)
-                statRow(label: "Total XP", value: "\(store.xp)", tint: .qcAccentPurple)
-                statRow(label: "Current streak", value: "\(store.currentStreakDays) days", tint: .qcAccentPurple)
+                statRow(label: "Level", value: "\(store.level)", tint: .mint)
+                statRow(label: "Total XP", value: "\(store.xp)", tint: .cyan)
+                statRow(label: "Current streak", value: "\(store.currentStreakDays) days", tint: .orange)
             }
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.qcCardBackground)
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
             .cornerRadius(16)
 
             HStack {
                 Text(store.statusLine)
                     .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.secondary)
                 Spacer()
             }
 
             Spacer()
         }
         .padding()
-        .background(Color.qcPrimaryBackground.ignoresSafeArea())
+        .background(Color.black.ignoresSafeArea())
     }
 
     private func statRow(label: String, value: String, tint: Color) -> some View {
@@ -53,7 +52,6 @@ struct PlayerCardView: View {
             Spacer()
             Text(value)
                 .font(.title3.bold())
-                .foregroundStyle(.white)
         }
     }
 }
