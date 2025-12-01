@@ -3,6 +3,7 @@ import UIKit
 
 struct FocusView: View {
     @StateObject var viewModel: FocusViewModel
+    @ObservedObject var healthBarViewModel: HealthBarViewModel
     @ObservedObject private var statsStore: SessionStatsStore
     @EnvironmentObject var questsViewModel: QuestsViewModel
     @Binding var selectedTab: MainTab
@@ -52,8 +53,9 @@ struct FocusView: View {
         return QuestChatStrings.FocusView.streakProgress(days: days)
     }
 
-    init(viewModel: FocusViewModel, selectedTab: Binding<MainTab>) {
+    init(viewModel: FocusViewModel, healthBarViewModel: HealthBarViewModel, selectedTab: Binding<MainTab>) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        _healthBarViewModel = ObservedObject(wrappedValue: healthBarViewModel)
         _selectedTab = selectedTab
         _statsStore = ObservedObject(wrappedValue: viewModel.statsStore)
     }
@@ -63,6 +65,7 @@ struct FocusView: View {
             NavigationStack {
                 ScrollView {
                     VStack(spacing: 20) {
+                        HealthBarCardView(viewModel: healthBarViewModel)
                         compactStatusHeader
                         todayQuestBanner
 
@@ -772,6 +775,7 @@ private struct DailySetupSheet: View {
     let store = SessionStatsStore()
     FocusView(
         viewModel: FocusViewModel(statsStore: store),
+        healthBarViewModel: HealthBarViewModel(),
         selectedTab: .constant(.focus)
     )
     .environmentObject(QuestsViewModel(statsStore: store))

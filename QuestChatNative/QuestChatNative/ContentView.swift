@@ -8,14 +8,12 @@ struct ContentView: View {
     @State private var selectedTab: MainTab = .focus
     @StateObject private var statsStore = DependencyContainer.shared.makeStatsStore()
     @StateObject private var questsViewModel = DependencyContainer.shared.makeQuestsViewModel()
+    private let appCoordinator = AppCoordinator()
 
     var body: some View {
         ZStack {
             TabView(selection: $selectedTab) {
-                FocusView(
-                    viewModel: DependencyContainer.shared.makeFocusViewModel(),
-                    selectedTab: $selectedTab
-                )
+                appCoordinator.makeFocusView(selectedTab: $selectedTab)
                     .environmentObject(questsViewModel)
                     .tabItem { Label("Focus", systemImage: "timer") }
                     .tag(MainTab.focus)

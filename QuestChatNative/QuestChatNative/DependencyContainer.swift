@@ -13,6 +13,10 @@ final class DependencyContainer {
         FocusViewModel(statsStore: statsStore)
     }
 
+    func makeHealthBarViewModel() -> HealthBarViewModel {
+        HealthBarViewModel()
+    }
+
     func makeStatsStore() -> SessionStatsStore {
         statsStore
     }
