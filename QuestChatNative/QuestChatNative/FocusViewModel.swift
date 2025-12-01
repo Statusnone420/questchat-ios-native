@@ -72,6 +72,12 @@ final class SessionStatsStore: ObservableObject {
         persist()
     }
 
+    func grantBonusXP(_ amount: Int) {
+        guard amount > 0 else { return }
+        xp += amount
+        persist()
+    }
+
     func resetAll() {
         focusSeconds = 0
         selfCareSeconds = 0

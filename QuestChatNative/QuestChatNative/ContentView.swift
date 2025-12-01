@@ -13,7 +13,7 @@ struct ContentView: View {
                 .tabItem { Label("Focus", systemImage: "timer") }
                 .tag(MainTab.focus)
 
-            QuestsView()
+            QuestsView(viewModel: DependencyContainer.shared.makeQuestsViewModel())
                 .tabItem { Label("Quests", systemImage: "list.bullet.rectangle") }
                 .tag(MainTab.quests)
 

@@ -7,6 +7,7 @@ final class DependencyContainer {
     private init() {}
 
     private let statsStore = SessionStatsStore()
+    private lazy var questsViewModel = QuestsViewModel(statsStore: statsStore)
 
     func makeFocusViewModel() -> FocusViewModel {
         FocusViewModel(statsStore: statsStore)
@@ -14,5 +15,9 @@ final class DependencyContainer {
 
     func makeStatsStore() -> SessionStatsStore {
         statsStore
+    }
+
+    func makeQuestsViewModel() -> QuestsViewModel {
+        questsViewModel
     }
 }
