@@ -94,6 +94,15 @@ struct FocusView: View {
                     )
                     .zIndex(2)
             }
+
+            if let levelUp = statsStore.pendingLevelUp {
+                LevelUpModalView(level: levelUp) {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        statsStore.pendingLevelUp = nil
+                    }
+                }
+                .zIndex(3)
+            }
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
         .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)
@@ -594,16 +603,6 @@ struct FocusView: View {
 
     private func minutes(from seconds: Int) -> Int {
         seconds / 60
-    }
-
-    private func levelUpOverlay(level: Int) -> some View {
-        LevelUpModalView(level: level) {
-            withAnimation {
-                statsStore.pendingLevelUp = nil
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-        .background(Color.black.opacity(0.75).ignoresSafeArea())
     }
 
     private func sessionCompleteOverlay(summary: FocusViewModel.SessionSummary) -> some View {

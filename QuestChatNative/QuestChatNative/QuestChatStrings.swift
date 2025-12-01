@@ -121,7 +121,7 @@ enum QuestChatStrings {
         static let comboComplete = "Combo complete today!"
         static let comboProgressPrefix = "Combo:"
 
-        static let levelUpTitlePrefix = "Level"
+        static let levelUpTitlePrefix = "Level "
         static let levelUpSubtitle = "Keep the momentum going! Your focus streak just leveled up."
         static let levelUpButtonTitle = "Nice!"
 

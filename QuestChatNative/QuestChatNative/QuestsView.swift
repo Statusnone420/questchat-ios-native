@@ -2,11 +2,29 @@ import SwiftUI
 
 struct QuestsView: View {
     @ObservedObject var viewModel: QuestsViewModel
+    @ObservedObject private var statsStore = DependencyContainer.shared.makeStatsStore()
     @State private var bouncingQuestIDs: Set<String> = []
     @State private var showingXPBoostIDs: Set<String> = []
     @State private var showingRerollPicker = false
 
     var body: some View {
+        ZStack {
+            questsContent
+
+            if let levelUp = statsStore.pendingLevelUp {
+                LevelUpModalView(level: levelUp) {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        statsStore.pendingLevelUp = nil
+                    }
+                }
+                .zIndex(2)
+            }
+        }
+    }
+}
+
+private extension QuestsView {
+    var questsContent: some View {
         List {
             Section {
                 headerCard
@@ -77,9 +95,7 @@ struct QuestsView: View {
             Button(QuestChatStrings.QuestsView.rerollCancel, role: .cancel) {}
         }
     }
-}
 
-private extension QuestsView {
     var headerCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
