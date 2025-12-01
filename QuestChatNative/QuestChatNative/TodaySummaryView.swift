@@ -33,39 +33,41 @@ struct TodaySummaryView: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Today", systemImage: "sun.max.fill")
                 .font(.headline)
-                .foregroundStyle(.mint)
+                .foregroundStyle(.qcAccentPurpleBright)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Today: \(completedQuests) / \(totalQuests) quests done")
                     .font(.subheadline)
+                    .foregroundStyle(.white)
                 Text("Focus: \(focusMinutes) / \(dailyFocusTarget) minutes")
                     .font(.subheadline)
+                    .foregroundStyle(.white)
                 Text("Self care: \(selfCareMinutes) minutes")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.7))
             }
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(overallProgressLabel)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.7))
                 ProgressView(value: overallProgress)
                     .progressViewStyle(.linear)
-                    .tint(.mint)
+                    .tint(.qcAccentPurpleBright)
             }
 
             if currentStreakDays > 0 {
                 Text("On a \(currentStreakDays)-day streak. Don't break it!")
                     .font(.footnote)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.qcAccentPurple)
             }
         }
         .padding()
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
+        .background(Color.qcCardBackground)
         .cornerRadius(16)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                .stroke(Color.qcAccentPurple.opacity(0.25), lineWidth: 1)
         )
     }
 }

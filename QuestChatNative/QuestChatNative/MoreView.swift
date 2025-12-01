@@ -9,43 +9,46 @@ struct MoreView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "ellipsis.circle")
-                .foregroundStyle(.mint)
+                .foregroundStyle(.qcAccentPurpleBright)
                 .imageScale(.large)
             Text("More coming soon")
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.white.opacity(0.7))
 
             VStack(alignment: .leading, spacing: 12) {
                 Text("Focus duration")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.7))
                 Stepper(value: $focusDurationMinutes, in: 5...60) {
                     Text("\(focusDurationMinutes) minutes")
                         .font(.headline)
+                        .foregroundStyle(.white)
                 }
-                .tint(.mint)
+                .tint(.qcAccentPurple)
 
                 Text("Self care duration")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.7))
                 Stepper(value: $selfCareDurationMinutes, in: 3...20) {
                     Text("\(selfCareDurationMinutes) minutes")
                         .font(.headline)
+                        .foregroundStyle(.white)
                 }
-                .tint(.mint)
+                .tint(.qcAccentPurple)
 
                 Toggle(isOn: $hydrateNudgesEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Hydrate + posture nudges")
                             .font(.headline)
+                            .foregroundStyle(.white)
                         Text("In-app banners and local notifications when you cross focus milestones.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.white.opacity(0.7))
                     }
                 }
-                .tint(.mint)
+                .tint(.qcAccentPurpleBright)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(Color(uiColor: .secondarySystemBackground))
+            .background(Color.qcCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 12))
 
             Button {
@@ -57,11 +60,11 @@ struct MoreView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.mint)
+            .tint(.qcAccentPurple)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black.ignoresSafeArea())
+        .background(Color.qcPrimaryBackground.ignoresSafeArea())
     }
 }
 
