@@ -13,6 +13,28 @@ struct HealthBarCardView: View {
     @ObservedObject var viewModel: HealthBarViewModel
     var dailySummary: DailyProgressSummary?
 
+    private var header: some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Health")
+                    .font(.headline)
+                Text("HP: \(viewModel.hp)/100")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            StatPill(icon: "drop.fill", label: "Hydration", value: "\(viewModel.inputs.hydrationCount)")
+        }
+    }
+
+    private var statRow: some View {
+        HStack(spacing: 12) {
+            StatPill(icon: "drop.fill", label: "Hydration", value: "\(viewModel.inputs.hydrationCount)")
+            StatPill(icon: "hands.sparkles.fill", label: "Self-care", value: "\(viewModel.inputs.selfCareSessions)")
+            StatPill(icon: "bolt.fill", label: "Focus", value: "\(viewModel.inputs.focusSprints)")
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
