@@ -175,15 +175,14 @@ private extension QuestsView {
         }
     }
 
-    @ViewBuilder
     func tierColor(for tier: Quest.Tier) -> Color {
         switch tier {
         case .core:
-            return .blue
+            .blue
         case .habit:
-            return .teal
+            .teal
         case .bonus:
-            return .purple
+            .purple
         }
     }
 
