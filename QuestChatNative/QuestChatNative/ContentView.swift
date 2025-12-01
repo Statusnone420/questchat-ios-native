@@ -1,21 +1,30 @@
-//
-//  ContentView.swift
-//  QuestChatNative
-//
-//  Created by Anthony Gagliardo on 11/30/25.
-//
-
 import SwiftUI
 
+enum MainTab: Hashable {
+    case focus, quests, stats, more
+}
+
 struct ContentView: View {
+    @State private var selectedTab: MainTab = .focus
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        TabView(selection: $selectedTab) {
+            FocusView(viewModel: DependencyContainer.shared.makeFocusViewModel())
+                .tabItem { Label("Focus", systemImage: "timer") }
+                .tag(MainTab.focus)
+
+            QuestsView()
+                .tabItem { Label("Quests", systemImage: "list.bullet.rectangle") }
+                .tag(MainTab.quests)
+
+            StatsView()
+                .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
+                .tag(MainTab.stats)
+
+            MoreView()
+                .tabItem { Label("More", systemImage: "ellipsis.circle") }
+                .tag(MainTab.more)
         }
-        .padding()
     }
 }
 
