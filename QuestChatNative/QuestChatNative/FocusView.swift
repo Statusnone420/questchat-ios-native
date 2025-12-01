@@ -49,6 +49,7 @@ struct FocusView: View {
 
     private var focusMinutesToday: Int { viewModel.statsStore.focusSecondsToday / 60 }
     private var selfCareMinutesToday: Int { viewModel.statsStore.selfCareSecondsToday / 60 }
+    private var dailyFocusTarget: Int { viewModel.statsStore.dailyMinutesGoal ?? 40 }
 
     var body: some View {
         ZStack {
@@ -103,6 +104,25 @@ struct FocusView: View {
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
         .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.selectedCategoryID)
+        .sheet(
+            isPresented: Binding(
+                get: { viewModel.statsStore.shouldShowDailySetup },
+                set: { viewModel.statsStore.shouldShowDailySetup = $0 }
+            )
+        ) {
+            DailySetupSheet(
+                initialFocusArea: viewModel.statsStore.dailyConfig?.focusArea ?? .work,
+                initialEnergyLevel: .medium
+            ) { focusArea, energyLevel in
+                viewModel.statsStore.completeDailyConfig(focusArea: focusArea, energyLevel: energyLevel)
+                questsViewModel.markCoreQuests(for: focusArea)
+            }
+            .presentationDetents([.medium])
+            .interactiveDismissDisabled()
+        }
+        .onAppear {
+            viewModel.statsStore.refreshDailySetupIfNeeded()
+        }
     }
 
     @ViewBuilder
@@ -176,6 +196,40 @@ struct FocusView: View {
         .cornerRadius(16)
     }
 
+    private var dailyGoalCard: some View {
+        let goal = dailyFocusTarget
+        let progress = viewModel.statsStore.dailyMinutesProgress
+        let clampedProgress = min(Double(progress), Double(goal))
+
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("Daily focus goal", systemImage: "target")
+                    .font(.headline)
+                    .foregroundStyle(.mint)
+                Spacer()
+                if let focusArea = viewModel.statsStore.dailyConfig?.focusArea {
+                    Text("\(focusArea.emoji) \(focusArea.title)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Text("\(progress) / \(goal) minutes")
+                .font(.subheadline.bold())
+
+            ProgressView(value: clampedProgress, total: Double(goal))
+                .tint(.mint)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+        )
+    }
+
     private func expandedCard(for category: TimerCategory) -> some View {
         VStack(spacing: 18) {
             HStack(spacing: 12) {
@@ -211,6 +265,8 @@ struct FocusView: View {
 
             controlPanel
 
+            dailyGoalCard
+
             xpStrip
 
             TodaySummaryView(
@@ -218,7 +274,7 @@ struct FocusView: View {
                 totalQuests: questsViewModel.totalQuestsCount,
                 focusMinutes: focusMinutesToday,
                 selfCareMinutes: selfCareMinutesToday,
-                dailyFocusTarget: 40,
+                dailyFocusTarget: dailyFocusTarget,
                 currentStreakDays: viewModel.statsStore.currentStreakDays
             )
         }
@@ -561,6 +617,91 @@ private extension Color {
         )
     }
 
+}
+
+private struct DailySetupSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var selectedFocusArea: FocusArea
+    @State private var selectedEnergy: DailyEnergyLevel
+
+    let onComplete: (FocusArea, DailyEnergyLevel) -> Void
+
+    init(initialFocusArea: FocusArea, initialEnergyLevel: DailyEnergyLevel, onComplete: @escaping (FocusArea, DailyEnergyLevel) -> Void) {
+        _selectedFocusArea = State(initialValue: initialFocusArea)
+        _selectedEnergy = State(initialValue: initialEnergyLevel)
+        self.onComplete = onComplete
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Daily setup")
+                        .font(.title2.bold())
+                    Text("Pick where to focus and your energy. We'll set a realistic minute goal for today.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Focus area")
+                        .font(.headline)
+                    ForEach(FocusArea.allCases) { area in
+                        Button {
+                            selectedFocusArea = area
+                        } label: {
+                            HStack {
+                                Text(area.emoji)
+                                Text(area.title)
+                                    .font(.body)
+                                Spacer()
+                                if selectedFocusArea == area {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(.mint)
+                                }
+                            }
+                            .padding(10)
+                            .frame(maxWidth: .infinity)
+                            .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Energy level")
+                        .font(.headline)
+
+                    Picker("Energy", selection: $selectedEnergy) {
+                        ForEach(DailyEnergyLevel.allCases) { level in
+                            Text("\(level.emoji) \(level.title) - \(level.suggestedMinutes) min")
+                                .tag(level)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Spacer()
+
+                Button {
+                    onComplete(selectedFocusArea, selectedEnergy)
+                    dismiss()
+                } label: {
+                    Text("Save today")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(.mint)
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+            }
+            .padding()
+            .background(Color.black.ignoresSafeArea())
+        }
+    }
 }
 
 #Preview {

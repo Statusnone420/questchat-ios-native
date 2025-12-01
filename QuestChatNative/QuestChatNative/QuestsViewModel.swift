@@ -25,6 +25,7 @@ struct Quest: Identifiable, Equatable {
     let xpReward: Int
     let tier: Tier
     var isCompleted: Bool
+    var isCoreToday: Bool = false
 }
 
 final class QuestsViewModel: ObservableObject {
@@ -66,6 +67,10 @@ final class QuestsViewModel: ObservableObject {
         hasUsedRerollToday = userDefaults.bool(forKey: rerollKey)
         hasQuestChestReady = userDefaults.bool(forKey: questChestReadyKey)
         checkQuestChestRewardIfNeeded()
+
+        if let focusArea = statsStore.dailyConfig?.focusArea, !statsStore.shouldShowDailySetup {
+            markCoreQuests(for: focusArea)
+        }
     }
 
     var completedQuestsCount: Int {
@@ -114,6 +119,10 @@ final class QuestsViewModel: ObservableObject {
         hasUsedRerollToday = true
         userDefaults.set(true, forKey: rerollKey)
         persistCompletions()
+
+        if let focusArea = statsStore.dailyConfig?.focusArea, !statsStore.shouldShowDailySetup {
+            markCoreQuests(for: focusArea)
+        }
     }
 
     func claimQuestChest() {
@@ -123,6 +132,15 @@ final class QuestsViewModel: ObservableObject {
 
     var questChestRewardAmount: Int {
         Self.questChestBonusXP
+    }
+
+    func markCoreQuests(for focusArea: FocusArea) {
+        let desiredIDs = Set(Self.coreQuestIDs[focusArea] ?? [])
+        dailyQuests = dailyQuests.map { quest in
+            var updated = quest
+            updated.isCoreToday = desiredIDs.contains(quest.id)
+            return updated
+        }
     }
 }
 
@@ -136,6 +154,13 @@ private extension QuestsViewModel {
         Quest(id: "plan", title: "Plan a focus block", detail: "Schedule at least one focused session today.", xpReward: 30, tier: .core, isCompleted: false),
         Quest(id: "deep-focus", title: "Deep focus", detail: "Commit to 25 distraction-free minutes.", xpReward: 35, tier: .bonus, isCompleted: false),
         Quest(id: "gratitude", title: "Gratitude note", detail: "Write down one thing you're grateful for.", xpReward: 20, tier: .bonus, isCompleted: false)
+    ]
+
+    static let coreQuestIDs: [FocusArea: [String]] = [
+        .work: ["daily-checkin", "plan", "hydrate"],
+        .home: ["daily-checkin", "stretch", "hydrate"],
+        .health: ["stretch", "hydrate", "plan"],
+        .chill: ["daily-checkin", "stretch", "plan"]
     ]
 
     static func seedQuests(with completedIDs: Set<String>) -> [Quest] {

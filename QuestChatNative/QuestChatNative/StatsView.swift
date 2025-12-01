@@ -9,6 +9,12 @@ struct StatsView: View {
     private var selfCareMinutes: Int { store.selfCareSeconds / 60 }
     private var focusMinutesToday: Int { store.focusSecondsToday / 60 }
     private var selfCareMinutesToday: Int { store.selfCareSecondsToday / 60 }
+    private var dailyGoalMinutes: Int { store.dailyMinutesGoal ?? 40 }
+    private var dailyGoalProgress: Int { store.dailyMinutesProgress }
+    private var focusAreaLabel: String? {
+        guard let area = store.dailyConfig?.focusArea else { return nil }
+        return "\(area.emoji) \(area.title)"
+    }
     private var levelProgress: Double {
         let total = Double(store.xpForNextLevel)
         guard total > 0 else { return 0 }
@@ -28,9 +34,11 @@ struct StatsView: View {
                         totalQuests: questsViewModel.totalQuestsCount,
                         focusMinutes: focusMinutesToday,
                         selfCareMinutes: selfCareMinutesToday,
-                        dailyFocusTarget: 40,
+                        dailyFocusTarget: dailyGoalMinutes,
                         currentStreakDays: store.currentStreakDays
                     )
+
+                    dailyGoalCard
 
                     header
                     summaryTiles
@@ -148,6 +156,32 @@ struct StatsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
+        .cornerRadius(14)
+    }
+
+    private var dailyGoalCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Today's focus goal", systemImage: "target")
+                    .font(.headline)
+                    .foregroundStyle(.mint)
+                Spacer()
+                if let focusAreaLabel {
+                    Text(focusAreaLabel)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Text("\(dailyGoalProgress) / \(dailyGoalMinutes) minutes")
+                .font(.subheadline.bold())
+
+            ProgressView(value: Double(min(dailyGoalProgress, dailyGoalMinutes)), total: Double(dailyGoalMinutes))
+                .tint(.mint)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
         .cornerRadius(14)
     }

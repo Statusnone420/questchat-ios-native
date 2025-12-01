@@ -26,6 +26,9 @@ struct QuestsView: View {
                                             .font(.headline)
                                             .foregroundStyle(.primary)
                                         tierPill(for: quest)
+                                        if quest.isCoreToday {
+                                            corePill
+                                        }
                                     }
 
                                     Text(quest.detail)
@@ -123,6 +126,16 @@ private extension QuestsView {
             .padding(.vertical, 4)
             .background(tierColor(for: quest.tier).opacity(0.15))
             .foregroundStyle(tierColor(for: quest.tier))
+            .clipShape(Capsule())
+    }
+
+    var corePill: some View {
+        Text("Core")
+            .font(.caption2.bold())
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.blue.opacity(0.15))
+            .foregroundStyle(Color.blue)
             .clipShape(Capsule())
     }
 

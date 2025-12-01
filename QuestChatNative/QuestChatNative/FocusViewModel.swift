@@ -73,6 +73,81 @@ struct TimerCategory: Identifiable, Equatable {
     }
 }
 
+enum FocusArea: String, CaseIterable, Identifiable, Codable {
+    case work
+    case home
+    case health
+    case chill
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .work:
+            return "Work"
+        case .home:
+            return "Home"
+        case .health:
+            return "Health"
+        case .chill:
+            return "Chill"
+        }
+    }
+
+    var emoji: String {
+        switch self {
+        case .work:
+            return "💼"
+        case .home:
+            return "🏡"
+        case .health:
+            return "💪"
+        case .chill:
+            return "😌"
+        }
+    }
+}
+
+struct DailyConfig: Codable {
+    let date: Date
+    let focusArea: FocusArea
+    let dailyMinutesGoal: Int
+}
+
+enum DailyEnergyLevel: String, CaseIterable, Identifiable {
+    case low
+    case medium
+    case high
+
+    var id: String { rawValue }
+
+    var title: String {
+        rawValue.capitalized
+    }
+
+    var suggestedMinutes: Int {
+        switch self {
+        case .low:
+            return 20
+        case .medium:
+            return 40
+        case .high:
+            return 60
+        }
+    }
+
+    var emoji: String {
+        switch self {
+        case .low:
+            return "🌙"
+        case .medium:
+            return "🌤️"
+        case .high:
+            return "☀️"
+        }
+    }
+}
+
 /// Stores session stats and persists them in UserDefaults for now.
 final class SessionStatsStore: ObservableObject {
     struct SessionRecord: Identifiable, Codable {
@@ -89,6 +164,8 @@ final class SessionStatsStore: ObservableObject {
     @Published private(set) var sessionHistory: [SessionRecord]
     @Published private(set) var totalFocusSecondsToday: Int
     @Published var pendingLevelUp: Int?
+    @Published private(set) var dailyConfig: DailyConfig?
+    @Published var shouldShowDailySetup: Bool = false
 
     private(set) var lastKnownLevel: Int
 
@@ -139,6 +216,12 @@ final class SessionStatsStore: ObservableObject {
         return "\(xp) XP earned so far."
     }
 
+    var dailyMinutesGoal: Int? { dailyConfig?.dailyMinutesGoal }
+
+    var dailyMinutesProgress: Int {
+        totalFocusSecondsToday / 60
+    }
+
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
         focusSeconds = userDefaults.integer(forKey: Keys.focusSeconds)
@@ -177,6 +260,10 @@ final class SessionStatsStore: ObservableObject {
         lastKnownLevel = storedLevel > 0 ? storedLevel : initialLevel
         pendingLevelUp = nil
 
+        let storedConfig = Self.decodeConfig(from: userDefaults.data(forKey: Keys.dailyConfig))
+        dailyConfig = storedConfig
+        shouldShowDailySetup = !Self.isConfigValidForToday(storedConfig)
+
         // Now that all stored properties are initialized, persist any needed resets.
         if needsDateReset {
             userDefaults.set(today, forKey: Keys.totalFocusDate)
@@ -190,6 +277,8 @@ final class SessionStatsStore: ObservableObject {
                 userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
             }
         }
+
+        refreshDailySetupIfNeeded()
     }
 
     @discardableResult
@@ -216,6 +305,28 @@ final class SessionStatsStore: ObservableObject {
 
     func refreshDailyFocusTotal() {
         refreshDailyTotalsIfNeeded()
+    }
+
+    func refreshDailySetupIfNeeded() {
+        let today = Calendar.current.startOfDay(for: Date())
+        let isValid = Self.isConfigValidForToday(dailyConfig, today: today)
+        if !isValid {
+            dailyConfig = nil
+            persistDailyConfig(nil)
+        }
+        shouldShowDailySetup = !isValid
+    }
+
+    func completeDailyConfig(focusArea: FocusArea, energyLevel: DailyEnergyLevel) {
+        let today = Calendar.current.startOfDay(for: Date())
+        let config = DailyConfig(
+            date: today,
+            focusArea: focusArea,
+            dailyMinutesGoal: energyLevel.suggestedMinutes
+        )
+        dailyConfig = config
+        shouldShowDailySetup = false
+        persistDailyConfig(config)
     }
 
     func recordSessionHistory(mode: FocusTimerMode, duration: Int) {
@@ -263,6 +374,7 @@ final class SessionStatsStore: ObservableObject {
         static let lastKnownLevel = "lastKnownLevel"
         static let totalFocusSecondsToday = "totalFocusSecondsToday"
         static let totalFocusDate = "totalFocusDate"
+        static let dailyConfig = "dailyConfig"
     }
 
     private var todaySessions: [SessionRecord] {
@@ -281,6 +393,7 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(lastKnownLevel, forKey: Keys.lastKnownLevel)
         userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
         userDefaults.set(Calendar.current.startOfDay(for: Date()), forKey: Keys.totalFocusDate)
+        persistDailyConfig(dailyConfig)
         persistSessionHistory()
     }
 
@@ -300,6 +413,28 @@ final class SessionStatsStore: ObservableObject {
         totalFocusSecondsToday = 0
         userDefaults.set(today, forKey: Keys.totalFocusDate)
         userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
+        refreshDailySetupIfNeeded()
+    }
+
+    private func persistDailyConfig(_ config: DailyConfig?) {
+        guard let config else {
+            userDefaults.removeObject(forKey: Keys.dailyConfig)
+            return
+        }
+
+        if let data = try? JSONEncoder().encode(config) {
+            userDefaults.set(data, forKey: Keys.dailyConfig)
+        }
+    }
+
+    private static func decodeConfig(from data: Data?) -> DailyConfig? {
+        guard let data else { return nil }
+        return try? JSONDecoder().decode(DailyConfig.self, from: data)
+    }
+
+    private static func isConfigValidForToday(_ config: DailyConfig?, today: Date = Calendar.current.startOfDay(for: Date())) -> Bool {
+        guard let config else { return false }
+        return Calendar.current.isDate(config.date, inSameDayAs: today)
     }
 
     var currentStreakDays: Int {
