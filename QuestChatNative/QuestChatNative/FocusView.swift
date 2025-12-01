@@ -239,7 +239,7 @@ struct FocusView: View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
                 Button(action: {
-                    animateButtonPress(scale: &primaryButtonScale)
+                    animateButtonPress(scale: $primaryButtonScale)
                     viewModel.startOrPause()
                 }) {
                     Label(viewModel.isRunning ? "Pause" : "Start",
@@ -252,7 +252,7 @@ struct FocusView: View {
                 .scaleEffect(primaryButtonScale)
 
                 Button(role: .destructive, action: {
-                    animateButtonPress(scale: &resetButtonScale)
+                    animateButtonPress(scale: $resetButtonScale)
                     viewModel.reset()
                 }) {
                     Label("Reset", systemImage: "arrow.counterclockwise")
@@ -319,13 +319,13 @@ struct FocusView: View {
         .cornerRadius(14)
     }
 
-    private func animateButtonPress(scale: inout CGFloat) {
+    private func animateButtonPress(scale: Binding<CGFloat>) {
         withAnimation(.spring(response: 0.25, dampingFraction: 0.65)) {
-            scale = 1.06
+            scale.wrappedValue = 1.06
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                scale = 1.0
+                scale.wrappedValue = 1.0
             }
         }
     }
