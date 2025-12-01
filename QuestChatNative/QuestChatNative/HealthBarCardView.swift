@@ -118,18 +118,51 @@ struct GutStatusPicker: View {
                 .font(.caption)
                 .foregroundStyle(.orange)
 
-            PillPicker(options: GutStatus.allCases, selected: selected, highlightColor: .orange, labelProvider: statusLabel) { status in
-                onSelect(status)
+            HStack(spacing: 8) {
+                ForEach(GutStatus.allCases, id: \.self) { status in
+                    let isSelected = status == selected
+
+                    Button {
+                        onSelect(status)
+                    } label: {
+                        gutChip(for: status, isSelected: isSelected)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }
 
-    private func statusLabel(_ status: GutStatus) -> String {
+    private func gutChip(for status: GutStatus, isSelected: Bool) -> some View {
         switch status {
-        case .none: return "—"
-        case .great: return "Great"
-        case .meh: return "Meh"
-        case .rough: return "Rough"
+        case .none:
+            return StatusIconChip(
+                systemName: "slash.circle",
+                baseColor: .gray,
+                isSelected: isSelected,
+                accessibilityLabel: "Gut: not logged"
+            )
+        case .great:
+            return StatusIconChip(
+                systemName: "checkmark.circle.fill",
+                baseColor: .green,
+                isSelected: isSelected,
+                accessibilityLabel: "Gut: great"
+            )
+        case .meh:
+            return StatusIconChip(
+                systemName: "minus.circle.fill",
+                baseColor: .yellow,
+                isSelected: isSelected,
+                accessibilityLabel: "Gut: meh"
+            )
+        case .rough:
+            return StatusIconChip(
+                systemName: "xmark.circle.fill",
+                baseColor: .red,
+                isSelected: isSelected,
+                accessibilityLabel: "Gut: rough"
+            )
         }
     }
 }
@@ -144,18 +177,51 @@ struct MoodStatusPicker: View {
                 .font(.caption)
                 .foregroundStyle(.purple)
 
-            PillPicker(options: MoodStatus.allCases, selected: selected, highlightColor: .teal, labelProvider: statusLabel) { status in
-                onSelect(status)
+            HStack(spacing: 8) {
+                ForEach(MoodStatus.allCases, id: \.self) { status in
+                    let isSelected = status == selected
+
+                    Button {
+                        onSelect(status)
+                    } label: {
+                        moodChip(for: status, isSelected: isSelected)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }
 
-    private func statusLabel(_ status: MoodStatus) -> String {
+    private func moodChip(for status: MoodStatus, isSelected: Bool) -> some View {
         switch status {
-        case .none: return "—"
-        case .good: return "Good"
-        case .neutral: return "Neutral"
-        case .bad: return "Bad"
+        case .none:
+            return StatusIconChip(
+                systemName: "slash.circle",
+                baseColor: .gray,
+                isSelected: isSelected,
+                accessibilityLabel: "Mood: not logged"
+            )
+        case .good:
+            return StatusIconChip(
+                systemName: "face.smiling",
+                baseColor: .green,
+                isSelected: isSelected,
+                accessibilityLabel: "Mood: good"
+            )
+        case .neutral:
+            return StatusIconChip(
+                systemName: "face.neutral",
+                baseColor: .yellow,
+                isSelected: isSelected,
+                accessibilityLabel: "Mood: neutral"
+            )
+        case .bad:
+            return StatusIconChip(
+                systemName: "face.frown",
+                baseColor: .red,
+                isSelected: isSelected,
+                accessibilityLabel: "Mood: bad"
+            )
         }
     }
 }
@@ -207,6 +273,31 @@ struct StatusChip: View {
             )
             .foregroundStyle(isSelected ? highlightColor : .primary)
             .clipShape(Capsule())
+    }
+}
+
+struct StatusIconChip: View {
+    let systemName: String
+    let baseColor: Color
+    let isSelected: Bool
+    let accessibilityLabel: String
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 16, weight: .semibold))
+            .frame(width: 40, height: 32)
+            .foregroundColor(isSelected ? .black : baseColor)
+            .background(
+                Capsule()
+                    .fill(isSelected ? baseColor : Color(.secondarySystemBackground))
+            )
+            .overlay(
+                Capsule()
+                    .stroke(baseColor.opacity(isSelected ? 1.0 : 0.4), lineWidth: 1)
+            )
+            .scaleEffect(isSelected ? 1.05 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isSelected)
+            .accessibilityLabel(Text(accessibilityLabel))
     }
 }
 
