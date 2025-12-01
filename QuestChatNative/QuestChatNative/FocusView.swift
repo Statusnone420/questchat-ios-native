@@ -65,20 +65,6 @@ struct FocusView: View {
         return days > 0 ? "\(days)-day streak" : "Start your streak"
     }
 
-    private var momentumStatusText: String {
-        let value = viewModel.statsStore.currentMomentum
-        switch value {
-        case let value where value >= 1.0:
-            return "Momentum: ready!"
-        case let value where value >= 0.5:
-            return "Momentum: almost there"
-        case let value where value > 0:
-            return "Momentum: charging"
-        default:
-            return "Momentum: start a session"
-        }
-    }
-
     var body: some View {
         ZStack {
             NavigationStack {
@@ -87,13 +73,11 @@ struct FocusView: View {
                         compactStatusHeader
                         todayQuestBanner
 
-                        ForEach(viewModel.categories) { category in
-                            if category.id == viewModel.selectedCategoryID {
-                                expandedCard(for: category)
-                            } else {
-                                collapsedCard(for: category)
-                            }
+                        if let selectedCategory = viewModel.selectedCategory {
+                            heroCard(for: selectedCategory)
                         }
+
+                        quickTimersList
 
                         reminderCard
                     }
@@ -179,11 +163,18 @@ struct FocusView: View {
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground).opacity(0.1))
+                .fill(Color(uiColor: .secondarySystemBackground).opacity(0.16))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.mint.opacity(0.5), Color.cyan.opacity(0.35), Color.purple.opacity(0.2)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
         )
     }
 
@@ -244,132 +235,66 @@ struct FocusView: View {
         }
     }
 
-    private var momentumStrip: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label("Momentum", systemImage: "bolt.fill")
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.yellow)
-                Spacer()
-                Text(momentumStatusText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+    private func heroCard(for category: TimerCategory) -> some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(alignment: .top, spacing: 14) {
+                Text(category.emoji)
+                    .font(.system(size: 46))
+                    .matchedGeometryEffect(id: "emoji-\(category.id)", in: categoryAnimation)
 
-            ProgressView(value: viewModel.statsStore.currentMomentum, total: 1)
-                .tint(.yellow)
-                .progressViewStyle(.linear)
-        }
-        .padding()
-        .background(.ultraThinMaterial.opacity(0.12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
-        )
-        .cornerRadius(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var dailyGoalCard: some View {
-        let goal = dailyFocusTarget
-        let progress = viewModel.statsStore.dailyMinutesProgress
-        let clampedProgress = min(Double(progress), Double(goal))
-
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label("Daily focus goal", systemImage: "target")
-                    .font(.headline)
-                    .foregroundStyle(.mint)
-                Spacer()
-                if let focusArea = viewModel.statsStore.dailyConfig?.focusArea {
-                    Text("\(focusArea.emoji) \(focusArea.title)")
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(category.name)
+                        .font(.title.bold())
+                        .matchedGeometryEffect(id: "title-\(category.id)", in: categoryAnimation)
+                    Text(category.description)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .matchedGeometryEffect(id: "subtitle-\(category.id)", in: categoryAnimation)
+
+                    comboPill(for: category)
                 }
+
+                Spacer(minLength: 0)
+
+                Button {
+                    tempDurationMinutes = category.durationMinutes
+                    isShowingDurationPicker = true
+                } label: {
+                    Text("\(category.durationMinutes) min")
+                        .font(.headline)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color.mint.opacity(0.16))
+                        .clipShape(Capsule())
+                        .matchedGeometryEffect(id: "duration-\(category.id)", in: categoryAnimation)
+                }
+                .buttonStyle(.plain)
             }
-
-            Text("\(progress) / \(goal) minutes")
-                .font(.subheadline.bold())
-
-            ProgressView(value: clampedProgress, total: Double(goal))
-                .tint(.mint)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
-        )
-        .frame(maxWidth: .infinity)
-    }
-
-    private func expandedCard(for category: TimerCategory) -> some View {
-            VStack(spacing: 18) {
-                HStack(spacing: 12) {
-                    Text(category.emoji)
-                        .font(.largeTitle)
-                        .matchedGeometryEffect(id: "emoji-\(category.id)", in: categoryAnimation)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(category.name)
-                            .font(.title2.bold())
-                            .matchedGeometryEffect(id: "title-\(category.id)", in: categoryAnimation)
-                        Text(category.description)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .matchedGeometryEffect(id: "subtitle-\(category.id)", in: categoryAnimation)
-                        comboPill(for: category)
-                    }
-                    Spacer()
-                    VStack(spacing: 8) {
-                        Button {
-                            tempDurationMinutes = category.durationMinutes
-                            isShowingDurationPicker = true
-                        } label: {
-                            Text("\(category.durationMinutes) min")
-                                .font(.headline)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(Color.mint.opacity(0.16))
-                                .clipShape(Capsule())
-                                .matchedGeometryEffect(id: "duration-\(category.id)", in: categoryAnimation)
-                        }
-                        .buttonStyle(.plain)
-
-                        durationControl(for: category)
-                    }
-                }
 
             timerRing
 
             controlPanel
-
-            HStack(spacing: 12) {
-                dailyGoalCard
-                momentumStrip
-            }
         }
-        .padding(22)
+        .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
                 .fill(Color(uiColor: .secondarySystemBackground).opacity(0.22))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
                 .strokeBorder(
                     LinearGradient(
-                        colors: [Color.mint.opacity(0.4), Color.cyan.opacity(0.25), Color.purple.opacity(0.18)],
+                        colors: [Color.mint.opacity(0.4), Color.cyan.opacity(0.3), Color.purple.opacity(0.2)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 1.4
+                    lineWidth: 1.6
                 )
         )
-        .shadow(color: Color.black.opacity(0.35), radius: 18, x: 0, y: 10)
-        .shadow(color: Color.mint.opacity(0.2), radius: 12, x: 0, y: 6)
-        .shadow(color: Color.white.opacity(0.08), radius: 6, x: 0, y: 0)
+        .shadow(color: Color.black.opacity(0.35), radius: 20, x: 0, y: 12)
+        .shadow(color: Color.mint.opacity(0.22), radius: 14, x: 0, y: 8)
+        .padding(.top, 4)
         .scaleEffect(heroCardScale)
         .opacity(heroCardOpacity)
         .onAppear {
@@ -382,21 +307,42 @@ struct FocusView: View {
             if let nudge = viewModel.activeHydrationNudge {
                 hydrationBanner(nudge: nudge)
                     .padding(.horizontal, 12)
+                    .padding(.top, -6)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
     }
 
-    private func collapsedCard(for category: TimerCategory) -> some View {
+    private var quickTimersList: some View {
+        let otherCategories = viewModel.categories.filter { $0.id != viewModel.selectedCategoryID }
+
+        return VStack(alignment: .leading, spacing: 12) {
+            if !otherCategories.isEmpty {
+                Text("Quick timers")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+
+                VStack(spacing: 10) {
+                    ForEach(otherCategories) { category in
+                        quickTimerTile(for: category)
+                    }
+                }
+            }
+        }
+    }
+
+    private func quickTimerTile(for category: TimerCategory) -> some View {
         Button {
+            guard !viewModel.isRunning else { return }
             withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
                 viewModel.selectCategory(category)
             }
         } label: {
             HStack(spacing: 12) {
                 Text(category.emoji)
-                    .font(.title2)
+                    .font(.title3)
                     .matchedGeometryEffect(id: "emoji-\(category.id)", in: categoryAnimation)
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(category.name)
                         .font(.headline)
@@ -407,7 +353,9 @@ struct FocusView: View {
                         .foregroundStyle(.secondary)
                         .matchedGeometryEffect(id: "subtitle-\(category.id)", in: categoryAnimation)
                 }
+
                 Spacer()
+
                 Text("\(category.durationMinutes) min")
                     .font(.subheadline.bold())
                     .foregroundStyle(.secondary)
@@ -421,10 +369,11 @@ struct FocusView: View {
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(Color.white.opacity(0.06), lineWidth: 1)
             )
-            .shadow(color: Color.black.opacity(0.22), radius: 12, x: 0, y: 8)
+            .opacity(viewModel.isRunning ? 0.6 : 1)
             .contentShape(Rectangle())
         }
         .buttonStyle(PressableCardStyle())
+        .disabled(viewModel.isRunning)
     }
 
     @ViewBuilder
@@ -462,32 +411,6 @@ struct FocusView: View {
         .presentationDetents([.fraction(0.35), .medium])
         .presentationDragIndicator(.visible)
         .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
-    }
-
-    private func durationControl(for category: TimerCategory) -> some View {
-        let isDisabled = viewModel.isRunning && category.id == viewModel.selectedCategoryID
-
-        return HStack(spacing: 8) {
-            durationStepButton(systemName: "minus", disabled: isDisabled) {
-                viewModel.updateDuration(for: category, to: category.durationMinutes - 5)
-            }
-
-            durationStepButton(systemName: "plus", disabled: isDisabled) {
-                viewModel.updateDuration(for: category, to: category.durationMinutes + 5)
-            }
-        }
-    }
-
-    private func durationStepButton(systemName: String, disabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.subheadline.bold())
-                .frame(width: 32, height: 32)
-        }
-        .buttonStyle(.bordered)
-        .tint(.mint)
-        .disabled(disabled)
-        .opacity(disabled ? 0.45 : 1)
     }
 
     private var timerRing: some View {
