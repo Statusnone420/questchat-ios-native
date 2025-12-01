@@ -57,17 +57,6 @@ struct FocusView: View {
         return QuestChatStrings.FocusView.streakProgress(days: days)
     }
 
-    private var dailySummary: DailyProgressSummary {
-        DailyProgressSummary(
-            questsTitle: QuestChatStrings.FocusView.headerQuestsTitle,
-            questsValue: questSummaryText,
-            todayTitle: QuestChatStrings.FocusView.headerTodayTitle,
-            todayValue: minutesSummaryText,
-            streakTitle: QuestChatStrings.FocusView.headerStreakTitle,
-            streakValue: streakSummaryText
-        )
-    }
-
     init(viewModel: FocusViewModel, healthBarViewModel: HealthBarViewModel, selectedTab: Binding<MainTab>) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _healthBarViewModel = ObservedObject(wrappedValue: healthBarViewModel)
@@ -84,7 +73,8 @@ struct FocusView: View {
             NavigationStack {
                 ScrollView {
                     VStack(spacing: 20) {
-                        HealthBarCardView(viewModel: healthBarViewModel, dailySummary: dailySummary)
+                        HealthBarCardView(viewModel: healthBarViewModel)
+                        compactStatusHeader
                         todayQuestBanner
 
                         if let selectedCategory = viewModel.selectedCategoryData {
@@ -161,6 +151,44 @@ struct FocusView: View {
         .onAppear {
             statsStore.refreshDailySetupIfNeeded()
         }
+    }
+
+    @ViewBuilder
+    private var compactStatusHeader: some View {
+        HStack(spacing: 12) {
+            headerItem(title: QuestChatStrings.FocusView.headerQuestsTitle, value: questSummaryText, icon: "checkmark.circle.fill", tint: .mint)
+            headerItem(title: QuestChatStrings.FocusView.headerTodayTitle, value: minutesSummaryText, icon: "timer", tint: .cyan)
+            headerItem(title: QuestChatStrings.FocusView.headerStreakTitle, value: streakSummaryText, icon: "flame.fill", tint: .orange)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground).opacity(0.16))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.mint.opacity(0.5), Color.cyan.opacity(0.35), Color.purple.opacity(0.2)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
+    }
+
+    private func headerItem(title: String, value: String, icon: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(title, systemImage: icon)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+            Text(value)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
