@@ -48,6 +48,31 @@ enum FocusTimerMode: String, CaseIterable, Identifiable {
     }
 }
 
+struct TimerCategory: Identifiable, Equatable {
+    let id: UUID
+    let name: String
+    let emoji: String
+    let description: String
+    let defaultDurationMinutes: Int
+    let mode: FocusTimerMode
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        emoji: String,
+        description: String,
+        defaultDurationMinutes: Int,
+        mode: FocusTimerMode
+    ) {
+        self.id = id
+        self.name = name
+        self.emoji = emoji
+        self.description = description
+        self.defaultDurationMinutes = defaultDurationMinutes
+        self.mode = mode
+    }
+}
+
 /// Stores session stats and persists them in UserDefaults for now.
 final class SessionStatsStore: ObservableObject {
     struct SessionRecord: Identifiable, Codable {
@@ -359,6 +384,8 @@ final class FocusViewModel: ObservableObject {
     @Published var selectedMode: FocusTimerMode = .focus {
         didSet { resetForModeChange(cancelFocusBlock: !isAutomatedModeSwitch) }
     }
+    @Published var categories: [TimerCategory]
+    @Published var selectedCategoryID: TimerCategory.ID
     @Published var lastCompletedSession: SessionSummary?
     @Published var activeHydrationNudge: HydrationNudge?
     @Published var isFocusBlockEnabled: Bool = false {
@@ -379,6 +406,7 @@ final class FocusViewModel: ObservableObject {
     private let notificationCenter = UNUserNotificationCenter.current()
     private let userDefaults = UserDefaults.standard
     private var isAutomatedModeSwitch = false
+    private var isAutomatedCategorySwitch = false
 
     let focusBlockTotalCycles: Int = 3
 
@@ -387,13 +415,25 @@ final class FocusViewModel: ObservableObject {
         initialMode: FocusTimerMode = .focus
     ) {
         self.statsStore = statsStore
-        selectedMode = initialMode
-        secondsRemaining = initialMode.duration
+        let seededCategories = FocusViewModel.seededCategories()
+        categories = seededCategories
+        let initialCategory = seededCategories.first { $0.mode == initialMode } ?? seededCategories[0]
+        selectedCategoryID = initialCategory.id
+        selectedMode = initialCategory.mode
+        secondsRemaining = initialCategory.defaultDurationMinutes * 60
         requestNotificationAuthorization()
     }
 
+    var selectedCategory: TimerCategory? {
+        categories.first { $0.id == selectedCategoryID }
+    }
+
+    private var currentDuration: Int {
+        selectedCategory.map { $0.defaultDurationMinutes * 60 } ?? selectedMode.duration
+    }
+
     var progress: Double {
-        let total = Double(selectedMode.duration)
+        let total = Double(currentDuration)
         guard total > 0 else { return 0 }
         let value = 1 - (Double(secondsRemaining) / total)
         return min(max(value, 0), 1)
@@ -407,7 +447,7 @@ final class FocusViewModel: ObservableObject {
             stopTimer(triggerHaptic: true)
         } else {
             if secondsRemaining == 0 {
-                secondsRemaining = selectedMode.duration
+                secondsRemaining = currentDuration
                 hasFinishedOnce = false
             }
             if isFocusBlockEnabled {
@@ -420,9 +460,22 @@ final class FocusViewModel: ObservableObject {
     /// Resets the timer back to the full duration and clears completion state.
     func reset() {
         stopTimer()
-        secondsRemaining = selectedMode.duration
+        secondsRemaining = currentDuration
         hasFinishedOnce = false
         deactivateFocusBlock()
+    }
+
+    func selectCategory(_ category: TimerCategory) {
+        guard category.id != selectedCategoryID else { return }
+
+        if isRunning {
+            reset()
+        }
+
+        selectedCategoryID = category.id
+        selectedMode = category.mode
+        secondsRemaining = category.defaultDurationMinutes * 60
+        hasFinishedOnce = false
     }
 
     private func startTimer() {
@@ -457,12 +510,12 @@ final class FocusViewModel: ObservableObject {
         hasFinishedOnce = true
         statsStore.refreshDailyFocusTotal()
         let previousFocusTotal = statsStore.totalFocusSecondsToday
-        let xpGained = statsStore.recordSession(mode: selectedMode, duration: selectedMode.duration)
+        let xpGained = statsStore.recordSession(mode: selectedMode, duration: currentDuration)
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         withAnimation(.easeInOut(duration: 0.25)) {
             lastCompletedSession = SessionSummary(
                 mode: selectedMode,
-                duration: selectedMode.duration,
+                duration: currentDuration,
                 xpGained: xpGained,
                 timestamp: Date()
             )
@@ -475,7 +528,9 @@ final class FocusViewModel: ObservableObject {
 
     private func resetForModeChange(cancelFocusBlock: Bool) {
         stopTimer()
-        secondsRemaining = selectedMode.duration
+        if !isAutomatedCategorySwitch {
+            secondsRemaining = currentDuration
+        }
         hasFinishedOnce = false
         if cancelFocusBlock {
             deactivateFocusBlock()
@@ -580,7 +635,7 @@ final class FocusViewModel: ObservableObject {
         isFocusBlockActive = true
         currentCycleIndex = 0
         setMode(.focus, automated: true)
-        secondsRemaining = selectedMode.duration
+        secondsRemaining = currentDuration
         hasFinishedOnce = false
     }
 
@@ -602,14 +657,14 @@ final class FocusViewModel: ObservableObject {
 
     private func transitionToSelfCare() {
         setMode(.selfCare, automated: true)
-        secondsRemaining = selectedMode.duration
+        secondsRemaining = currentDuration
         hasFinishedOnce = false
         startTimer()
     }
 
     private func startNextFocusCycle() {
         setMode(.focus, automated: true)
-        secondsRemaining = selectedMode.duration
+        secondsRemaining = currentDuration
         hasFinishedOnce = false
         startTimer()
     }
@@ -625,8 +680,71 @@ final class FocusViewModel: ObservableObject {
 
     private func setMode(_ mode: FocusTimerMode, automated: Bool) {
         isAutomatedModeSwitch = automated
+        selectCategoryForMode(mode, automated: automated)
         selectedMode = mode
         isAutomatedModeSwitch = false
+    }
+
+    private func selectCategoryForMode(_ mode: FocusTimerMode, automated: Bool) {
+        guard let category = categories.first(where: { $0.mode == mode }) else { return }
+        guard category.id != selectedCategoryID else { return }
+
+        if automated {
+            isAutomatedCategorySwitch = true
+            selectedCategoryID = category.id
+            isAutomatedCategorySwitch = false
+        } else {
+            selectCategory(category)
+        }
+    }
+}
+
+extension FocusViewModel {
+    static func seededCategories() -> [TimerCategory] {
+        [
+            TimerCategory(
+                name: "Deep focus",
+                emoji: "💡",
+                description: "Heads-down work, minimize distractions",
+                defaultDurationMinutes: 25,
+                mode: .focus
+            ),
+            TimerCategory(
+                name: "Work sprint",
+                emoji: "🧠",
+                description: "Ship tasks and quests fast",
+                defaultDurationMinutes: 45,
+                mode: .focus
+            ),
+            TimerCategory(
+                name: "Chores sprint",
+                emoji: "🧹",
+                description: "Quick tidy-up and reset",
+                defaultDurationMinutes: 15,
+                mode: .focus
+            ),
+            TimerCategory(
+                name: "Self care reset",
+                emoji: "💆‍♀️",
+                description: "Move, breathe, hydrate",
+                defaultDurationMinutes: 5,
+                mode: .selfCare
+            ),
+            TimerCategory(
+                name: "Gaming reset",
+                emoji: "🎮",
+                description: "Stretch between matches",
+                defaultDurationMinutes: 10,
+                mode: .selfCare
+            ),
+            TimerCategory(
+                name: "Quick break",
+                emoji: "☕️",
+                description: "Step away and unplug",
+                defaultDurationMinutes: 8,
+                mode: .selfCare
+            ),
+        ]
     }
 }
 

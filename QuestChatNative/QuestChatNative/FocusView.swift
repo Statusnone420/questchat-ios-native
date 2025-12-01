@@ -54,23 +54,16 @@ struct FocusView: View {
         ZStack {
             NavigationStack {
                 ScrollView {
-                    VStack(spacing: 24) {
+                    VStack(spacing: 20) {
                         todayQuestBanner
 
-                        xpStrip
-
-                        TodaySummaryView(
-                            completedQuests: questsViewModel.completedQuestsCount,
-                            totalQuests: questsViewModel.totalQuestsCount,
-                            focusMinutes: focusMinutesToday,
-                            selfCareMinutes: selfCareMinutesToday,
-                            dailyFocusTarget: 40,
-                            currentStreakDays: viewModel.statsStore.currentStreakDays
-                        )
-
-                        timerCard
-
-                        controlPanel
+                        ForEach(viewModel.categories) { category in
+                            if category.id == viewModel.selectedCategoryID {
+                                expandedCard(for: category)
+                            } else {
+                                collapsedCard(for: category)
+                            }
+                        }
 
                         reminderCard
                     }
@@ -109,6 +102,7 @@ struct FocusView: View {
         .animation(.easeInOut(duration: 0.25), value: viewModel.statsStore.pendingLevelUp)
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
         .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.selectedCategoryID)
     }
 
     @ViewBuilder
@@ -182,19 +176,30 @@ struct FocusView: View {
         .cornerRadius(16)
     }
 
-    private var timerCard: some View {
-        VStack(spacing: 16) {
+    private func expandedCard(for category: TimerCategory) -> some View {
+        VStack(spacing: 18) {
+            HStack(spacing: 12) {
+                Text(category.emoji)
+                    .font(.largeTitle)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(category.name)
+                        .font(.title2.bold())
+                    Text(category.description)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text("\(category.defaultDurationMinutes) min")
+                    .font(.headline)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.mint.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+
             Picker("Session type", selection: $viewModel.isFocusBlockEnabled) {
                 Text("Single session").tag(false)
                 Text("Focus block (3x)").tag(true)
-            }
-            .pickerStyle(.segmented)
-
-            Picker("Mode", selection: $viewModel.selectedMode) {
-                ForEach(FocusTimerMode.allCases) { mode in
-                    Label(mode.title, systemImage: mode.accentSystemImage)
-                        .tag(mode)
-                }
             }
             .pickerStyle(.segmented)
 
@@ -202,42 +207,23 @@ struct FocusView: View {
                 focusBlockIndicator
             }
 
-            ZStack {
-                Circle()
-                    .stroke(Color.gray.opacity(0.35), lineWidth: 18)
-                Circle()
-                    .trim(from: 0, to: viewModel.progress)
-                    .stroke(AngularGradient(colors: ringColors, center: .center), style: StrokeStyle(lineWidth: 18, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .scaleEffect(1 + (0.06 * warningFraction))
-                    .animation(
-                        .easeInOut(duration: 0.3),
-                        value: viewModel.progress
-                    )
-                    .animation(
-                        .easeInOut(duration: 0.6).repeatForever(autoreverses: true),
-                        value: warningFraction > 0
-                    )
-                    .animation(
-                        .easeInOut(duration: 0.3),
-                        value: warningFraction
-                    )
+            timerRing
 
-                VStack(spacing: 8) {
-                    Text(formattedTime)
-                        .font(.system(size: 64, weight: .black, design: .rounded))
-                        .monospacedDigit()
-                    Text(accessoryText)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 280)
-            .padding(.vertical)
+            controlPanel
+
+            xpStrip
+
+            TodaySummaryView(
+                completedQuests: questsViewModel.completedQuestsCount,
+                totalQuests: questsViewModel.totalQuestsCount,
+                focusMinutes: focusMinutesToday,
+                selfCareMinutes: selfCareMinutesToday,
+                dailyFocusTarget: 40,
+                currentStreakDays: viewModel.statsStore.currentStreakDays
+            )
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
         .cornerRadius(24)
         .overlay(
@@ -251,6 +237,75 @@ struct FocusView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
+    }
+
+    private func collapsedCard(for category: TimerCategory) -> some View {
+        Button {
+            withAnimation { viewModel.selectCategory(category) }
+        } label: {
+            HStack(spacing: 12) {
+                Text(category.emoji)
+                    .font(.title2)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(category.name)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text(category.description)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text("\(category.defaultDurationMinutes) min")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.secondary)
+            }
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.12))
+            .cornerRadius(18)
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var timerRing: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.gray.opacity(0.35), lineWidth: 18)
+            Circle()
+                .trim(from: 0, to: viewModel.progress)
+                .stroke(AngularGradient(colors: ringColors, center: .center), style: StrokeStyle(lineWidth: 18, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .scaleEffect(1 + (0.06 * warningFraction))
+                .animation(
+                    .easeInOut(duration: 0.3),
+                    value: viewModel.progress
+                )
+                .animation(
+                    .easeInOut(duration: 0.6).repeatForever(autoreverses: true),
+                    value: warningFraction > 0
+                )
+                .animation(
+                    .easeInOut(duration: 0.3),
+                    value: warningFraction
+                )
+
+            VStack(spacing: 8) {
+                Text(formattedTime)
+                    .font(.system(size: 64, weight: .black, design: .rounded))
+                    .monospacedDigit()
+                Text(accessoryText)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 280)
+        .padding(.vertical)
     }
 
     private var controlPanel: some View {
