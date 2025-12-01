@@ -886,13 +886,13 @@ final class FocusViewModel: ObservableObject {
     func updateDuration(for category: TimerCategory, to minutes: Int) {
         guard !(state == .running && category.id == selectedCategoryID) else { return }
 
-        let clamped = min(max(minutes, 3), 120)
+        let clamped = min(max(minutes, 5), 120)
         guard let index = categories.firstIndex(where: { $0.id == category.id }) else { return }
 
         categories[index].durationMinutes = clamped
         saveDuration(clamped, for: category)
 
-        if category.id == selectedCategoryID && state != .running {
+        if category.id == selectedCategoryID && state == .idle {
             secondsRemaining = clamped * 60
         }
     }

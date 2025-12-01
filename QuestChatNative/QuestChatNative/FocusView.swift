@@ -11,6 +11,8 @@ struct FocusView: View {
     @State private var resetButtonScale: CGFloat = 1
     @State private var heroCardScale: CGFloat = 0.98
     @State private var heroCardOpacity: Double = 0.92
+    @State private var isShowingDurationPicker = false
+    @State private var tempDurationMinutes: Int = 0
 
     @Namespace private var categoryAnimation
 
@@ -141,6 +143,9 @@ struct FocusView: View {
                 heroCardScale = 1
                 heroCardOpacity = 1
             }
+        }
+        .sheet(isPresented: $isShowingDurationPicker) {
+            durationPickerSheet()
         }
         .sheet(
             isPresented: Binding(
@@ -318,13 +323,19 @@ struct FocusView: View {
                     }
                     Spacer()
                     VStack(spacing: 8) {
-                        Text("\(category.durationMinutes) min")
-                            .font(.headline)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.mint.opacity(0.16))
-                            .clipShape(Capsule())
-                            .matchedGeometryEffect(id: "duration-\(category.id)", in: categoryAnimation)
+                        Button {
+                            tempDurationMinutes = category.durationMinutes
+                            isShowingDurationPicker = true
+                        } label: {
+                            Text("\(category.durationMinutes) min")
+                                .font(.headline)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(Color.mint.opacity(0.16))
+                                .clipShape(Capsule())
+                                .matchedGeometryEffect(id: "duration-\(category.id)", in: categoryAnimation)
+                        }
+                        .buttonStyle(.plain)
 
                         durationControl(for: category)
                     }
@@ -414,6 +425,43 @@ struct FocusView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PressableCardStyle())
+    }
+
+    @ViewBuilder
+    private func durationPickerSheet() -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button("Cancel") {
+                    isShowingDurationPicker = false
+                }
+
+                Spacer()
+
+                Button("Done") {
+                    if let selectedCategory = viewModel.selectedCategory {
+                        viewModel.updateDuration(for: selectedCategory, to: tempDurationMinutes)
+                    }
+                    isShowingDurationPicker = false
+                }
+                .fontWeight(.semibold)
+            }
+            .padding()
+
+            Divider()
+
+            Picker("Duration", selection: $tempDurationMinutes) {
+                ForEach(Array(stride(from: 5, through: 120, by: 5)), id: \.self) { minutes in
+                    Text("\(minutes) min").tag(minutes)
+                }
+            }
+            .pickerStyle(.wheel)
+            .labelsHidden()
+            .frame(maxWidth: .infinity)
+            .padding(.top, 12)
+        }
+        .presentationDetents([.fraction(0.35), .medium])
+        .presentationDragIndicator(.visible)
+        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
     }
 
     private func durationControl(for category: TimerCategory) -> some View {
