@@ -237,14 +237,14 @@ struct MoodStatusPicker: View {
             )
         case .neutral:
             return StatusIconChip(
-                systemName: "face.neutral",
+                systemName: "minus.circle.fill",
                 baseColor: .yellow,
                 isSelected: isSelected,
                 accessibilityLabel: "Mood: neutral"
             )
         case .bad:
             return StatusIconChip(
-                systemName: "face.frown",
+                systemName: "xmark.circle.fill",
                 baseColor: .red,
                 isSelected: isSelected,
                 accessibilityLabel: "Mood: bad"
@@ -313,7 +313,7 @@ struct StatusIconChip: View {
         Image(systemName: systemName)
             .font(.system(size: 16, weight: .semibold))
             .frame(width: 40, height: 32)
-            .foregroundColor(isSelected ? .black : baseColor)
+            .foregroundColor(isSelected ? .black : baseColor.opacity(0.8))
             .background(
                 Capsule()
                     .fill(isSelected ? baseColor : Color(.secondarySystemBackground))

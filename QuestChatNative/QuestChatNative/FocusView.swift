@@ -305,7 +305,7 @@ struct FocusView: View {
 
             HStack(spacing: 12) {
                 Button {
-                    healthBarViewModel.logHydration()
+                    viewModel.logHydrationPillTapped()
                 } label: {
                     Label {
                         Text("Drank water")
@@ -317,7 +317,7 @@ struct FocusView: View {
                 .buttonStyle(HealthPotionButtonStyle(color: Color.cyan))
 
                 Button {
-                    healthBarViewModel.logSelfCareSession()
+                    viewModel.logComfortBeverageTapped()
                 } label: {
                     Label {
                         Text("Comfort beverage")

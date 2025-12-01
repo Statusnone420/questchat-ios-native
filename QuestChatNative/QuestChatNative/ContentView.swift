@@ -9,6 +9,7 @@ struct ContentView: View {
     @StateObject private var statsStore = DependencyContainer.shared.makeStatsStore()
     @StateObject private var healthStatsViewModel = DependencyContainer.shared.makeHealthStatsViewModel()
     @StateObject private var questsViewModel = DependencyContainer.shared.makeQuestsViewModel()
+    @StateObject private var moreViewModel = DependencyContainer.shared.makeMoreViewModel()
     private let appCoordinator = AppCoordinator()
 
     var body: some View {
@@ -31,7 +32,7 @@ struct ContentView: View {
                     .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
                     .tag(MainTab.stats)
 
-                MoreView()
+                MoreView(viewModel: moreViewModel)
                     .tabItem { Label("More", systemImage: "ellipsis.circle") }
                     .tag(MainTab.more)
             }

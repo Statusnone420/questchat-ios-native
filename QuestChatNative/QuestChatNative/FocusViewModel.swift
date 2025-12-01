@@ -957,6 +957,8 @@ final class FocusViewModel: ObservableObject {
     @Published var activeHydrationNudge: HydrationNudge?
     @Published var lastLevelUp: SessionStatsStore.LevelUpResult?
     @Published var sleepQuality: SleepQuality = .okay
+    @Published var totalWaterOuncesToday: Int = 0
+    @Published var totalComfortOuncesToday: Int = 0
 
     var onSessionComplete: (() -> Void)?
 
@@ -972,6 +974,7 @@ final class FocusViewModel: ObservableObject {
     @Published private(set) var notificationAuthorized: Bool = false
     let statsStore: SessionStatsStore
     let healthStatsStore: HealthBarIRLStatsStore
+    let hydrationSettingsStore: HydrationSettingsStore
     private var cancellables = Set<AnyCancellable>()
     private var healthBarViewModel: HealthBarViewModel?
 
@@ -987,12 +990,14 @@ final class FocusViewModel: ObservableObject {
         statsStore: SessionStatsStore = SessionStatsStore(),
         healthStatsStore: HealthBarIRLStatsStore = HealthBarIRLStatsStore(),
         healthBarViewModel: HealthBarViewModel? = nil,
+        hydrationSettingsStore: HydrationSettingsStore = HydrationSettingsStore(),
         initialMode: FocusTimerMode = .focus
     ) {
         // Assign non-dependent stored properties first
         self.statsStore = statsStore
         self.healthStatsStore = healthStatsStore
         self.healthBarViewModel = healthBarViewModel
+        self.hydrationSettingsStore = hydrationSettingsStore
 
         let seeded = FocusViewModel.seededCategories()
         let loadedCategories: [TimerCategory] = seeded.map { base in
@@ -1144,6 +1149,26 @@ final class FocusViewModel: ObservableObject {
     var isRunning: Bool { state == .running }
 
     var hydrationNudgesEnabled: Bool { hydrateNudgesEnabled }
+
+    func logHydrationPillTapped() {
+        guard let healthBarViewModel else { return }
+
+        // HP updates are capped inside HealthBarViewModel; still log even when already at max HP.
+        healthBarViewModel.logHydration()
+
+        totalWaterOuncesToday += hydrationSettingsStore.ouncesPerWaterTap
+        recordHealthBarSnapshot(inputs: healthBarViewModel.inputs, hp: healthBarViewModel.hp)
+    }
+
+    func logComfortBeverageTapped() {
+        guard let healthBarViewModel else { return }
+
+        // HP updates are capped inside HealthBarViewModel; still log even when already at max HP.
+        healthBarViewModel.logSelfCareSession()
+
+        totalComfortOuncesToday += hydrationSettingsStore.ouncesPerComfortTap
+        recordHealthBarSnapshot(inputs: healthBarViewModel.inputs, hp: healthBarViewModel.hp)
+    }
 
     /// Starts the timer if currently idle or paused.
     func start() {

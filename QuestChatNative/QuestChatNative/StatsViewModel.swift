@@ -5,10 +5,12 @@ final class StatsViewModel: ObservableObject {
     @Published private(set) var last7Days: [HealthDaySummary] = []
 
     private let healthStore: HealthBarIRLStatsStore
+    private let hydrationSettingsStore: HydrationSettingsStore
     private let weekdayFormatter: DateFormatter
 
-    init(healthStore: HealthBarIRLStatsStore) {
+    init(healthStore: HealthBarIRLStatsStore, hydrationSettingsStore: HydrationSettingsStore) {
         self.healthStore = healthStore
+        self.hydrationSettingsStore = hydrationSettingsStore
         weekdayFormatter = DateFormatter()
         weekdayFormatter.locale = .current
         weekdayFormatter.dateFormat = "E"

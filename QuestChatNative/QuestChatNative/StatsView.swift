@@ -406,9 +406,10 @@ struct StatsView: View {
 #Preview {
     let store = SessionStatsStore()
     let healthStats = HealthBarIRLStatsStore()
+    let hydrationSettingsStore = HydrationSettingsStore()
     StatsView(
         store: store,
-        viewModel: StatsViewModel(healthStore: healthStats),
+        viewModel: StatsViewModel(healthStore: healthStats, hydrationSettingsStore: hydrationSettingsStore),
         questsViewModel: QuestsViewModel(statsStore: store)
     )
 }
