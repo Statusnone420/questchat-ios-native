@@ -82,10 +82,10 @@ final class SessionStatsStore: ObservableObject {
         focusSeconds = userDefaults.integer(forKey: Keys.focusSeconds)
         selfCareSeconds = userDefaults.integer(forKey: Keys.selfCareSeconds)
         sessionsCompleted = userDefaults.integer(forKey: Keys.sessionsCompleted)
-        xp = userDefaults.integer(forKey: Keys.xp)
-        let storedLevel = userDefaults.integer(forKey: Keys.lastKnownLevel)
-        lastKnownLevel = storedLevel > 0 ? storedLevel : level
-        pendingLevelUp = nil
+
+        let storedXP = userDefaults.integer(forKey: Keys.xp)
+        xp = storedXP
+
         if
             let data = userDefaults.data(forKey: Keys.sessionHistory),
             let decoded = try? JSONDecoder().decode([SessionRecord].self, from: data)
@@ -94,6 +94,11 @@ final class SessionStatsStore: ObservableObject {
         } else {
             sessionHistory = []
         }
+
+        let storedLevel = userDefaults.integer(forKey: Keys.lastKnownLevel)
+        let initialLevel = (storedXP / 100) + 1
+        lastKnownLevel = storedLevel > 0 ? storedLevel : initialLevel
+        pendingLevelUp = nil
     }
 
     func recordSession(mode: FocusTimerMode, duration: Int) {
