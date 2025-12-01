@@ -14,25 +14,16 @@ struct HealthBarCardView: View {
     var dailySummary: DailyProgressSummary?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("HealthBar IRL")
-                    .font(.headline.weight(.semibold))
-                Spacer()
-                Text("\(viewModel.hp) / 100 HP")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            header
 
             ProgressView(value: Double(viewModel.hp), total: 100)
                 .tint(.teal)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-            HStack(spacing: 8) {
-                StatPill(icon: "drop.fill", label: "Hydration", value: "\(viewModel.inputs.hydrationCount)x")
-                StatPill(icon: "figure.mind.and.body", label: "Self-care", value: "\(viewModel.inputs.selfCareSessions)")
-                StatPill(icon: "bolt.fill", label: "Focus", value: "\(viewModel.inputs.focusSprints)")
-            }
+            statRow
+
+            Divider().opacity(0.1)
 
             HStack(alignment: .top, spacing: 12) {
                 GutStatusPicker(selected: viewModel.inputs.gutStatus) { status in
@@ -71,8 +62,13 @@ struct HealthBarCardView: View {
             }
             .font(.subheadline.weight(.semibold))
         }
-        .padding(14)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.65))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+        )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
