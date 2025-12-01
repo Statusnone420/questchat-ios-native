@@ -654,37 +654,32 @@ final class FocusViewModel: ObservableObject {
         }
     }
 
-    @Published var isRunning: Bool = false
     @Published var secondsRemaining: Int
     @Published var hasFinishedOnce: Bool = false
     @Published var selectedMode: FocusTimerMode = .focus {
-        didSet { resetForModeChange(cancelFocusBlock: !isAutomatedModeSwitch) }
+        didSet { resetForModeChange() }
     }
     @Published var categories: [TimerCategory]
     @Published var selectedCategoryID: TimerCategory.ID
     @Published var lastCompletedSession: SessionSummary?
     @Published var activeHydrationNudge: HydrationNudge?
-    @Published var isFocusBlockEnabled: Bool = false {
-        didSet {
-            if !isFocusBlockEnabled {
-                deactivateFocusBlock()
-            }
-        }
+
+    enum TimerState {
+        case idle
+        case running
+        case paused
+        case finished
     }
-    @Published private(set) var isFocusBlockActive: Bool = false
-    @Published private(set) var currentCycleIndex: Int = 0
+
+    @Published var state: TimerState = .idle
 
     @Published private(set) var notificationAuthorized: Bool = false
     let statsStore: SessionStatsStore
 
-    private var timerCancellable: AnyCancellable?
+    private var timer: Timer?
     @AppStorage("hydrateNudgesEnabled") private var hydrateNudgesEnabled: Bool = true
     private let notificationCenter = UNUserNotificationCenter.current()
     private let userDefaults = UserDefaults.standard
-    private var isAutomatedModeSwitch = false
-    private var isAutomatedCategorySwitch = false
-
-    let focusBlockTotalCycles: Int = 3
 
     init(
         statsStore: SessionStatsStore = SessionStatsStore(),
@@ -730,47 +725,69 @@ final class FocusViewModel: ObservableObject {
         return min(max(value, 0), 1)
     }
 
+    var isRunning: Bool { state == .running }
+
     var hydrationNudgesEnabled: Bool { hydrateNudgesEnabled }
 
-    /// Starts or pauses the timer depending on the current state.
-    func startOrPause() {
-        if isRunning {
-            stopTimer(triggerHaptic: true)
-        } else {
-            if secondsRemaining == 0 {
-                secondsRemaining = currentDuration
-                hasFinishedOnce = false
+    /// Starts the timer if currently idle or paused.
+    func start() {
+        guard state == .idle || state == .paused else { return }
+
+        if secondsRemaining == 0 {
+            secondsRemaining = currentDuration
+            hasFinishedOnce = false
+        }
+
+        invalidateTimer()
+        state = .running
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        scheduleCompletionNotification()
+
+        timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            if self.secondsRemaining > 0 {
+                self.secondsRemaining -= 1
+            } else {
+                self.finishSession()
             }
-            if isFocusBlockEnabled {
-                beginFocusBlockIfNeeded()
-            }
-            startTimer()
+        }
+
+        if let timer {
+            RunLoop.main.add(timer, forMode: .common)
         }
     }
 
-    /// Resets the timer back to the full duration and clears completion state.
+    /// Pauses the timer if currently running.
+    func pause() {
+        guard state == .running else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        cancelCompletionNotifications()
+        invalidateTimer()
+        state = .paused
+    }
+
+    /// Resets the timer to the selected category duration.
     func reset() {
-        stopTimer()
+        cancelCompletionNotifications()
+        invalidateTimer()
         secondsRemaining = currentDuration
         hasFinishedOnce = false
-        deactivateFocusBlock()
+        state = .idle
     }
 
     func selectCategory(_ category: TimerCategory) {
         guard category.id != selectedCategoryID else { return }
-
-        if isRunning {
-            reset()
-        }
+        guard state == .idle || state == .finished else { return }
 
         selectedCategoryID = category.id
         selectedMode = category.mode
         secondsRemaining = category.durationMinutes * 60
         hasFinishedOnce = false
+        state = .idle
     }
 
     func updateDuration(for category: TimerCategory, to minutes: Int) {
-        guard !(isRunning && category.id == selectedCategoryID) else { return }
+        guard !(state == .running && category.id == selectedCategoryID) else { return }
 
         let clamped = min(max(minutes, 3), 120)
         guard let index = categories.firstIndex(where: { $0.id == category.id }) else { return }
@@ -778,40 +795,20 @@ final class FocusViewModel: ObservableObject {
         categories[index].durationMinutes = clamped
         saveDuration(clamped, for: category)
 
-        if category.id == selectedCategoryID && !isRunning {
+        if category.id == selectedCategoryID && state != .running {
             secondsRemaining = clamped * 60
         }
     }
 
-    private func startTimer() {
-        isRunning = true
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        scheduleCompletionNotification()
-        timerCancellable = Timer
-            .publish(every: 1, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                guard let self else { return }
-                if self.secondsRemaining > 0 {
-                    self.secondsRemaining -= 1
-                } else {
-                    self.finishSession()
-                }
-            }
-    }
-
-    private func stopTimer(triggerHaptic: Bool = false) {
-        if triggerHaptic {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
-        isRunning = false
-        cancelCompletionNotifications()
-        timerCancellable?.cancel()
-        timerCancellable = nil
+    private func invalidateTimer() {
+        timer?.invalidate()
+        timer = nil
     }
 
     private func finishSession() {
-        stopTimer()
+        cancelCompletionNotifications()
+        invalidateTimer()
+        state = .finished
         hasFinishedOnce = true
         statsStore.refreshDailyFocusTotal()
         let previousFocusTotal = statsStore.totalFocusSecondsToday
@@ -828,18 +825,14 @@ final class FocusViewModel: ObservableObject {
         secondsRemaining = 0
         handleHydrationThresholds(previousTotal: previousFocusTotal, newTotal: statsStore.totalFocusSecondsToday)
         sendImmediateHydrationReminder()
-        handleFocusBlockProgression()
     }
 
-    private func resetForModeChange(cancelFocusBlock: Bool) {
-        stopTimer()
-        if !isAutomatedCategorySwitch {
-            secondsRemaining = currentDuration
-        }
+    private func resetForModeChange() {
+        cancelCompletionNotifications()
+        invalidateTimer()
+        secondsRemaining = currentDuration
         hasFinishedOnce = false
-        if cancelFocusBlock {
-            deactivateFocusBlock()
-        }
+        state = .idle
     }
 
     private func requestNotificationAuthorization() {
@@ -944,76 +937,6 @@ final class FocusViewModel: ObservableObject {
 
     private func saveDuration(_ minutes: Int, for category: TimerCategory) {
         userDefaults.set(minutes, forKey: durationKey(for: category))
-    }
-
-    // MARK: - Focus block automation
-
-    private func beginFocusBlockIfNeeded() {
-        guard !isFocusBlockActive else { return }
-        isFocusBlockActive = true
-        currentCycleIndex = 0
-        setMode(.focus, automated: true)
-        secondsRemaining = currentDuration
-        hasFinishedOnce = false
-    }
-
-    private func handleFocusBlockProgression() {
-        guard isFocusBlockActive else { return }
-
-        switch selectedMode {
-        case .focus:
-            transitionToSelfCare()
-        case .selfCare:
-            currentCycleIndex += 1
-            if currentCycleIndex < focusBlockTotalCycles {
-                startNextFocusCycle()
-            } else {
-                completeFocusBlock()
-            }
-        }
-    }
-
-    private func transitionToSelfCare() {
-        setMode(.selfCare, automated: true)
-        secondsRemaining = currentDuration
-        hasFinishedOnce = false
-        startTimer()
-    }
-
-    private func startNextFocusCycle() {
-        setMode(.focus, automated: true)
-        secondsRemaining = currentDuration
-        hasFinishedOnce = false
-        startTimer()
-    }
-
-    private func completeFocusBlock() {
-        deactivateFocusBlock()
-    }
-
-    private func deactivateFocusBlock() {
-        isFocusBlockActive = false
-        currentCycleIndex = 0
-    }
-
-    private func setMode(_ mode: FocusTimerMode, automated: Bool) {
-        isAutomatedModeSwitch = automated
-        selectCategoryForMode(mode, automated: automated)
-        selectedMode = mode
-        isAutomatedModeSwitch = false
-    }
-
-    private func selectCategoryForMode(_ mode: FocusTimerMode, automated: Bool) {
-        guard let category = categories.first(where: { $0.mode == mode }) else { return }
-        guard category.id != selectedCategoryID else { return }
-
-        if automated {
-            isAutomatedCategorySwitch = true
-            selectedCategoryID = category.id
-            isAutomatedCategorySwitch = false
-        } else {
-            selectCategory(category)
-        }
     }
 }
 

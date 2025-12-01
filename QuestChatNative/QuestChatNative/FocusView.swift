@@ -7,6 +7,7 @@ struct FocusView: View {
     @Binding var selectedTab: MainTab
 
     @State private var primaryButtonScale: CGFloat = 1
+    @State private var pauseButtonScale: CGFloat = 1
     @State private var resetButtonScale: CGFloat = 1
     @State private var heroCardScale: CGFloat = 0.98
     @State private var heroCardOpacity: Double = 0.92
@@ -328,16 +329,6 @@ struct FocusView: View {
                     }
                 }
 
-            Picker("Session type", selection: $viewModel.isFocusBlockEnabled) {
-                Text("Single session").tag(false)
-                Text("Focus block (3x)").tag(true)
-            }
-            .pickerStyle(.segmented)
-
-            if viewModel.isFocusBlockActive {
-                focusBlockIndicator
-            }
-
             timerRing
 
             controlPanel
@@ -502,28 +493,43 @@ struct FocusView: View {
             HStack(spacing: 12) {
                 Button(action: {
                     animateButtonPress(scale: $primaryButtonScale)
-                    viewModel.startOrPause()
+                    viewModel.start()
                 }) {
-                    Label(viewModel.isRunning ? "Pause" : "Start",
-                          systemImage: viewModel.isRunning ? "pause.fill" : "play.fill")
+                    Label(viewModel.state == .paused ? "Resume" : "Start",
+                          systemImage: "play.fill")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.mint)
                 .scaleEffect(primaryButtonScale)
+                .disabled(viewModel.state == .running)
+                .opacity(viewModel.state == .running ? 0.6 : 1)
 
-                Button(role: .destructive, action: {
-                    animateButtonPress(scale: $resetButtonScale)
-                    viewModel.reset()
+                Button(action: {
+                    animateButtonPress(scale: $pauseButtonScale)
+                    viewModel.pause()
                 }) {
-                    Label("Reset", systemImage: "arrow.counterclockwise")
+                    Label("Pause", systemImage: "pause.fill")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
                 .buttonStyle(.bordered)
-                .scaleEffect(resetButtonScale)
+                .scaleEffect(pauseButtonScale)
+                .disabled(viewModel.state != .running)
+                .opacity(viewModel.state != .running ? 0.6 : 1)
             }
+
+            Button(role: .destructive, action: {
+                animateButtonPress(scale: $resetButtonScale)
+                viewModel.reset()
+            }) {
+                Label("Reset", systemImage: "arrow.counterclockwise")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.bordered)
+            .scaleEffect(resetButtonScale)
 
             HStack {
                 statPill(title: "Sessions", value: "\(viewModel.statsStore.sessionsCompleted)")
@@ -566,30 +572,6 @@ struct FocusView: View {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(Color.gray.opacity(0.25), lineWidth: 1)
         )
-    }
-
-    private var focusBlockIndicator: some View {
-        HStack(spacing: 6) {
-            ForEach(0..<viewModel.focusBlockTotalCycles, id: \.self) { index in
-                Capsule()
-                    .frame(width: 20, height: 6)
-                    .foregroundStyle(
-                        index < viewModel.currentCycleIndex
-                            ? Color.mint
-                            : index == viewModel.currentCycleIndex
-                                ? Color.mint.opacity(0.6)
-                                : Color.gray.opacity(0.4)
-                    )
-            }
-            Spacer()
-            Text("Focus block in progress")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(10)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
-        .cornerRadius(12)
     }
 
     private func hydrationBanner(nudge: FocusViewModel.HydrationNudge) -> some View {
