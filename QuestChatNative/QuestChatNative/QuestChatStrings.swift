@@ -73,9 +73,9 @@ enum QuestChatStrings {
     enum FocusView {
         static let navigationTitle = "Focus"
 
-        static let sessionCompleteAccessory = "Session complete. Ready for another round?"
-        static let focusAccessory = "Stay present. Every focus minute turns into XP."
-        static let selfCareAccessory = "Micro break to stretch, hydrate, and reset posture."
+        static let sessionCompleteAccessory = "Session complete. Next..."
+        static let focusAccessory = "Focus minutes turn into XP. For life too."
+        static let selfCareAccessory = "Stretch, hydrate, reset."
 
         static func questProgress(completed: Int, total: Int) -> String {
             "\(completed) / \(total) quests done"
