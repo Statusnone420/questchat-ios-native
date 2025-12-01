@@ -83,7 +83,7 @@ struct FocusView: View {
         NavigationStack {
             ZStack {
                 ScrollView {
-                    VStack(spacing: 18) {
+                    VStack(spacing: 16) {
                         HealthBarCardView(viewModel: healthBarViewModel, dailySummary: dailySummary)
                         todayQuestBanner
 
@@ -95,10 +95,11 @@ struct FocusView: View {
 
                         reminderCard
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
                     .padding(.bottom, 24)
                 }
+                .background(Color.black.ignoresSafeArea())
 
                 if let session = viewModel.lastCompletedSession {
                     sessionCompleteOverlay(summary: session)
@@ -120,7 +121,6 @@ struct FocusView: View {
                     .zIndex(3)
                 }
             }
-            .background(Color.black.ignoresSafeArea())
             .navigationTitle(QuestChatStrings.FocusView.navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.black, for: .navigationBar)
