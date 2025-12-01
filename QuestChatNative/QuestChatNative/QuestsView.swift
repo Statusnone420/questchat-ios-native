@@ -2,12 +2,16 @@ import SwiftUI
 
 struct QuestsView: View {
     var body: some View {
-        VStack {
+        VStack(spacing: 12) {
+            Image(systemName: "list.bullet.rectangle")
+                .foregroundStyle(.mint)
+                .imageScale(.large)
             Text("Quests coming soon")
                 .font(.title3)
                 .foregroundStyle(.secondary)
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.ignoresSafeArea())
     }
 }
 
