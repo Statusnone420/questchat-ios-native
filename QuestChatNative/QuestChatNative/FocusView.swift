@@ -12,8 +12,6 @@ struct FocusView: View {
     @State private var resetButtonScale: CGFloat = 1
     @State private var heroCardScale: CGFloat = 0.98
     @State private var heroCardOpacity: Double = 0.92
-    @State private var isShowingDurationPicker = false
-    @State private var tempDurationMinutes: Int = 0
 
     @Namespace private var categoryAnimation
 
@@ -80,7 +78,7 @@ struct FocusView: View {
                         compactStatusHeader
                         todayQuestBanner
 
-                        if let selectedCategory = viewModel.selectedCategory {
+                        if let selectedCategory = viewModel.selectedCategoryData {
                             heroCard(for: selectedCategory)
                         }
 
@@ -123,11 +121,11 @@ struct FocusView: View {
         .animation(.easeInOut(duration: 0.25), value: statsStore.pendingLevelUp)
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
         .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.selectedCategoryID)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.selectedCategory)
         .onAppear {
             statsStore.refreshMomentumIfNeeded()
         }
-        .onChange(of: viewModel.selectedCategoryID) { _ in
+        .onChange(of: viewModel.selectedCategory) { _ in
             heroCardScale = 0.98
             heroCardOpacity = 0.92
             withAnimation(.spring(response: 0.45, dampingFraction: 0.78)) {
@@ -135,7 +133,7 @@ struct FocusView: View {
                 heroCardOpacity = 1
             }
         }
-        .sheet(isPresented: $isShowingDurationPicker) {
+        .sheet(isPresented: $viewModel.isShowingDurationPicker) {
             durationPickerSheet()
         }
         .sheet(
@@ -254,15 +252,16 @@ struct FocusView: View {
     private func heroCard(for category: TimerCategory) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack(alignment: .top, spacing: 14) {
-                Text(category.emoji)
-                    .font(.system(size: 46))
+                Image(systemName: category.id.systemImageName)
+                    .font(.system(size: 34))
+                    .foregroundStyle(Color.accentColor)
                     .matchedGeometryEffect(id: "emoji-\(category.id)", in: categoryAnimation)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(category.name)
+                    Text(category.id.title)
                         .font(.title.bold())
                         .matchedGeometryEffect(id: "title-\(category.id)", in: categoryAnimation)
-                    Text(category.description)
+                    Text(category.id.subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .matchedGeometryEffect(id: "subtitle-\(category.id)", in: categoryAnimation)
@@ -272,19 +271,17 @@ struct FocusView: View {
 
                 Spacer(minLength: 0)
 
-                Button {
-                    tempDurationMinutes = category.durationMinutes
-                    isShowingDurationPicker = true
-                } label: {
-                    Text("\(category.durationMinutes) min")
-                        .font(.headline)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(Color.mint.opacity(0.16))
-                        .clipShape(Capsule())
-                        .matchedGeometryEffect(id: "duration-\(category.id)", in: categoryAnimation)
-                }
-                .buttonStyle(.plain)
+                Text(viewModel.formattedDuration(viewModel.durationForSelectedCategory()))
+                    .font(.headline)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.mint.opacity(0.16))
+                    .clipShape(Capsule())
+                    .matchedGeometryEffect(id: "duration-\(category.id)", in: categoryAnimation)
+                    .onTapGesture {
+                        viewModel.pendingDurationSeconds = viewModel.durationForSelectedCategory()
+                        viewModel.isShowingDurationPicker = true
+                    }
             }
 
             timerRing
@@ -330,7 +327,7 @@ struct FocusView: View {
     }
 
     private var quickTimersList: some View {
-        let otherCategories = viewModel.categories.filter { $0.id != viewModel.selectedCategoryID }
+        let otherCategories = viewModel.categories.filter { $0.id != viewModel.selectedCategory }
 
         return VStack(alignment: .leading, spacing: 12) {
             if !otherCategories.isEmpty {
@@ -355,16 +352,17 @@ struct FocusView: View {
             }
         } label: {
             HStack(spacing: 12) {
-                Text(category.emoji)
-                    .font(.title3)
+                Image(systemName: category.id.systemImageName)
+                    .font(.system(size: 22))
+                    .foregroundStyle(Color.accentColor)
                     .matchedGeometryEffect(id: "emoji-\(category.id)", in: categoryAnimation)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(category.name)
+                    Text(category.id.title)
                         .font(.headline)
                         .foregroundStyle(.primary)
                         .matchedGeometryEffect(id: "title-\(category.id)", in: categoryAnimation)
-                    Text(category.description)
+                    Text(category.id.subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .matchedGeometryEffect(id: "subtitle-\(category.id)", in: categoryAnimation)
@@ -372,7 +370,7 @@ struct FocusView: View {
 
                 Spacer()
 
-                Text("\(category.durationMinutes) min")
+                Text(viewModel.formattedDuration(category.durationSeconds))
                     .font(.subheadline.bold())
                     .foregroundStyle(.secondary)
                     .matchedGeometryEffect(id: "duration-\(category.id)", in: categoryAnimation)
@@ -394,39 +392,31 @@ struct FocusView: View {
 
     @ViewBuilder
     private func durationPickerSheet() -> some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button(QuestChatStrings.FocusView.cancelButtonTitle) {
-                    isShowingDurationPicker = false
-                }
+        NavigationView {
+            VStack {
+                DurationWheelPickerView(totalSeconds: $viewModel.pendingDurationSeconds)
+                    .frame(maxHeight: 250)
 
                 Spacer()
-
-                Button(QuestChatStrings.FocusView.doneButtonTitle) {
-                    if let selectedCategory = viewModel.selectedCategory {
-                        viewModel.updateDuration(for: selectedCategory, to: tempDurationMinutes)
+            }
+            .navigationTitle("Set timer")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(QuestChatStrings.FocusView.cancelButtonTitle) {
+                        viewModel.isShowingDurationPicker = false
                     }
-                    isShowingDurationPicker = false
                 }
-                .fontWeight(.semibold)
-            }
-            .padding()
-
-            Divider()
-
-            Picker(QuestChatStrings.FocusView.durationPickerTitle, selection: $tempDurationMinutes) {
-                ForEach(Array(stride(from: 5, through: 120, by: 5)), id: \.self) { minutes in
-                    Text("\(minutes) min").tag(minutes)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(QuestChatStrings.FocusView.doneButtonTitle) {
+                        viewModel.setDurationForSelectedCategory(viewModel.pendingDurationSeconds)
+                        viewModel.isShowingDurationPicker = false
+                    }
                 }
             }
-            .pickerStyle(.wheel)
-            .labelsHidden()
-            .frame(maxWidth: .infinity)
-            .padding(.top, 12)
         }
-        .presentationDetents([.fraction(0.35), .medium])
-        .presentationDragIndicator(.visible)
-        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
+        .onAppear {
+            viewModel.pendingDurationSeconds = viewModel.durationForSelectedCategory()
+        }
     }
 
     private var timerRing: some View {
