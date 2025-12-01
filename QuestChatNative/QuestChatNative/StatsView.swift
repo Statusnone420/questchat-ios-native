@@ -16,9 +16,17 @@ struct StatsView: View {
         return "\(area.emoji) \(area.title)"
     }
     private var levelProgress: Double {
+        if store.level >= 100 { return 1 }
         let total = Double(store.xpForNextLevel)
         guard total > 0 else { return 0 }
         return Double(store.xpIntoCurrentLevel) / total
+    }
+
+    private var levelProgressText: String {
+        if store.level >= 100 {
+            return "QuestChat Master"
+        }
+        return QuestChatStrings.StatsView.levelProgress(current: store.xpIntoCurrentLevel, total: store.xpForNextLevel)
     }
 
     private var momentumStatusText: String {
@@ -100,7 +108,7 @@ struct StatsView: View {
                     .progressViewStyle(.linear)
                     .tint(.mint)
 
-                Text(QuestChatStrings.StatsView.levelProgress(current: store.xpIntoCurrentLevel, total: store.xpForNextLevel))
+                Text(levelProgressText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

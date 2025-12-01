@@ -157,6 +157,15 @@ struct FocusView: View {
         .onAppear {
             statsStore.refreshDailySetupIfNeeded()
         }
+        .alert(item: $viewModel.lastLevelUp) { result in
+            Alert(
+                title: Text("Level \(result.newLevel) reached!"),
+                message: Text("You're one step closer to Level 100 QuestChat Master."),
+                dismissButton: .default(Text("Nice!")) {
+                    viewModel.lastLevelUp = nil
+                }
+            )
+        }
     }
 
     @ViewBuilder

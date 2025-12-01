@@ -106,7 +106,7 @@ final class QuestsViewModel: ObservableObject {
         dailyQuests[index].isCompleted.toggle()
 
         if dailyQuests[index].isCompleted && !wasCompleted {
-            statsStore.grantBonusXP(dailyQuests[index].xpReward)
+            statsStore.registerQuestCompleted(id: dailyQuests[index].id, xp: dailyQuests[index].xpReward)
         }
 
         persistCompletions()
@@ -207,7 +207,7 @@ private extension QuestsViewModel {
         guard !userDefaults.bool(forKey: questChestGrantedKey) else { return }
         guard dailyQuests.allSatisfy({ $0.isCompleted }) else { return }
 
-        statsStore.grantBonusXP(Self.questChestBonusXP)
+        statsStore.registerQuestCompleted(id: "quest-chest", xp: Self.questChestBonusXP)
         userDefaults.set(true, forKey: questChestGrantedKey)
         hasQuestChestReady = true
         userDefaults.set(true, forKey: questChestReadyKey)
