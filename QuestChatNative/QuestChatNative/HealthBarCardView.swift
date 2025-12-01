@@ -5,24 +5,26 @@ struct HealthBarCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
+            HStack(alignment: .firstTextBaseline) {
                 Text("HealthBar IRL")
-                    .font(.headline)
+                    .font(.headline.weight(.semibold))
                 Spacer()
                 Text("\(viewModel.hp) / 100 HP")
-                    .font(.subheadline)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
 
             ProgressView(value: Double(viewModel.hp), total: 100)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .tint(.teal)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 StatPill(icon: "drop.fill", label: "Hydration", value: "\(viewModel.inputs.hydrationCount)x")
                 StatPill(icon: "figure.mind.and.body", label: "Self-care", value: "\(viewModel.inputs.selfCareSessions)")
                 StatPill(icon: "bolt.fill", label: "Focus", value: "\(viewModel.inputs.focusSprints)")
             }
 
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 GutStatusPicker(selected: viewModel.inputs.gutStatus) { status in
                     viewModel.setGutStatus(status)
                 }
@@ -36,16 +38,19 @@ struct HealthBarCardView: View {
                     viewModel.logHydration()
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(.teal)
 
                 Button("Self-care done") {
                     viewModel.logSelfCareSession()
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
+                .tint(.teal.opacity(0.75))
             }
+            .font(.subheadline.weight(.semibold))
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(14)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.65))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -63,13 +68,13 @@ struct StatPill: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(value)
-                    .font(.subheadline.bold())
+                    .font(.subheadline.weight(.semibold))
             }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 10)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.4))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.35))
+        .clipShape(Capsule())
     }
 }
 
@@ -78,27 +83,13 @@ struct GutStatusPicker: View {
     let onSelect: (GutStatus) -> Void
 
     var body: some View {
-        picker(title: "Gut", cases: GutStatus.allCases, selected: selected, color: .orange)
-    }
-
-    private func picker(title: String, cases: [GutStatus], selected: GutStatus, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label(title, systemImage: "heart.text.square")
+            Label("Gut", systemImage: "heart.text.square")
                 .font(.caption)
-                .foregroundStyle(color)
+                .foregroundStyle(.orange)
 
-            HStack(spacing: 8) {
-                ForEach(cases, id: \.self) { status in
-                    Button(action: { onSelect(status) }) {
-                        Text(statusLabel(status))
-                            .font(.caption.bold())
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(selected == status ? color : .gray.opacity(0.4))
-                }
+            PillPicker(options: GutStatus.allCases, selected: selected, highlightColor: .orange, labelProvider: statusLabel) { status in
+                onSelect(status)
             }
         }
     }
@@ -123,18 +114,8 @@ struct MoodStatusPicker: View {
                 .font(.caption)
                 .foregroundStyle(.purple)
 
-            HStack(spacing: 8) {
-                ForEach(MoodStatus.allCases, id: \.self) { status in
-                    Button(action: { onSelect(status) }) {
-                        Text(statusLabel(status))
-                            .font(.caption.bold())
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(selected == status ? .purple : .gray.opacity(0.4))
-                }
+            PillPicker(options: MoodStatus.allCases, selected: selected, highlightColor: .teal, labelProvider: statusLabel) { status in
+                onSelect(status)
             }
         }
     }
@@ -145,6 +126,40 @@ struct MoodStatusPicker: View {
         case .good: return "Good"
         case .neutral: return "Neutral"
         case .bad: return "Bad"
+        }
+    }
+}
+
+struct PillPicker<Option: Hashable>: View {
+    let options: [Option]
+    let selected: Option
+    let highlightColor: Color
+    let labelProvider: (Option) -> String
+    let onSelect: (Option) -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(options, id: \.self) { option in
+                let isSelected = option == selected
+
+                Button {
+                    onSelect(option)
+                } label: {
+                    Text(labelProvider(option))
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .frame(maxWidth: .infinity)
+                        .background(isSelected ? highlightColor.opacity(0.25) : Color.clear)
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(isSelected ? highlightColor : Color.gray.opacity(0.3), lineWidth: isSelected ? 1.5 : 1)
+                        )
+                        .foregroundStyle(isSelected ? highlightColor : .primary)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 }
