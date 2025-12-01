@@ -285,12 +285,16 @@ struct FocusView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text("\(category.defaultDurationMinutes) min")
-                    .font(.headline)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.mint.opacity(0.12))
-                    .clipShape(Capsule())
+                VStack(spacing: 6) {
+                    Text("\(category.durationMinutes) min")
+                        .font(.headline)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.mint.opacity(0.12))
+                        .clipShape(Capsule())
+
+                    durationControl(for: category)
+                }
             }
 
             Picker("Session type", selection: $viewModel.isFocusBlockEnabled) {
@@ -355,7 +359,7 @@ struct FocusView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Text("\(category.defaultDurationMinutes) min")
+                Text("\(category.durationMinutes) min")
                     .font(.subheadline.bold())
                     .foregroundStyle(.secondary)
             }
@@ -369,6 +373,32 @@ struct FocusView: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    private func durationControl(for category: TimerCategory) -> some View {
+        let isDisabled = viewModel.isRunning && category.id == viewModel.selectedCategoryID
+
+        return HStack(spacing: 8) {
+            durationStepButton(systemName: "minus", disabled: isDisabled) {
+                viewModel.updateDuration(for: category, to: category.durationMinutes - 5)
+            }
+
+            durationStepButton(systemName: "plus", disabled: isDisabled) {
+                viewModel.updateDuration(for: category, to: category.durationMinutes + 5)
+            }
+        }
+    }
+
+    private func durationStepButton(systemName: String, disabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.subheadline.bold())
+                .frame(width: 32, height: 32)
+        }
+        .buttonStyle(.bordered)
+        .tint(.mint)
+        .disabled(disabled)
+        .opacity(disabled ? 0.45 : 1)
     }
 
     private var timerRing: some View {

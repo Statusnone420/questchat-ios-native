@@ -2,8 +2,6 @@ import SwiftUI
 
 struct MoreView: View {
     @Environment(\.openURL) private var openURL
-    @AppStorage("focusDurationMinutes") private var focusDurationMinutes: Int = 25
-    @AppStorage("selfCareDurationMinutes") private var selfCareDurationMinutes: Int = 5
     @AppStorage("hydrateNudgesEnabled") private var hydrateNudgesEnabled: Bool = true
 
     var body: some View {
@@ -16,21 +14,12 @@ struct MoreView: View {
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 12) {
-                Text("Focus duration")
-                    .foregroundStyle(.secondary)
-                Stepper(value: $focusDurationMinutes, in: 5...60) {
-                    Text("\(focusDurationMinutes) minutes")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Timer durations")
+                        .foregroundStyle(.secondary)
+                    Text("Adjust each category directly from the Focus tab.")
                         .font(.headline)
                 }
-                .tint(.mint)
-
-                Text("Self care duration")
-                    .foregroundStyle(.secondary)
-                Stepper(value: $selfCareDurationMinutes, in: 3...20) {
-                    Text("\(selfCareDurationMinutes) minutes")
-                        .font(.headline)
-                }
-                .tint(.mint)
 
                 Toggle(isOn: $hydrateNudgesEnabled) {
                     VStack(alignment: .leading, spacing: 2) {

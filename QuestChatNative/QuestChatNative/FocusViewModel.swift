@@ -18,18 +18,11 @@ enum FocusTimerMode: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Default duration in seconds for the timer mode.
-    var duration: Int {
-        let userDefaults = UserDefaults.standard
+    /// Default duration in minutes for the timer mode.
+    var defaultDurationMinutes: Int {
         switch self {
-        case .focus:
-            let storedMinutes = userDefaults.integer(forKey: Keys.focusDurationMinutes)
-            let minutes = storedMinutes > 0 ? storedMinutes : Keys.defaultFocusDurationMinutes
-            return minutes * 60
-        case .selfCare:
-            let storedMinutes = userDefaults.integer(forKey: Keys.selfCareDurationMinutes)
-            let minutes = storedMinutes > 0 ? storedMinutes : Keys.defaultSelfCareDurationMinutes
-            return minutes * 60
+        case .focus: 25
+        case .selfCare: 5
         }
     }
 
@@ -40,12 +33,6 @@ enum FocusTimerMode: String, CaseIterable, Identifiable {
         }
     }
 
-    private enum Keys {
-        static let focusDurationMinutes = "focusDurationMinutes"
-        static let selfCareDurationMinutes = "selfCareDurationMinutes"
-        static let defaultFocusDurationMinutes = 25
-        static let defaultSelfCareDurationMinutes = 5
-    }
 }
 
 struct TimerCategory: Identifiable, Equatable {
@@ -54,6 +41,7 @@ struct TimerCategory: Identifiable, Equatable {
     let emoji: String
     let description: String
     let defaultDurationMinutes: Int
+    var durationMinutes: Int
     let mode: FocusTimerMode
 
     init(
@@ -62,13 +50,15 @@ struct TimerCategory: Identifiable, Equatable {
         emoji: String,
         description: String,
         defaultDurationMinutes: Int,
-        mode: FocusTimerMode
+        mode: FocusTimerMode,
+        durationMinutes: Int? = nil
     ) {
         self.id = id
         self.name = name
         self.emoji = emoji
         self.description = description
         self.defaultDurationMinutes = defaultDurationMinutes
+        self.durationMinutes = durationMinutes ?? defaultDurationMinutes
         self.mode = mode
     }
 }
@@ -703,11 +693,15 @@ final class FocusViewModel: ObservableObject {
     ) {
         self.statsStore = statsStore
         let seededCategories = FocusViewModel.seededCategories()
-        categories = seededCategories
-        let initialCategory = seededCategories.first { $0.mode == initialMode } ?? seededCategories[0]
+        categories = seededCategories.map { category in
+            var category = category
+            category.durationMinutes = loadDuration(for: category)
+            return category
+        }
+        let initialCategory = categories.first { $0.mode == initialMode } ?? categories[0]
         selectedCategoryID = initialCategory.id
         selectedMode = initialCategory.mode
-        secondsRemaining = initialCategory.defaultDurationMinutes * 60
+        secondsRemaining = initialCategory.durationMinutes * 60
         requestNotificationAuthorization()
     }
 
@@ -716,7 +710,7 @@ final class FocusViewModel: ObservableObject {
     }
 
     private var currentDuration: Int {
-        selectedCategory.map { $0.defaultDurationMinutes * 60 } ?? selectedMode.duration
+        selectedCategory.map { $0.durationMinutes * 60 } ?? selectedMode.defaultDurationMinutes * 60
     }
 
     var progress: Double {
@@ -761,8 +755,22 @@ final class FocusViewModel: ObservableObject {
 
         selectedCategoryID = category.id
         selectedMode = category.mode
-        secondsRemaining = category.defaultDurationMinutes * 60
+        secondsRemaining = category.durationMinutes * 60
         hasFinishedOnce = false
+    }
+
+    func updateDuration(for category: TimerCategory, to minutes: Int) {
+        guard !(isRunning && category.id == selectedCategoryID) else { return }
+
+        let clamped = min(max(minutes, 3), 120)
+        guard let index = categories.firstIndex(where: { $0.id == category.id }) else { return }
+
+        categories[index].durationMinutes = clamped
+        saveDuration(clamped, for: category)
+
+        if category.id == selectedCategoryID && !isRunning {
+            secondsRemaining = clamped * 60
+        }
     }
 
     private func startTimer() {
@@ -913,6 +921,19 @@ final class FocusViewModel: ObservableObject {
     private func markNudgeTriggered(for level: HydrationNudgeLevel) {
         let today = Calendar.current.startOfDay(for: Date())
         userDefaults.set(today, forKey: level.triggerKey)
+    }
+
+    private func durationKey(for category: TimerCategory) -> String {
+        "timerCategory_duration_\(category.id.uuidString)"
+    }
+
+    private func loadDuration(for category: TimerCategory) -> Int {
+        let storedMinutes = userDefaults.integer(forKey: durationKey(for: category))
+        return storedMinutes > 0 ? storedMinutes : category.defaultDurationMinutes
+    }
+
+    private func saveDuration(_ minutes: Int, for category: TimerCategory) {
+        userDefaults.set(minutes, forKey: durationKey(for: category))
     }
 
     // MARK: - Focus block automation
