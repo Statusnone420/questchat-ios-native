@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MoreView: View {
     @ObservedObject var viewModel: MoreViewModel
+    @State private var isShowingSettings = false
 
     var body: some View {
         NavigationStack {
@@ -17,6 +18,18 @@ struct MoreView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black.ignoresSafeArea())
             .navigationTitle("More")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        isShowingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                    }
+                }
+            }
+            .sheet(isPresented: $isShowingSettings) {
+                SettingsView(viewModel: DependencyContainer.shared.makeSettingsViewModel())
+            }
         }
     }
 

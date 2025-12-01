@@ -521,6 +521,48 @@ final class SessionStatsStore: ObservableObject {
         refreshDailyTotalsIfNeeded()
     }
 
+    func deleteSessions(since date: Date) {
+        let removedSessions = sessionHistory.filter { $0.date >= date }
+        guard !removedSessions.isEmpty else { return }
+
+        sessionHistory.removeAll { $0.date >= date }
+
+        let focusReduction = removedSessions
+            .filter { $0.modeRawValue == FocusTimerMode.focus.rawValue }
+            .reduce(0) { $0 + $1.durationSeconds }
+        let selfCareReduction = removedSessions
+            .filter { $0.modeRawValue == FocusTimerMode.selfCare.rawValue }
+            .reduce(0) { $0 + $1.durationSeconds }
+
+        focusSeconds = max(0, focusSeconds - focusReduction)
+        selfCareSeconds = max(0, selfCareSeconds - selfCareReduction)
+        sessionsCompleted = max(0, sessionsCompleted - removedSessions.count)
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let focusRemovedToday = removedSessions
+            .filter { calendar.isDate($0.date, inSameDayAs: today) && $0.modeRawValue == FocusTimerMode.focus.rawValue }
+            .reduce(0) { $0 + $1.durationSeconds }
+        totalFocusSecondsToday = max(0, totalFocusSecondsToday - focusRemovedToday)
+
+        lastSessionDate = sessionHistory.map { $0.date }.max()
+        lastMomentumUpdate = lastSessionDate
+        persist()
+    }
+
+    func deleteXPEvents(since date: Date) {
+        let impactedSessions = sessionHistory.filter { $0.date >= date }
+        guard !impactedSessions.isEmpty else { return }
+
+        let removedXP = impactedSessions.reduce(0) { partialResult, session in
+            let minutes = max(0, session.durationSeconds / 60)
+            return partialResult + minutes * 2
+        }
+
+        guard removedXP > 0 else { return }
+        reduceTotalXP(by: removedXP)
+    }
+
     func refreshDailySetupIfNeeded() {
         let today = Calendar.current.startOfDay(for: Date())
         let isValid = Self.isConfigValidForToday(dailyConfig, today: today)
@@ -666,6 +708,30 @@ final class SessionStatsStore: ObservableObject {
     func xpNeededToLevelUp(from level: Int) -> Int {
         guard level < 100 else { return Int.max }
         return 40 + 4 * max(0, level - 1)
+    }
+
+    private func reduceTotalXP(by amount: Int) {
+        let newTotal = max(0, progression.totalXP - amount)
+
+        var remainingXP = newTotal
+        var newLevel = 1
+
+        while newLevel < 100 {
+            let needed = xpNeededToLevelUp(from: newLevel)
+            guard remainingXP >= needed else { break }
+            remainingXP -= needed
+            newLevel += 1
+        }
+
+        progression.totalXP = newTotal
+        progression.level = newLevel
+        progression.xpInCurrentLevel = remainingXP
+        xp = progression.totalXP
+        lastKnownLevel = newLevel
+        pendingLevelUp = nil
+        lastLevelUp = nil
+        saveProgression()
+        persist()
     }
 
     private func saveProgression() {

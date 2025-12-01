@@ -9,6 +9,11 @@ final class DependencyContainer {
     private let statsStore = SessionStatsStore()
     private let healthBarStatsStore = HealthBarIRLStatsStore()
     private let hydrationSettingsStore = HydrationSettingsStore()
+    private lazy var gameDataResetter = GameDataResetter(
+        healthStatsStore: healthBarStatsStore,
+        xpStore: statsStore,
+        sessionStatsStore: statsStore
+    )
     private lazy var healthBarViewModel = HealthBarViewModel()
     private lazy var questsViewModel = QuestsViewModel(statsStore: statsStore)
 
@@ -50,5 +55,9 @@ final class DependencyContainer {
 
     func makeMoreViewModel() -> MoreViewModel {
         MoreViewModel(hydrationSettingsStore: hydrationSettingsStore)
+    }
+
+    func makeSettingsViewModel() -> SettingsViewModel {
+        SettingsViewModel(resetter: gameDataResetter)
     }
 }

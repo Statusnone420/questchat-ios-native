@@ -78,6 +78,15 @@ final class HealthBarIRLStatsStore: ObservableObject {
         userDefaults.set(data, forKey: storageKey)
     }
 
+    func deleteSnapshots(since date: Date) {
+        let startOfCutoff = calendar.startOfDay(for: date)
+        let originalCount = days.count
+        days.removeAll { $0.date >= startOfCutoff }
+
+        guard days.count != originalCount else { return }
+        save()
+    }
+
     private func trimHistory() {
         let maxDays = 14
         if days.count > maxDays {
