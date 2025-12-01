@@ -36,31 +36,77 @@ enum FocusTimerMode: String, CaseIterable, Identifiable {
 }
 
 struct TimerCategory: Identifiable, Equatable {
-    let id: UUID
-    let name: String
-    let emoji: String
-    let description: String
-    let defaultDurationMinutes: Int
-    var durationMinutes: Int
-    let mode: FocusTimerMode
+    enum Kind: String, Codable {
+        case deepFocus
+        case workSprint
+        case choresSprint
+        case selfCare
+        case gamingReset
+        case quickBreak
 
-    init(
-        id: UUID = UUID(),
-        name: String,
-        emoji: String,
-        description: String,
-        defaultDurationMinutes: Int,
-        mode: FocusTimerMode,
-        durationMinutes: Int? = nil
-    ) {
-        self.id = id
-        self.name = name
-        self.emoji = emoji
-        self.description = description
-        self.defaultDurationMinutes = defaultDurationMinutes
-        self.durationMinutes = durationMinutes ?? defaultDurationMinutes
-        self.mode = mode
+        var title: String {
+            switch self {
+            case .deepFocus:
+                return QuestChatStrings.TimerCategories.deepFocusTitle
+            case .workSprint:
+                return QuestChatStrings.TimerCategories.workSprintTitle
+            case .choresSprint:
+                return QuestChatStrings.TimerCategories.choresSprintTitle
+            case .selfCare:
+                return QuestChatStrings.TimerCategories.selfCareTitle
+            case .gamingReset:
+                return QuestChatStrings.TimerCategories.gamingResetTitle
+            case .quickBreak:
+                return QuestChatStrings.TimerCategories.quickBreakTitle
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .deepFocus:
+                return QuestChatStrings.TimerCategories.deepFocusSubtitle
+            case .workSprint:
+                return QuestChatStrings.TimerCategories.workSprintSubtitle
+            case .choresSprint:
+                return QuestChatStrings.TimerCategories.choresSprintSubtitle
+            case .selfCare:
+                return QuestChatStrings.TimerCategories.selfCareSubtitle
+            case .gamingReset:
+                return QuestChatStrings.TimerCategories.gamingResetSubtitle
+            case .quickBreak:
+                return QuestChatStrings.TimerCategories.quickBreakSubtitle
+            }
+        }
+
+        var mode: FocusTimerMode {
+            switch self {
+            case .deepFocus, .workSprint, .choresSprint:
+                return .focus
+            case .selfCare, .gamingReset, .quickBreak:
+                return .selfCare
+            }
+        }
+
+        var systemImageName: String {
+            switch self {
+            case .deepFocus:
+                return "brain.head.profile"
+            case .workSprint:
+                return "bolt.circle"
+            case .choresSprint:
+                return "broom"
+            case .selfCare:
+                return "figure.mind.and.body"
+            case .gamingReset:
+                return "gamecontroller"
+            case .quickBreak:
+                return "cup.and.saucer.fill"
+            }
+        }
     }
+
+    let id: Kind
+    var durationSeconds: Int
 }
 
 enum FocusArea: String, CaseIterable, Identifiable, Codable {
@@ -182,8 +228,8 @@ final class SessionStatsStore: ObservableObject {
     @Published private(set) var momentum: Double
     @Published private(set) var sessionHistory: [SessionRecord]
     @Published private(set) var totalFocusSecondsToday: Int
-    @Published private(set) var todayCategorySessionCounts: [UUID: Int]
-    @Published private(set) var categoryComboBonusAwardedToday: Set<UUID>
+    @Published private(set) var todayCategorySessionCounts: [TimerCategory.Kind: Int]
+    @Published private(set) var categoryComboBonusAwardedToday: Set<TimerCategory.Kind>
     @Published var pendingLevelUp: Int?
     @Published private(set) var dailyConfig: DailyConfig?
     @Published var shouldShowDailySetup: Bool = false
@@ -264,7 +310,7 @@ final class SessionStatsStore: ObservableObject {
            let decoded = try? JSONDecoder().decode([String: Int].self, from: data)
         {
             todayCategorySessionCounts = decoded.reduce(into: [:]) { partialResult, pair in
-                if let id = UUID(uuidString: pair.key) {
+                if let id = TimerCategory.Kind(rawValue: pair.key) {
                     partialResult[id] = pair.value
                 }
             }
@@ -275,7 +321,7 @@ final class SessionStatsStore: ObservableObject {
         if let data = userDefaults.data(forKey: Keys.categoryComboBonusesAwarded),
            let decoded = try? JSONDecoder().decode([String].self, from: data)
         {
-            categoryComboBonusAwardedToday = Set(decoded.compactMap { UUID(uuidString: $0) })
+            categoryComboBonusAwardedToday = Set(decoded.compactMap { TimerCategory.Kind(rawValue: $0) })
         } else {
             categoryComboBonusAwardedToday = []
         }
@@ -393,7 +439,7 @@ final class SessionStatsStore: ObservableObject {
     }
 
     @discardableResult
-    func recordCategorySession(categoryID: UUID, now: Date = Date()) -> Int {
+    func recordCategorySession(categoryID: TimerCategory.Kind, now: Date = Date()) -> Int {
         refreshDailyCategoryCountsIfNeeded(today: Calendar.current.startOfDay(for: now))
 
         let today = Calendar.current.startOfDay(for: now)
@@ -410,12 +456,12 @@ final class SessionStatsStore: ObservableObject {
         return newCount
     }
 
-    func comboCount(for categoryID: UUID) -> Int {
+    func comboCount(for categoryID: TimerCategory.Kind) -> Int {
         refreshDailyCategoryCountsIfNeeded()
         return todayCategorySessionCounts[categoryID] ?? 0
     }
 
-    func hasEarnedComboBonus(for categoryID: UUID) -> Bool {
+    func hasEarnedComboBonus(for categoryID: TimerCategory.Kind) -> Bool {
         refreshDailyCategoryCountsIfNeeded()
         return categoryComboBonusAwardedToday.contains(categoryID)
     }
@@ -683,7 +729,7 @@ final class SessionStatsStore: ObservableObject {
 
     private func persistCategorySessionCounts(for date: Date = Calendar.current.startOfDay(for: Date())) {
         let encoded = todayCategorySessionCounts.reduce(into: [String: Int]()) { partialResult, pair in
-            partialResult[pair.key.uuidString] = pair.value
+            partialResult[pair.key.rawValue] = pair.value
         }
         if let data = try? JSONEncoder().encode(encoded) {
             userDefaults.set(data, forKey: Keys.categorySessionCounts)
@@ -692,7 +738,7 @@ final class SessionStatsStore: ObservableObject {
     }
 
     private func persistCategoryComboBonuses(for date: Date = Calendar.current.startOfDay(for: Date())) {
-        let encoded = categoryComboBonusAwardedToday.map { $0.uuidString }
+        let encoded = categoryComboBonusAwardedToday.map { $0.rawValue }
         if let data = try? JSONEncoder().encode(encoded) {
             userDefaults.set(data, forKey: Keys.categoryComboBonusesAwarded)
         }
@@ -840,10 +886,15 @@ final class FocusViewModel: ObservableObject {
     @Published var secondsRemaining: Int
     @Published var hasFinishedOnce: Bool = false
     @Published var selectedMode: FocusTimerMode = .focus {
-        didSet { resetForModeChange() }
+        didSet {
+            guard hasInitialized else { return }
+            resetForModeChange()
+        }
     }
     @Published var categories: [TimerCategory]
-    @Published var selectedCategoryID: TimerCategory.ID
+    @Published var selectedCategory: TimerCategory.Kind
+    @Published var isShowingDurationPicker: Bool = false
+    @Published var pendingDurationSeconds: Int = 0
     @Published var lastCompletedSession: SessionSummary?
     @Published var activeHydrationNudge: HydrationNudge?
     @Published var lastLevelUp: SessionStatsStore.LevelUpResult?
@@ -865,6 +916,7 @@ final class FocusViewModel: ObservableObject {
     @AppStorage("hydrateNudgesEnabled") private var hydrateNudgesEnabled: Bool = true
     private let notificationCenter = UNUserNotificationCenter.current()
     private let userDefaults = UserDefaults.standard
+    private var hasInitialized = false
 
     init(
         statsStore: SessionStatsStore = SessionStatsStore(),
@@ -873,23 +925,21 @@ final class FocusViewModel: ObservableObject {
         // Assign non-dependent stored properties first
         self.statsStore = statsStore
 
-        // Build categories using local variables to avoid referencing self before init completes
         let seeded = FocusViewModel.seededCategories()
         let loadedCategories: [TimerCategory] = seeded.map { base in
-            var category = base
-            // Use a temporary UserDefaults instance directly instead of self.userDefaults
-            let key = "timerCategory_duration_\(category.id.uuidString)"
-            let storedMinutes = UserDefaults.standard.integer(forKey: key)
-            category.durationMinutes = storedMinutes > 0 ? storedMinutes : category.defaultDurationMinutes
-            return category
+            let key = durationKey(for: base.id)
+            let storedSeconds = UserDefaults.standard.integer(forKey: key)
+            let duration = storedSeconds > 0 ? storedSeconds : base.durationSeconds
+            return TimerCategory(id: base.id, durationSeconds: duration)
         }
         self.categories = loadedCategories
 
-        // Pick initial category using local data
-        let initialCategory = loadedCategories.first { $0.mode == initialMode } ?? loadedCategories[0]
-        self.selectedCategoryID = initialCategory.id
-        self.selectedMode = initialCategory.mode
-        self.secondsRemaining = initialCategory.durationMinutes * 60
+        let initialCategory = loadedCategories.first { $0.id.mode == initialMode } ?? loadedCategories[0]
+        self.selectedCategory = initialCategory.id
+        self.selectedMode = initialCategory.id.mode
+        self.secondsRemaining = initialCategory.durationSeconds
+
+        hasInitialized = true
 
         // Defer side-effectful calls until after full initialization
         requestNotificationAuthorization()
@@ -908,20 +958,20 @@ final class FocusViewModel: ObservableObject {
         return Double(xpInCurrentLevel) / Double(needed)
     }
 
-    var selectedCategory: TimerCategory? {
-        categories.first { $0.id == selectedCategoryID }
+    var selectedCategoryData: TimerCategory? {
+        categories.first { $0.id == selectedCategory }
     }
 
     var comboCountForSelectedCategory: Int {
-        statsStore.comboCount(for: selectedCategoryID)
+        statsStore.comboCount(for: selectedCategory)
     }
 
     var hasEarnedComboForSelectedCategory: Bool {
-        statsStore.hasEarnedComboBonus(for: selectedCategoryID)
+        statsStore.hasEarnedComboBonus(for: selectedCategory)
     }
 
     private var currentDuration: Int {
-        selectedCategory.map { $0.durationMinutes * 60 } ?? selectedMode.defaultDurationMinutes * 60
+        durationForSelectedCategory()
     }
 
     var progress: Double {
@@ -982,28 +1032,41 @@ final class FocusViewModel: ObservableObject {
     }
 
     func selectCategory(_ category: TimerCategory) {
-        guard category.id != selectedCategoryID else { return }
+        guard category.id != selectedCategory else { return }
         guard state == .idle || state == .finished else { return }
 
-        selectedCategoryID = category.id
-        selectedMode = category.mode
-        secondsRemaining = category.durationMinutes * 60
+        selectedCategory = category.id
+        selectedMode = category.id.mode
+        secondsRemaining = category.durationSeconds
         hasFinishedOnce = false
         state = .idle
     }
 
-    func updateDuration(for category: TimerCategory, to minutes: Int) {
-        guard !(state == .running && category.id == selectedCategoryID) else { return }
+    func durationForSelectedCategory() -> Int {
+        categories.first(where: { $0.id == selectedCategory })?.durationSeconds ?? selectedMode.defaultDurationMinutes * 60
+    }
 
-        let clamped = min(max(minutes, 5), 120)
-        guard let index = categories.firstIndex(where: { $0.id == category.id }) else { return }
+    func setDurationForSelectedCategory(_ seconds: Int) {
+        guard state != .running else { return }
+        guard let index = categories.firstIndex(where: { $0.id == selectedCategory }) else { return }
+        let maxSeconds = (59 * 60) + 59
+        let clamped = min(max(seconds, 0), maxSeconds)
 
-        categories[index].durationMinutes = clamped
-        saveDuration(clamped, for: category)
+        categories[index].durationSeconds = clamped
+        saveDuration(clamped, for: categories[index].id)
 
-        if category.id == selectedCategoryID && state == .idle {
-            secondsRemaining = clamped * 60
+        if state == .idle {
+            secondsRemaining = clamped
         }
+    }
+
+    func formattedDuration(_ seconds: Int) -> String {
+        let minutes = seconds / 60
+        let secondsPart = seconds % 60
+        if secondsPart == 0 {
+            return "\(minutes) min"
+        }
+        return String(format: "%d:%02d", minutes, secondsPart)
     }
 
     private func invalidateTimer() {
@@ -1020,7 +1083,7 @@ final class FocusViewModel: ObservableObject {
         let previousFocusTotal = statsStore.totalFocusSecondsToday
         let xpBefore = statsStore.progression.totalXP
         _ = statsStore.recordSession(mode: selectedMode, duration: currentDuration)
-        _ = statsStore.recordCategorySession(categoryID: selectedCategoryID)
+        _ = statsStore.recordCategorySession(categoryID: selectedCategory)
         let streakLevelUp = statsStore.registerActiveToday()
         let totalXPGained = statsStore.progression.totalXP - xpBefore
         if streakLevelUp != nil {
@@ -1141,65 +1204,24 @@ final class FocusViewModel: ObservableObject {
         userDefaults.set(today, forKey: level.triggerKey)
     }
 
-    private func durationKey(for category: TimerCategory) -> String {
-        "timerCategory_duration_\(category.id.uuidString)"
+    private func durationKey(for category: TimerCategory.Kind) -> String {
+        "timerCategory_duration_\(category.rawValue)"
     }
 
-    private func loadDuration(for category: TimerCategory) -> Int {
-        let storedMinutes = userDefaults.integer(forKey: durationKey(for: category))
-        return storedMinutes > 0 ? storedMinutes : category.defaultDurationMinutes
-    }
-
-    private func saveDuration(_ minutes: Int, for category: TimerCategory) {
-        userDefaults.set(minutes, forKey: durationKey(for: category))
+    private func saveDuration(_ seconds: Int, for category: TimerCategory.Kind) {
+        userDefaults.set(seconds, forKey: durationKey(for: category))
     }
 }
 
 extension FocusViewModel {
     static func seededCategories() -> [TimerCategory] {
         [
-            TimerCategory(
-                name: QuestChatStrings.TimerCategories.deepFocusTitle,
-                emoji: "💡",
-                description: QuestChatStrings.TimerCategories.deepFocusSubtitle,
-                defaultDurationMinutes: 25,
-                mode: .focus
-            ),
-            TimerCategory(
-                name: QuestChatStrings.TimerCategories.workSprintTitle,
-                emoji: "🧠",
-                description: QuestChatStrings.TimerCategories.workSprintSubtitle,
-                defaultDurationMinutes: 45,
-                mode: .focus
-            ),
-            TimerCategory(
-                name: QuestChatStrings.TimerCategories.choresTitle,
-                emoji: "🧹",
-                description: QuestChatStrings.TimerCategories.choresSubtitle,
-                defaultDurationMinutes: 15,
-                mode: .focus
-            ),
-            TimerCategory(
-                name: QuestChatStrings.TimerCategories.selfCareTitle,
-                emoji: "💆‍♀️",
-                description: QuestChatStrings.TimerCategories.selfCareSubtitle,
-                defaultDurationMinutes: 5,
-                mode: .selfCare
-            ),
-            TimerCategory(
-                name: QuestChatStrings.TimerCategories.gamingResetTitle,
-                emoji: "🎮",
-                description: QuestChatStrings.TimerCategories.gamingResetSubtitle,
-                defaultDurationMinutes: 10,
-                mode: .selfCare
-            ),
-            TimerCategory(
-                name: QuestChatStrings.TimerCategories.quickBreakTitle,
-                emoji: "☕️",
-                description: QuestChatStrings.TimerCategories.quickBreakSubtitle,
-                defaultDurationMinutes: 8,
-                mode: .selfCare
-            ),
+            TimerCategory(id: .deepFocus, durationSeconds: 25 * 60),
+            TimerCategory(id: .workSprint, durationSeconds: 45 * 60),
+            TimerCategory(id: .choresSprint, durationSeconds: 15 * 60),
+            TimerCategory(id: .selfCare, durationSeconds: 5 * 60),
+            TimerCategory(id: .gamingReset, durationSeconds: 10 * 60),
+            TimerCategory(id: .quickBreak, durationSeconds: 8 * 60),
         ]
     }
 }
