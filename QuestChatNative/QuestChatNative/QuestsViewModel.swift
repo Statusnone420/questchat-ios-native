@@ -2,22 +2,55 @@ import Foundation
 import Combine
 
 struct Quest: Identifiable, Equatable {
+    enum Tier: String, CaseIterable {
+        case core
+        case habit
+        case bonus
+
+        var displayName: String {
+            switch self {
+            case .core:
+                return "Core"
+            case .habit:
+                return "Habit"
+            case .bonus:
+                return "Bonus"
+            }
+        }
+    }
+
     let id: String
     let title: String
     let detail: String
     let xpReward: Int
+    let tier: Tier
     var isCompleted: Bool
 }
 
 final class QuestsViewModel: ObservableObject {
     @Published var dailyQuests: [Quest] = []
+    @Published private(set) var hasUsedRerollToday: Bool = false
+    @Published var hasQuestChestReady: Bool = false
 
     private let statsStore: SessionStatsStore
     private let userDefaults: UserDefaults
     private let calendar: Calendar
+    private let dayReference: Date
 
     private var completionKey: String {
-        Self.dateKey(for: Date(), calendar: calendar)
+        Self.dateKey(for: dayReference, calendar: calendar)
+    }
+
+    private var rerollKey: String {
+        "reroll-\(completionKey)"
+    }
+
+    private var questChestGrantedKey: String {
+        "quest-chest-granted-\(completionKey)"
+    }
+
+    private var questChestReadyKey: String {
+        "quest-chest-ready-\(completionKey)"
     }
 
     init(
@@ -28,7 +61,11 @@ final class QuestsViewModel: ObservableObject {
         self.statsStore = statsStore
         self.userDefaults = userDefaults
         self.calendar = calendar
-        dailyQuests = Self.seedQuests(with: completedQuestIDs(for: Date(), calendar: calendar, userDefaults: userDefaults))
+        dayReference = calendar.startOfDay(for: Date())
+        dailyQuests = Self.seedQuests(with: completedQuestIDs(for: dayReference, calendar: calendar, userDefaults: userDefaults))
+        hasUsedRerollToday = userDefaults.bool(forKey: rerollKey)
+        hasQuestChestReady = userDefaults.bool(forKey: questChestReadyKey)
+        checkQuestChestRewardIfNeeded()
     }
 
     var completedQuestsCount: Int {
@@ -50,17 +87,59 @@ final class QuestsViewModel: ObservableObject {
         }
 
         persistCompletions()
+        checkQuestChestRewardIfNeeded()
+    }
+
+    func reroll(quest: Quest) {
+        guard !hasUsedRerollToday else { return }
+        guard !quest.isCompleted else { return }
+        guard let index = dailyQuests.firstIndex(where: { $0.id == quest.id }) else { return }
+
+        let currentIDs = Set(dailyQuests.map { $0.id })
+        let availableReplacementQuests = Self.questPool.filter { candidate in
+            candidate.id != quest.id && !currentIDs.contains(candidate.id)
+        }
+
+        guard let newQuest = availableReplacementQuests.randomElement() else { return }
+
+        dailyQuests[index] = Quest(
+            id: newQuest.id,
+            title: newQuest.title,
+            detail: newQuest.detail,
+            xpReward: newQuest.xpReward,
+            tier: newQuest.tier,
+            isCompleted: false
+        )
+
+        hasUsedRerollToday = true
+        userDefaults.set(true, forKey: rerollKey)
+        persistCompletions()
+    }
+
+    func claimQuestChest() {
+        hasQuestChestReady = false
+        userDefaults.set(false, forKey: questChestReadyKey)
+    }
+
+    var questChestRewardAmount: Int {
+        Self.questChestBonusXP
     }
 }
 
 private extension QuestsViewModel {
+    static let questChestBonusXP = 50
+
+    static let questPool: [Quest] = [
+        Quest(id: "daily-checkin", title: "Daily check-in", detail: "Set your intention and mood for the day.", xpReward: 25, tier: .core, isCompleted: false),
+        Quest(id: "hydrate", title: "Hydrate", detail: "Drink a full glass of water before starting.", xpReward: 15, tier: .habit, isCompleted: false),
+        Quest(id: "stretch", title: "Stretch break", detail: "Do a quick 2-minute stretch to reset.", xpReward: 15, tier: .habit, isCompleted: false),
+        Quest(id: "plan", title: "Plan a focus block", detail: "Schedule at least one focused session today.", xpReward: 30, tier: .core, isCompleted: false),
+        Quest(id: "deep-focus", title: "Deep focus", detail: "Commit to 25 distraction-free minutes.", xpReward: 35, tier: .bonus, isCompleted: false),
+        Quest(id: "gratitude", title: "Gratitude note", detail: "Write down one thing you're grateful for.", xpReward: 20, tier: .bonus, isCompleted: false)
+    ]
+
     static func seedQuests(with completedIDs: Set<String>) -> [Quest] {
-        var quests = [
-            Quest(id: "daily-checkin", title: "Daily check-in", detail: "Set your intention and mood for the day.", xpReward: 20, isCompleted: false),
-            Quest(id: "hydrate", title: "Hydrate", detail: "Drink a full glass of water before starting.", xpReward: 15, isCompleted: false),
-            Quest(id: "stretch", title: "Stretch break", detail: "Do a quick 2-minute stretch to reset.", xpReward: 15, isCompleted: false),
-            Quest(id: "plan", title: "Plan a focus block", detail: "Schedule at least one focused session today.", xpReward: 25, isCompleted: false)
-        ]
+        var quests = Array(questPool.prefix(4))
 
         quests = quests.map { quest in
             var updated = quest
@@ -79,6 +158,16 @@ private extension QuestsViewModel {
     func persistCompletions() {
         let completed = dailyQuests.filter { $0.isCompleted }.map { $0.id }
         userDefaults.set(completed, forKey: completionKey)
+    }
+
+    func checkQuestChestRewardIfNeeded() {
+        guard !userDefaults.bool(forKey: questChestGrantedKey) else { return }
+        guard dailyQuests.allSatisfy({ $0.isCompleted }) else { return }
+
+        statsStore.grantBonusXP(Self.questChestBonusXP)
+        userDefaults.set(true, forKey: questChestGrantedKey)
+        hasQuestChestReady = true
+        userDefaults.set(true, forKey: questChestReadyKey)
     }
 
     static func dateKey(for date: Date, calendar: Calendar) -> String {
