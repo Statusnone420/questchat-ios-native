@@ -284,10 +284,11 @@ final class SessionStatsStore: ObservableObject {
         let clampedMomentum = max(0, min(storedMomentum, 1))
         momentum = clampedMomentum
 
-        if let loadedProgression = loadProgression() {
-            progression = loadedProgression
+        let initialProgression: ProgressionState
+        if let loadedProgression = Self.loadProgression(from: userDefaults) {
+            initialProgression = loadedProgression
         } else {
-            progression = ProgressionState(
+            initialProgression = ProgressionState(
                 level: 1,
                 xpInCurrentLevel: 0,
                 totalXP: storedXP,
@@ -295,7 +296,8 @@ final class SessionStatsStore: ObservableObject {
                 lastActiveDate: nil
             )
         }
-        xp = progression.totalXP
+        progression = initialProgression
+        xp = initialProgression.totalXP
 
         lastSessionDate = userDefaults.object(forKey: Keys.lastSessionDate) as? Date
         let storedLastMomentumUpdate = userDefaults.object(forKey: Keys.lastMomentumUpdate) as? Date
@@ -320,7 +322,7 @@ final class SessionStatsStore: ObservableObject {
         totalFocusSecondsToday = initialTotalFocusSecondsToday
 
         let storedLevel = userDefaults.integer(forKey: Keys.lastKnownLevel)
-        let initialLevel = progression.level
+        let initialLevel = initialProgression.level
         lastKnownLevel = storedLevel > 0 ? storedLevel : initialLevel
         pendingLevelUp = nil
 
@@ -571,11 +573,11 @@ final class SessionStatsStore: ObservableObject {
 
     private func saveProgression() {
         if let data = try? JSONEncoder().encode(progression) {
-            userDefaults.set(data, forKey: progressionDefaultsKey)
+            userDefaults.set(data, forKey: Self.progressionDefaultsKey)
         }
     }
 
-    private func loadProgression() -> ProgressionState? {
+    private static func loadProgression(from userDefaults: UserDefaults) -> ProgressionState? {
         guard let data = userDefaults.data(forKey: progressionDefaultsKey) else { return nil }
         return try? JSONDecoder().decode(ProgressionState.self, from: data)
     }
@@ -622,7 +624,7 @@ final class SessionStatsStore: ObservableObject {
     private let userDefaults: UserDefaults
     private var lastSessionDate: Date?
     private var lastMomentumUpdate: Date?
-    private let progressionDefaultsKey = "progression_state_v1"
+    private static let progressionDefaultsKey = "progression_state_v1"
 
     private let momentumIncrement: Double = 0.25
     private let momentumDecayDuration: TimeInterval = 4 * 60 * 60
