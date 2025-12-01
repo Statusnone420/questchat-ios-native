@@ -927,7 +927,7 @@ final class FocusViewModel: ObservableObject {
 
         let seeded = FocusViewModel.seededCategories()
         let loadedCategories: [TimerCategory] = seeded.map { base in
-            let key = durationKey(for: base.id)
+            let key = Self.durationKey(for: base.id)
             let storedSeconds = UserDefaults.standard.integer(forKey: key)
             let duration = storedSeconds > 0 ? storedSeconds : base.durationSeconds
             return TimerCategory(id: base.id, durationSeconds: duration)
@@ -1204,12 +1204,12 @@ final class FocusViewModel: ObservableObject {
         userDefaults.set(today, forKey: level.triggerKey)
     }
 
-    private func durationKey(for category: TimerCategory.Kind) -> String {
+    private static func durationKey(for category: TimerCategory.Kind) -> String {
         "timerCategory_duration_\(category.rawValue)"
     }
 
     private func saveDuration(_ seconds: Int, for category: TimerCategory.Kind) {
-        userDefaults.set(seconds, forKey: durationKey(for: category))
+        userDefaults.set(seconds, forKey: Self.durationKey(for: category))
     }
 }
 
@@ -1235,4 +1235,3 @@ private extension FocusViewModel.HydrationNudgeLevel {
         }
     }
 }
-
