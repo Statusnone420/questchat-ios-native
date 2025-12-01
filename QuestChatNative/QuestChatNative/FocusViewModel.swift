@@ -334,10 +334,19 @@ final class FocusViewModel: ObservableObject {
     @Published var secondsRemaining: Int
     @Published var hasFinishedOnce: Bool = false
     @Published var selectedMode: FocusTimerMode = .focus {
-        didSet { resetForModeChange() }
+        didSet { resetForModeChange(cancelFocusBlock: !isAutomatedModeSwitch) }
     }
     @Published var lastCompletedSession: SessionSummary?
     @Published var activeHydrationNudge: HydrationNudge?
+    @Published var isFocusBlockEnabled: Bool = false {
+        didSet {
+            if !isFocusBlockEnabled {
+                deactivateFocusBlock()
+            }
+        }
+    }
+    @Published private(set) var isFocusBlockActive: Bool = false
+    @Published private(set) var currentCycleIndex: Int = 0
 
     @Published private(set) var notificationAuthorized: Bool = false
     let statsStore: SessionStatsStore
@@ -346,6 +355,9 @@ final class FocusViewModel: ObservableObject {
     @AppStorage("hydrateNudgesEnabled") private var hydrateNudgesEnabled: Bool = true
     private let notificationCenter = UNUserNotificationCenter.current()
     private let userDefaults = UserDefaults.standard
+    private var isAutomatedModeSwitch = false
+
+    let focusBlockTotalCycles: Int = 3
 
     init(
         statsStore: SessionStatsStore = SessionStatsStore(),
@@ -375,6 +387,9 @@ final class FocusViewModel: ObservableObject {
                 secondsRemaining = selectedMode.duration
                 hasFinishedOnce = false
             }
+            if isFocusBlockEnabled {
+                beginFocusBlockIfNeeded()
+            }
             startTimer()
         }
     }
@@ -384,6 +399,7 @@ final class FocusViewModel: ObservableObject {
         stopTimer()
         secondsRemaining = selectedMode.duration
         hasFinishedOnce = false
+        deactivateFocusBlock()
     }
 
     private func startTimer() {
@@ -431,12 +447,16 @@ final class FocusViewModel: ObservableObject {
         secondsRemaining = 0
         handleHydrationThresholds(previousTotal: previousFocusTotal, newTotal: statsStore.totalFocusSecondsToday)
         sendImmediateHydrationReminder()
+        handleFocusBlockProgression()
     }
 
-    private func resetForModeChange() {
+    private func resetForModeChange(cancelFocusBlock: Bool) {
         stopTimer()
         secondsRemaining = selectedMode.duration
         hasFinishedOnce = false
+        if cancelFocusBlock {
+            deactivateFocusBlock()
+        }
     }
 
     private func requestNotificationAuthorization() {
@@ -528,6 +548,62 @@ final class FocusViewModel: ObservableObject {
     private func markNudgeTriggered(for level: HydrationNudgeLevel) {
         let today = Calendar.current.startOfDay(for: Date())
         userDefaults.set(today, forKey: level.triggerKey)
+    }
+
+    // MARK: - Focus block automation
+
+    private func beginFocusBlockIfNeeded() {
+        guard !isFocusBlockActive else { return }
+        isFocusBlockActive = true
+        currentCycleIndex = 0
+        setMode(.focus, automated: true)
+        secondsRemaining = selectedMode.duration
+        hasFinishedOnce = false
+    }
+
+    private func handleFocusBlockProgression() {
+        guard isFocusBlockActive else { return }
+
+        switch selectedMode {
+        case .focus:
+            transitionToSelfCare()
+        case .selfCare:
+            currentCycleIndex += 1
+            if currentCycleIndex < focusBlockTotalCycles {
+                startNextFocusCycle()
+            } else {
+                completeFocusBlock()
+            }
+        }
+    }
+
+    private func transitionToSelfCare() {
+        setMode(.selfCare, automated: true)
+        secondsRemaining = selectedMode.duration
+        hasFinishedOnce = false
+        startTimer()
+    }
+
+    private func startNextFocusCycle() {
+        setMode(.focus, automated: true)
+        secondsRemaining = selectedMode.duration
+        hasFinishedOnce = false
+        startTimer()
+    }
+
+    private func completeFocusBlock() {
+        deactivateFocusBlock()
+    }
+
+    private func deactivateFocusBlock() {
+        isFocusBlockActive = false
+        currentCycleIndex = 0
+    }
+
+    private func setMode(_ mode: FocusTimerMode, automated: Bool) {
+        isAutomatedModeSwitch = automated
+        selectedMode = mode
+        isAutomatedModeSwitch = false
     }
 }
 

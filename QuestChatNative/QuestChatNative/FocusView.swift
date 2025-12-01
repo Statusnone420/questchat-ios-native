@@ -184,6 +184,12 @@ struct FocusView: View {
 
     private var timerCard: some View {
         VStack(spacing: 16) {
+            Picker("Session type", selection: $viewModel.isFocusBlockEnabled) {
+                Text("Single session").tag(false)
+                Text("Focus block (3x)").tag(true)
+            }
+            .pickerStyle(.segmented)
+
             Picker("Mode", selection: $viewModel.selectedMode) {
                 ForEach(FocusTimerMode.allCases) { mode in
                     Label(mode.title, systemImage: mode.accentSystemImage)
@@ -191,6 +197,10 @@ struct FocusView: View {
                 }
             }
             .pickerStyle(.segmented)
+
+            if viewModel.isFocusBlockActive {
+                focusBlockIndicator
+            }
 
             ZStack {
                 Circle()
@@ -312,6 +322,30 @@ struct FocusView: View {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(Color.gray.opacity(0.25), lineWidth: 1)
         )
+    }
+
+    private var focusBlockIndicator: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<viewModel.focusBlockTotalCycles, id: \.self) { index in
+                Capsule()
+                    .frame(width: 20, height: 6)
+                    .foregroundStyle(
+                        index < viewModel.currentCycleIndex
+                            ? Color.mint
+                            : index == viewModel.currentCycleIndex
+                                ? Color.mint.opacity(0.6)
+                                : Color.gray.opacity(0.4)
+                    )
+            }
+            Spacer()
+            Text("Focus block in progress")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(10)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
+        .cornerRadius(12)
     }
 
     private func hydrationBanner(nudge: FocusViewModel.HydrationNudge) -> some View {
@@ -471,6 +505,7 @@ private extension Color {
             opacity: Double(fromAlpha + (toAlpha - fromAlpha) * clampedFraction)
         )
     }
+
 }
 
 #Preview {
