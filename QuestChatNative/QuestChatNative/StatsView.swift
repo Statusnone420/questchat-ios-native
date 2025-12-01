@@ -102,7 +102,7 @@ struct StatsView: View {
             .toolbarBackground(Color.black, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(isPresented: $showPlayerCard) {
-                PlayerCardView(store: store)
+                PlayerCardView(store: store, viewModel: viewModel)
             }
             .onAppear {
                 store.refreshMomentumIfNeeded()

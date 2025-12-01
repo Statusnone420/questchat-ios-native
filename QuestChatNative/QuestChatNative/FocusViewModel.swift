@@ -243,10 +243,12 @@ final class SessionStatsStore: ObservableObject {
         var lastActiveDate: Date?
     }
 
-    enum XpSource: Codable {
+    enum XPReason: Codable {
         case focusSession(minutes: Int)
         case questCompleted(id: String, xp: Int)
         case streakBonus
+        case waterGoal
+        case healthCombo
     }
 
     struct LevelUpResult: Equatable {
@@ -556,7 +558,7 @@ final class SessionStatsStore: ObservableObject {
     }
 
     @discardableResult
-    func grantXP(_ amount: Int, source: XpSource) -> LevelUpResult? {
+    func grantXP(_ amount: Int, reason: XPReason) -> LevelUpResult? {
         guard amount > 0 else { return nil }
 
         progression.totalXP += amount
@@ -592,18 +594,18 @@ final class SessionStatsStore: ObservableObject {
     @discardableResult
     func registerCompletedSession(minutes: Int) -> LevelUpResult? {
         guard minutes > 0 else { return nil }
-        return grantXP(minutes * 2, source: .focusSession(minutes: minutes))
+        return grantXP(minutes * 2, reason: .focusSession(minutes: minutes))
     }
 
     @discardableResult
     func registerQuestCompleted(id: String, xp: Int) -> LevelUpResult? {
         guard xp > 0 else { return nil }
-        return grantXP(xp, source: .questCompleted(id: id, xp: xp))
+        return grantXP(xp, reason: .questCompleted(id: id, xp: xp))
     }
 
     @discardableResult
     func registerStreakBonus() -> LevelUpResult? {
-        grantXP(10, source: .streakBonus)
+        grantXP(10, reason: .streakBonus)
     }
 
     func registerActiveToday(date: Date = Date()) -> LevelUpResult? {
@@ -632,7 +634,7 @@ final class SessionStatsStore: ObservableObject {
     }
 
     func grantBonusXP(_ amount: Int) {
-        _ = grantXP(amount, source: .questCompleted(id: "bonus", xp: amount))
+        _ = grantXP(amount, reason: .questCompleted(id: "bonus", xp: amount))
     }
 
     func resetAll() {
@@ -957,9 +959,17 @@ final class FocusViewModel: ObservableObject {
     @Published var lastCompletedSession: SessionSummary?
     @Published var activeHydrationNudge: HydrationNudge?
     @Published var lastLevelUp: SessionStatsStore.LevelUpResult?
-    @Published var sleepQuality: SleepQuality = .okay
+    @Published var sleepQuality: SleepQuality = .okay {
+        didSet {
+            guard !isLoadingSleepData else { return }
+            persistSleepQualitySelection()
+            evaluateHealthXPBonuses()
+        }
+    }
     @Published var totalWaterOuncesToday: Int = 0
     @Published var totalComfortOuncesToday: Int = 0
+    @Published private var waterGoalXPGrantedToday = false
+    @Published private var healthComboXPGrantedToday = false
 
     var onSessionComplete: (() -> Void)?
 
@@ -986,6 +996,8 @@ final class FocusViewModel: ObservableObject {
     private var hasInitialized = false
     private let minimumSessionDuration: TimeInterval = 60
     private var activeSessionDuration: Int?
+    private var hasLoggedSleepQualityToday = false
+    private var isLoadingSleepData = false
 
     init(
         statsStore: SessionStatsStore = SessionStatsStore(),
@@ -1027,6 +1039,9 @@ final class FocusViewModel: ObservableObject {
         if let healthBarViewModel {
             bindHealthBarViewModel(healthBarViewModel)
         }
+
+        refreshDailyHealthBonusState()
+        loadSleepQuality()
     }
 
     var timerStatusText: String {
@@ -1157,8 +1172,9 @@ final class FocusViewModel: ObservableObject {
         // HP updates are capped inside HealthBarViewModel; still log even when already at max HP.
         healthBarViewModel.logHydration()
 
-        totalWaterOuncesToday += hydrationSettingsStore.ouncesPerWaterTap
+        updateWaterIntakeTotals()
         recordHealthBarSnapshot(inputs: healthBarViewModel.inputs, hp: healthBarViewModel.hp)
+        evaluateHealthXPBonuses()
     }
 
     func logComfortBeverageTapped() {
@@ -1407,9 +1423,87 @@ final class FocusViewModel: ObservableObject {
             .debounce(for: .milliseconds(50), scheduler: RunLoop.main)
             .receive(on: RunLoop.main)
             .sink { [weak self] inputs, hp in
+                self?.updateWaterIntakeTotals()
                 self?.recordHealthBarSnapshot(inputs: inputs, hp: hp)
+                self?.evaluateHealthXPBonuses()
             }
             .store(in: &cancellables)
+    }
+
+    private var waterGoalToday: Int { hydrationSettingsStore.dailyWaterGoalOunces }
+
+    private var waterIntakeOuncesToday: Int {
+        (healthBarViewModel?.inputs.hydrationCount ?? 0) * hydrationSettingsStore.ouncesPerWaterTap
+    }
+
+    private var didHitWaterGoalToday: Bool {
+        waterGoalToday > 0 && waterIntakeOuncesToday >= waterGoalToday
+    }
+
+    private var healthComboIsComplete: Bool {
+        let gutStatus = healthBarViewModel?.inputs.gutStatus ?? .none
+        let moodStatus = healthBarViewModel?.inputs.moodStatus ?? .none
+        return gutStatus != .none && moodStatus != .none && hasLoggedSleepQualityToday
+    }
+
+    private func refreshDailyHealthBonusState(today: Date = Date()) {
+        waterGoalXPGrantedToday = isDate(userDefaults.object(forKey: HealthTrackingStorageKeys.waterGoalAwardDate) as? Date, inSameDayAs: today)
+        healthComboXPGrantedToday = isDate(userDefaults.object(forKey: HealthTrackingStorageKeys.healthComboAwardDate) as? Date, inSameDayAs: today)
+        hasLoggedSleepQualityToday = isDate(userDefaults.object(forKey: HealthTrackingStorageKeys.sleepQualityLogged) as? Date, inSameDayAs: today)
+        updateWaterIntakeTotals()
+    }
+
+    private func persistSleepQualitySelection() {
+        let today = Calendar.current.startOfDay(for: Date())
+        userDefaults.set(sleepQuality.rawValue, forKey: HealthTrackingStorageKeys.sleepQualityValue)
+        userDefaults.set(today, forKey: HealthTrackingStorageKeys.sleepQualityDate)
+        userDefaults.set(today, forKey: HealthTrackingStorageKeys.sleepQualityLogged)
+        hasLoggedSleepQualityToday = true
+    }
+
+    private func loadSleepQuality() {
+        isLoadingSleepData = true
+        let today = Calendar.current.startOfDay(for: Date())
+
+        if
+            let storedDate = userDefaults.object(forKey: HealthTrackingStorageKeys.sleepQualityDate) as? Date,
+            Calendar.current.isDate(storedDate, inSameDayAs: today),
+            let storedQuality = SleepQuality(rawValue: userDefaults.integer(forKey: HealthTrackingStorageKeys.sleepQualityValue))
+        {
+            sleepQuality = storedQuality
+            hasLoggedSleepQualityToday = isDate(userDefaults.object(forKey: HealthTrackingStorageKeys.sleepQualityLogged) as? Date, inSameDayAs: today)
+        } else {
+            sleepQuality = .okay
+            hasLoggedSleepQualityToday = false
+        }
+
+        isLoadingSleepData = false
+    }
+
+    private func evaluateHealthXPBonuses() {
+        let today = Date()
+        refreshDailyHealthBonusState(today: today)
+
+        if didHitWaterGoalToday && !waterGoalXPGrantedToday {
+            statsStore.grantXP(10, reason: .waterGoal)
+            waterGoalXPGrantedToday = true
+            userDefaults.set(Calendar.current.startOfDay(for: today), forKey: HealthTrackingStorageKeys.waterGoalAwardDate)
+        }
+
+        if healthComboIsComplete && !healthComboXPGrantedToday {
+            statsStore.grantXP(10, reason: .healthCombo)
+            healthComboXPGrantedToday = true
+            userDefaults.set(Calendar.current.startOfDay(for: today), forKey: HealthTrackingStorageKeys.healthComboAwardDate)
+        }
+    }
+
+    private func updateWaterIntakeTotals() {
+        totalWaterOuncesToday = waterIntakeOuncesToday
+    }
+
+    private func isDate(_ date: Date?, inSameDayAs target: Date = Date()) -> Bool {
+        guard let date else { return false }
+        return Calendar.current.isDate(date, inSameDayAs: target)
     }
 
     private func hasTriggeredNudge(for level: HydrationNudgeLevel) -> Bool {

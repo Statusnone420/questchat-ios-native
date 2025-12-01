@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PlayerCardView: View {
     @ObservedObject var store: SessionStatsStore
+    @ObservedObject var viewModel: StatsViewModel
 
     @AppStorage("playerDisplayName") private var playerDisplayName: String = QuestChatStrings.PlayerCard.defaultName
 
@@ -20,6 +21,8 @@ struct PlayerCardView: View {
             .padding()
             .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
             .cornerRadius(14)
+
+            playerHUDSection
 
             VStack(alignment: .leading, spacing: 12) {
                 statRow(label: QuestChatStrings.PlayerCard.levelLabel, value: "\(store.level)", tint: .mint)
@@ -54,9 +57,41 @@ struct PlayerCardView: View {
                 .font(.title3.bold())
         }
     }
+
+    private var playerHUDSection: some View {
+        VStack(spacing: 8) {
+            RPGStatBar(iconName: "heart.fill",
+                       label: "HP",
+                       color: .red,
+                       progress: viewModel.hpProgress,
+                       segments: 10)
+
+            RPGStatBar(iconName: "drop.fill",
+                       label: "Hydration",
+                       color: .blue,
+                       progress: viewModel.hydrationProgress,
+                       segments: 10)
+
+            RPGStatBar(iconName: "moon.fill",
+                       label: "Sleep",
+                       color: .purple,
+                       progress: viewModel.sleepProgress,
+                       segments: 10)
+
+            RPGStatBar(iconName: "face.smiling",
+                       label: "Mood",
+                       color: .green,
+                       progress: viewModel.moodProgress,
+                       segments: 10)
+        }
+    }
 }
 
 #Preview {
     let store = SessionStatsStore()
-    PlayerCardView(store: store)
+    let statsViewModel = StatsViewModel(
+        healthStore: HealthBarIRLStatsStore(),
+        hydrationSettingsStore: HydrationSettingsStore()
+    )
+    PlayerCardView(store: store, viewModel: statsViewModel)
 }
