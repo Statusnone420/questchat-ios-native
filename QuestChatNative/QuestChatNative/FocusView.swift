@@ -117,22 +117,11 @@ struct FocusView: View {
                     )
                     .zIndex(2)
             }
-
-            if let levelUp = viewModel.activeLevelUp {
-                VStack {
-                    Spacer()
-                    LevelUpToastView(level: levelUp.newLevel)
-                        .padding(.bottom, 32)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                .zIndex(3)
-            }
         }
         .animation(.easeInOut(duration: 0.25), value: statsStore.pendingLevelUp)
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
         .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.selectedCategory)
-        .animation(.spring(), value: viewModel.activeLevelUp)
         .onAppear {
             statsStore.refreshMomentumIfNeeded()
         }
@@ -166,13 +155,14 @@ struct FocusView: View {
         .onAppear {
             statsStore.refreshDailySetupIfNeeded()
         }
-        .onChange(of: viewModel.activeLevelUp) { newValue in
-            guard newValue != nil else { return }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                if viewModel.activeLevelUp != nil {
-                    viewModel.dismissLevelUp()
+        .alert(item: $viewModel.lastLevelUp) { result in
+            Alert(
+                title: Text("Level \(result.newLevel) reached!"),
+                message: Text("You're one step closer to Level 100 QuestChat Master."),
+                dismissButton: .default(Text("Nice!")) {
+                    viewModel.lastLevelUp = nil
                 }
-            }
+            )
         }
     }
 

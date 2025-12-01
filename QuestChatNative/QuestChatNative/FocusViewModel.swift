@@ -280,10 +280,6 @@ final class SessionStatsStore: ObservableObject {
             return QuestChatStrings.StatusLines.streak(currentStreakDays)
         }
 
-        if xp == 0 {
-            return QuestChatStrings.StatusLines.none
-        }
-
         return QuestChatStrings.StatusLines.xpEarned(xp)
     }
 
@@ -346,9 +342,8 @@ final class SessionStatsStore: ObservableObject {
                 lastActiveDate: nil
             )
         }
-        progression = migratedProgressionIfNeeded(from: initialProgression)
-        xp = progression.totalXP
-        saveProgression()
+        progression = initialProgression
+        xp = initialProgression.totalXP
 
         lastSessionDate = userDefaults.object(forKey: Keys.lastSessionDate) as? Date
         let storedLastMomentumUpdate = userDefaults.object(forKey: Keys.lastMomentumUpdate) as? Date
@@ -620,31 +615,6 @@ final class SessionStatsStore: ObservableObject {
     func xpNeededToLevelUp(from level: Int) -> Int {
         guard level < 100 else { return Int.max }
         return 40 + 4 * max(0, level - 1)
-    }
-
-    private func migratedProgressionIfNeeded(from state: ProgressionState) -> ProgressionState {
-        var state = state
-
-        // Only migrate the “stuck at level 1 with all XP in totalXP” case
-        guard state.level == 1,
-              state.xpInCurrentLevel == 0,
-              state.totalXP > 0 else {
-            return state
-        }
-
-        var remainingXP = state.totalXP
-        var level = 1
-
-        while level < 100 {
-            let cost = xpNeededToLevelUp(from: level)
-            if remainingXP < cost { break }
-            remainingXP -= cost
-            level += 1
-        }
-
-        state.level = level
-        state.xpInCurrentLevel = remainingXP
-        return state
     }
 
     private func saveProgression() {
@@ -927,21 +897,13 @@ final class FocusViewModel: ObservableObject {
     @Published var pendingDurationSeconds: Int = 0
     @Published var lastCompletedSession: SessionSummary?
     @Published var activeHydrationNudge: HydrationNudge?
-    @Published var activeLevelUp: SessionStatsStore.LevelUpResult?
+    @Published var lastLevelUp: SessionStatsStore.LevelUpResult?
 
     enum TimerState {
         case idle
         case running
         case paused
         case finished
-    }
-
-    func notifyLevelUp(_ result: SessionStatsStore.LevelUpResult) {
-        activeLevelUp = result
-    }
-
-    func dismissLevelUp() {
-        activeLevelUp = nil
     }
 
     @Published var state: TimerState = .idle
@@ -984,14 +946,7 @@ final class FocusViewModel: ObservableObject {
 
         statsStore.$lastLevelUp
             .receive(on: RunLoop.main)
-            .sink { [weak self] result in
-                guard let self else { return }
-                if let result {
-                    self.notifyLevelUp(result)
-                } else {
-                    self.dismissLevelUp()
-                }
-            }
+            .sink { [weak self] in self?.lastLevelUp = $0 }
             .store(in: &cancellables)
     }
 
@@ -1131,10 +1086,10 @@ final class FocusViewModel: ObservableObject {
         _ = statsStore.recordCategorySession(categoryID: selectedCategory)
         let streakLevelUp = statsStore.registerActiveToday()
         let totalXPGained = statsStore.progression.totalXP - xpBefore
-        if let streakLevelUp {
-            notifyLevelUp(streakLevelUp)
-        } else if let levelUp = statsStore.lastLevelUp {
-            notifyLevelUp(levelUp)
+        if streakLevelUp != nil {
+            lastLevelUp = streakLevelUp
+        } else {
+            lastLevelUp = statsStore.lastLevelUp
         }
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         withAnimation(.easeInOut(duration: 0.25)) {
