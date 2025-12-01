@@ -18,9 +18,16 @@ enum FocusTimerMode: String, CaseIterable, Identifiable {
 
     /// Default duration in seconds for the timer mode.
     var duration: Int {
+        let userDefaults = UserDefaults.standard
         switch self {
-        case .focus: 25 * 60
-        case .selfCare: 5 * 60
+        case .focus:
+            let storedMinutes = userDefaults.integer(forKey: Keys.focusDurationMinutes)
+            let minutes = storedMinutes > 0 ? storedMinutes : Keys.defaultFocusDurationMinutes
+            return minutes * 60
+        case .selfCare:
+            let storedMinutes = userDefaults.integer(forKey: Keys.selfCareDurationMinutes)
+            let minutes = storedMinutes > 0 ? storedMinutes : Keys.defaultSelfCareDurationMinutes
+            return minutes * 60
         }
     }
 
@@ -29,6 +36,13 @@ enum FocusTimerMode: String, CaseIterable, Identifiable {
         case .focus: "flame.fill"
         case .selfCare: "heart.fill"
         }
+    }
+
+    private enum Keys {
+        static let focusDurationMinutes = "focusDurationMinutes"
+        static let selfCareDurationMinutes = "selfCareDurationMinutes"
+        static let defaultFocusDurationMinutes = 25
+        static let defaultSelfCareDurationMinutes = 5
     }
 }
 
