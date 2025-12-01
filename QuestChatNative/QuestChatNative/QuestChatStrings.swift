@@ -5,13 +5,10 @@ enum QuestChatStrings {
         static let deepFocusTitle = "Deep focus"
         static let deepFocusSubtitle = "Heads-down work, no scrolling."
 
-        static let workSprintTitle = "Work sprint"
+        static let workSprintTitle = "Work"
         static let workSprintSubtitle = "Ship stuff fast, no perfectionism."
 
-        static let choresTitle = "Chores sprint"
-        static let choresSubtitle = "Put the room back on your side."
-
-        static let choresSprintTitle = "Chores sprint"
+        static let choresSprintTitle = "Chores"
         static let choresSprintSubtitle = "Put the room back on your side."
 
         static let selfCareTitle = "Self-care reset"
