@@ -1,11 +1,13 @@
 import SwiftUI
 
 struct FocusView: View {
-    @StateObject var viewModel: FocusViewModel
+    @StateObject var viewModel: FocusTimerViewModel
+
+    private let durationOptions: [Int] = [5, 10, 15, 20, 25, 30, 45, 60]
 
     private var formattedTime: String {
-        let minutes = viewModel.secondsRemaining / 60
-        let seconds = viewModel.secondsRemaining % 60
+        let minutes = viewModel.remainingSeconds / 60
+        let seconds = viewModel.remainingSeconds % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
 
@@ -19,25 +21,34 @@ struct FocusView: View {
                     .font(.system(size: 64, weight: .heavy, design: .rounded))
                     .monospacedDigit()
 
-                if viewModel.hasFinishedOnce {
-                    Text("Nice work. Start another?")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("Stay focused until the timer hits zero.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
+                Text(viewModel.isRunning ? "Stay focused… you’ve got this. 💪" : "Stay focused until the timer hits zero.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Session Length")
+                        .font(.headline)
+
+                    Picker("Session Length", selection: $viewModel.selectedDurationMinutes) {
+                        ForEach(durationOptions, id: \.self) { minutes in
+                            Text("\(minutes) min").tag(minutes)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .disabled(viewModel.isRunning)
                 }
+                .padding(.horizontal)
 
                 HStack(spacing: 16) {
-                    Button(action: viewModel.startOrPause) {
+                    Button(action: viewModel.isRunning ? viewModel.pause : viewModel.start) {
                         Label(viewModel.isRunning ? "Pause" : "Start",
                               systemImage: viewModel.isRunning ? "pause.fill" : "play.fill")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(viewModel.isRunning ? .orange : .accentColor)
 
                     Button(role: .destructive, action: viewModel.reset) {
                         Label("Reset", systemImage: "arrow.counterclockwise")
@@ -52,10 +63,11 @@ struct FocusView: View {
             .padding(.top, 32)
             .navigationTitle("Focus")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear(perform: viewModel.handleAppDidBecomeActive)
         }
     }
 }
 
 #Preview {
-    FocusView(viewModel: FocusViewModel())
+    FocusView(viewModel: FocusTimerViewModel())
 }
