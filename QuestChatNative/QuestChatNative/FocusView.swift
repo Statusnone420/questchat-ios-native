@@ -51,6 +51,20 @@ struct FocusView: View {
     private var selfCareMinutesToday: Int { viewModel.statsStore.selfCareSecondsToday / 60 }
     private var dailyFocusTarget: Int { viewModel.statsStore.dailyMinutesGoal ?? 40 }
 
+    private var momentumStatusText: String {
+        let value = viewModel.statsStore.currentMomentum
+        switch value {
+        case let value where value >= 1.0:
+            return "Momentum: ready!"
+        case let value where value >= 0.5:
+            return "Momentum: almost there"
+        case let value where value > 0:
+            return "Momentum: charging"
+        default:
+            return "Momentum: start a session"
+        }
+    }
+
     var body: some View {
         ZStack {
             NavigationStack {
@@ -104,6 +118,9 @@ struct FocusView: View {
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
         .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.selectedCategoryID)
+        .onAppear {
+            viewModel.statsStore.refreshMomentumIfNeeded()
+        }
         .sheet(
             isPresented: Binding(
                 get: { viewModel.statsStore.shouldShowDailySetup },
@@ -196,6 +213,31 @@ struct FocusView: View {
         .cornerRadius(16)
     }
 
+    private var momentumStrip: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("Momentum", systemImage: "bolt.fill")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(.yellow)
+                Spacer()
+                Text(momentumStatusText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            ProgressView(value: viewModel.statsStore.currentMomentum, total: 1)
+                .tint(.yellow)
+                .progressViewStyle(.linear)
+        }
+        .padding()
+        .background(.ultraThinMaterial.opacity(0.12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+        )
+        .cornerRadius(14)
+    }
+
     private var dailyGoalCard: some View {
         let goal = dailyFocusTarget
         let progress = viewModel.statsStore.dailyMinutesProgress
@@ -268,6 +310,8 @@ struct FocusView: View {
             dailyGoalCard
 
             xpStrip
+
+            momentumStrip
 
             TodaySummaryView(
                 completedQuests: questsViewModel.completedQuestsCount,

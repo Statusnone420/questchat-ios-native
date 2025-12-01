@@ -161,6 +161,7 @@ final class SessionStatsStore: ObservableObject {
     @Published private(set) var selfCareSeconds: Int
     @Published private(set) var sessionsCompleted: Int
     @Published private(set) var xp: Int
+    @Published private(set) var momentum: Double
     @Published private(set) var sessionHistory: [SessionRecord]
     @Published private(set) var totalFocusSecondsToday: Int
     @Published var pendingLevelUp: Int?
@@ -240,6 +241,15 @@ final class SessionStatsStore: ObservableObject {
             sessionHistory = []
         }
 
+        let storedMomentum = userDefaults.double(forKey: Keys.momentum)
+        momentum = max(0, min(storedMomentum, 1))
+
+        lastSessionDate = userDefaults.object(forKey: Keys.lastSessionDate) as? Date
+        lastMomentumUpdate = userDefaults.object(forKey: Keys.lastMomentumUpdate) as? Date ?? lastSessionDate
+        if momentum > 0, lastMomentumUpdate == nil {
+            lastMomentumUpdate = Date()
+        }
+
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let storedDate = userDefaults.object(forKey: Keys.totalFocusDate) as? Date
@@ -279,11 +289,15 @@ final class SessionStatsStore: ObservableObject {
         }
 
         refreshDailySetupIfNeeded()
+        refreshMomentumIfNeeded()
     }
 
     @discardableResult
     func recordSession(mode: FocusTimerMode, duration: Int) -> Int {
         refreshDailyTotalsIfNeeded()
+        refreshMomentumIfNeeded()
+
+        let now = Date()
 
         let xpAwarded: Int
         switch mode {
@@ -295,12 +309,28 @@ final class SessionStatsStore: ObservableObject {
             selfCareSeconds += duration
             xpAwarded = 8
         }
+
         xp += xpAwarded
         sessionsCompleted += 1
         recordSessionHistory(mode: mode, duration: duration)
         handleLevelChange()
+
+        var totalXPAwarded = xpAwarded
+
+        if momentum >= 1.0 {
+            let bonusXP = Int((Double(xpAwarded) * momentumBonusMultiplier).rounded())
+            if bonusXP > 0 {
+                grantBonusXP(bonusXP)
+                totalXPAwarded += bonusXP
+            }
+            momentum = 0
+        }
+
+        momentum = min(1.0, momentum + momentumIncrement)
+        lastSessionDate = now
+        lastMomentumUpdate = now
         persist()
-        return xpAwarded
+        return totalXPAwarded
     }
 
     func refreshDailyFocusTotal() {
@@ -360,10 +390,24 @@ final class SessionStatsStore: ObservableObject {
         lastKnownLevel = level
         pendingLevelUp = nil
         sessionHistory = []
+        momentum = 0
+        lastSessionDate = nil
+        lastMomentumUpdate = nil
         persist()
     }
 
+    var currentMomentum: Double {
+        refreshMomentumIfNeeded()
+        return momentum
+    }
+
     private let userDefaults: UserDefaults
+    private var lastSessionDate: Date?
+    private var lastMomentumUpdate: Date?
+
+    private let momentumIncrement: Double = 0.25
+    private let momentumDecayDuration: TimeInterval = 4 * 60 * 60
+    private let momentumBonusMultiplier: Double = 0.2
 
     private enum Keys {
         static let focusSeconds = "focusSeconds"
@@ -375,6 +419,9 @@ final class SessionStatsStore: ObservableObject {
         static let totalFocusSecondsToday = "totalFocusSecondsToday"
         static let totalFocusDate = "totalFocusDate"
         static let dailyConfig = "dailyConfig"
+        static let momentum = "momentum"
+        static let lastSessionDate = "lastSessionDate"
+        static let lastMomentumUpdate = "lastMomentumUpdate"
     }
 
     private var todaySessions: [SessionRecord] {
@@ -393,6 +440,7 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(lastKnownLevel, forKey: Keys.lastKnownLevel)
         userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
         userDefaults.set(Calendar.current.startOfDay(for: Date()), forKey: Keys.totalFocusDate)
+        persistMomentum()
         persistDailyConfig(dailyConfig)
         persistSessionHistory()
     }
@@ -470,6 +518,45 @@ final class SessionStatsStore: ObservableObject {
         }
 
         lastKnownLevel = newLevel
+    }
+
+    func refreshMomentumIfNeeded(now: Date = Date()) {
+        guard let lastUpdate = lastMomentumUpdate else { return }
+
+        let elapsed = now.timeIntervalSince(lastUpdate)
+        guard elapsed > 0, momentum > 0 else {
+            lastMomentumUpdate = now
+            persistMomentum()
+            return
+        }
+
+        guard momentumDecayDuration > 0 else { return }
+
+        let decayAmount = elapsed / momentumDecayDuration
+        guard decayAmount > 0 else { return }
+
+        let newMomentum = max(0, momentum - decayAmount)
+        if newMomentum != momentum {
+            momentum = newMomentum
+        }
+
+        lastMomentumUpdate = now
+        persistMomentum()
+    }
+
+    private func persistMomentum() {
+        userDefaults.set(momentum, forKey: Keys.momentum)
+        if let lastSessionDate {
+            userDefaults.set(lastSessionDate, forKey: Keys.lastSessionDate)
+        } else {
+            userDefaults.removeObject(forKey: Keys.lastSessionDate)
+        }
+
+        if let lastMomentumUpdate {
+            userDefaults.set(lastMomentumUpdate, forKey: Keys.lastMomentumUpdate)
+        } else {
+            userDefaults.removeObject(forKey: Keys.lastMomentumUpdate)
+        }
     }
 }
 
