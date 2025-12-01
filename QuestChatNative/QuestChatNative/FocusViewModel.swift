@@ -142,6 +142,7 @@ struct TimerCategory: Identifiable, Equatable {
             case .workSprint:
                 return "bolt.circle"
             case .choresSprint:
+                // Use a broom icon to distinguish chores quick timers.
                 return "broom"
             case .selfCare:
                 return "figure.mind.and.body"
