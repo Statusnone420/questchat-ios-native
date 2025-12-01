@@ -65,7 +65,7 @@ private extension QuestsView {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             withAnimation(.interpolatingSpring(stiffness: 250, damping: 12)) {
-                bouncingQuestIDs.remove(quest.id)
+                _ = bouncingQuestIDs.remove(quest.id)
             }
         }
     }
@@ -75,7 +75,7 @@ private extension QuestsView {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             withAnimation(.easeOut(duration: 0.5)) {
-                showingXPBoostIDs.remove(quest.id)
+                _ = showingXPBoostIDs.remove(quest.id)
             }
         }
     }
