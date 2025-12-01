@@ -10,11 +10,11 @@ struct Quest: Identifiable, Equatable {
         var displayName: String {
             switch self {
             case .core:
-                return "Core"
+                return QuestChatStrings.QuestsPool.coreTier
             case .habit:
-                return "Habit"
+                return QuestChatStrings.QuestsPool.habitTier
             case .bonus:
-                return "Bonus"
+                return QuestChatStrings.QuestsPool.bonusTier
             }
         }
     }
@@ -166,12 +166,12 @@ private extension QuestsViewModel {
     static let questChestBonusXP = 50
 
     static let questPool: [Quest] = [
-        Quest(id: "daily-checkin", title: "Daily check-in", detail: "Set your intention and mood for the day.", xpReward: 25, tier: .core, isCompleted: false),
-        Quest(id: "hydrate", title: "Hydrate", detail: "Drink a full glass of water before starting.", xpReward: 15, tier: .habit, isCompleted: false),
-        Quest(id: "stretch", title: "Stretch break", detail: "Do a quick 2-minute stretch to reset.", xpReward: 15, tier: .habit, isCompleted: false),
-        Quest(id: "plan", title: "Plan a focus block", detail: "Schedule at least one focused session today.", xpReward: 30, tier: .core, isCompleted: false),
-        Quest(id: "deep-focus", title: "Deep focus", detail: "Commit to 25 distraction-free minutes.", xpReward: 35, tier: .bonus, isCompleted: false),
-        Quest(id: "gratitude", title: "Gratitude note", detail: "Write down one thing you're grateful for.", xpReward: 20, tier: .bonus, isCompleted: false)
+        Quest(id: "daily-checkin", title: QuestChatStrings.QuestsPool.dailyCheckInTitle, detail: QuestChatStrings.QuestsPool.dailyCheckInDescription, xpReward: 25, tier: .core, isCompleted: false),
+        Quest(id: "hydrate", title: QuestChatStrings.QuestsPool.hydrateTitle, detail: QuestChatStrings.QuestsPool.hydrateDescription, xpReward: 15, tier: .habit, isCompleted: false),
+        Quest(id: "stretch", title: QuestChatStrings.QuestsPool.stretchTitle, detail: QuestChatStrings.QuestsPool.stretchDescription, xpReward: 15, tier: .habit, isCompleted: false),
+        Quest(id: "plan", title: QuestChatStrings.QuestsPool.planTitle, detail: QuestChatStrings.QuestsPool.planDescription, xpReward: 30, tier: .core, isCompleted: false),
+        Quest(id: "deep-focus", title: QuestChatStrings.QuestsPool.deepFocusTitle, detail: QuestChatStrings.QuestsPool.deepFocusDescription, xpReward: 35, tier: .bonus, isCompleted: false),
+        Quest(id: "gratitude", title: QuestChatStrings.QuestsPool.gratitudeTitle, detail: QuestChatStrings.QuestsPool.gratitudeDescription, xpReward: 20, tier: .bonus, isCompleted: false)
     ]
 
     static let coreQuestIDs: [FocusArea: [String]] = [

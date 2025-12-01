@@ -25,13 +25,13 @@ struct StatsView: View {
         let value = store.currentMomentum
         switch value {
         case let value where value >= 1.0:
-            return "Momentum: ready!"
+            return QuestChatStrings.StatsView.momentumReady
         case let value where value >= 0.5:
-            return "Momentum: almost there"
+            return QuestChatStrings.StatsView.momentumAlmost
         case let value where value > 0:
-            return "Momentum: charging"
+            return QuestChatStrings.StatsView.momentumCharging
         default:
-            return "Momentum: start a session"
+            return QuestChatStrings.StatsView.momentumStart
         }
     }
 
@@ -67,7 +67,7 @@ struct StatsView: View {
                 .padding(20)
             }
             .background(Color.black.ignoresSafeArea())
-            .navigationTitle("Stats")
+            .navigationTitle(QuestChatStrings.StatsView.navigationTitle)
             .toolbarBackground(Color.black, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(isPresented: $showPlayerCard) {
@@ -81,15 +81,15 @@ struct StatsView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Experience")
+            Text(QuestChatStrings.StatsView.headerTitle)
                 .font(.title2.bold())
-            Text("Everything is stored locally until Supabase sync lands.")
+            Text(QuestChatStrings.StatsView.headerSubtitle)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .lastTextBaseline, spacing: 8) {
-                    Text("Level")
+                    Text(QuestChatStrings.StatsView.levelLabel)
                         .font(.headline)
                         .foregroundStyle(.mint)
                     Text("\(store.level)")
@@ -100,15 +100,15 @@ struct StatsView: View {
                     .progressViewStyle(.linear)
                     .tint(.mint)
 
-                Text("\(store.xpIntoCurrentLevel) / \(store.xpForNextLevel) XP into this level")
+                Text(QuestChatStrings.StatsView.levelProgress(current: store.xpIntoCurrentLevel, total: store.xpForNextLevel))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Label("Momentum", systemImage: "bolt.fill")
-                            .font(.subheadline.bold())
-                            .foregroundStyle(.yellow)
+                    Label(QuestChatStrings.StatsView.momentumLabel, systemImage: "bolt.fill")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.yellow)
                         Spacer()
                         Text(momentumStatusText)
                             .font(.caption)
@@ -141,8 +141,8 @@ struct StatsView: View {
     private var summaryTiles: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                statCard(title: "XP", value: "\(store.xp)", icon: "sparkles", tint: .mint)
-                statCard(title: "Sessions", value: "\(store.sessionsCompleted)", icon: "clock.badge.checkmark", tint: .cyan)
+                statCard(title: QuestChatStrings.StatsView.summaryXPTileTitle, value: "\(store.xp)", icon: "sparkles", tint: .mint)
+                statCard(title: QuestChatStrings.StatsView.summarySessionsTileTitle, value: "\(store.sessionsCompleted)", icon: "clock.badge.checkmark", tint: .cyan)
             }
 
             streakCard
@@ -151,11 +151,11 @@ struct StatsView: View {
 
     private var sessionBreakdown: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Minutes")
+            Text(QuestChatStrings.StatsView.minutesTitle)
                 .font(.headline)
             VStack(spacing: 12) {
-                progressRow(title: "Focus", minutes: focusMinutes, totalSeconds: store.focusSeconds, tint: .mint)
-                progressRow(title: "Self care", minutes: selfCareMinutes, totalSeconds: store.selfCareSeconds, tint: .cyan)
+                progressRow(title: QuestChatStrings.StatsView.focusMinutesLabel, minutes: focusMinutes, totalSeconds: store.focusSeconds, tint: .mint)
+                progressRow(title: QuestChatStrings.StatsView.selfCareMinutesLabel, minutes: selfCareMinutes, totalSeconds: store.selfCareSeconds, tint: .cyan)
             }
             .padding()
             .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
@@ -165,11 +165,11 @@ struct StatsView: View {
 
     private var sessionHistorySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Session History")
+            Text(QuestChatStrings.StatsView.sessionHistoryTitle)
                 .font(.headline)
 
             if recentSessions.isEmpty {
-                Text("No sessions yet.")
+                Text(QuestChatStrings.StatsView.sessionHistoryEmpty)
                     .foregroundStyle(.secondary)
             } else {
                 VStack(spacing: 12) {
@@ -200,7 +200,7 @@ struct StatsView: View {
 
     private var weeklyPathCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Weekly path", systemImage: "chart.dots.scatter")
+            Label(QuestChatStrings.StatsView.weeklyPathTitle, systemImage: "chart.dots.scatter")
                 .font(.headline)
                 .foregroundStyle(.mint)
 
@@ -223,12 +223,12 @@ struct StatsView: View {
                         }
                     }
                     .accessibilityLabel(day.date.formatted(date: .abbreviated, time: .omitted))
-                    .accessibilityValue(day.goalHit ? "Goal met" : "Goal not met")
+                    .accessibilityValue(day.goalHit ? QuestChatStrings.StatsView.weeklyGoalMet : QuestChatStrings.StatsView.weeklyGoalNotMet)
                 }
             }
 
             if weeklyGoalProgress.allSatisfy({ $0.goalHit }) {
-                Text("Weekly streak! +120 XP bonus unlocked")
+                Text(QuestChatStrings.StatsView.weeklyStreakBonus)
                     .font(.caption)
                     .foregroundStyle(.mint)
             }
@@ -242,7 +242,7 @@ struct StatsView: View {
     private var dailyGoalCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label("Today's focus goal", systemImage: "target")
+                Label(QuestChatStrings.StatsView.todaysFocusGoal, systemImage: "target")
                     .font(.headline)
                     .foregroundStyle(.mint)
                 Spacer()
@@ -253,7 +253,7 @@ struct StatsView: View {
                 }
             }
 
-            Text("\(dailyGoalProgress) / \(dailyGoalMinutes) minutes")
+            Text(QuestChatStrings.StatsView.dailyGoalProgress(current: dailyGoalProgress, total: dailyGoalMinutes))
                 .font(.subheadline.bold())
 
             ProgressView(value: Double(min(dailyGoalProgress, dailyGoalMinutes)), total: Double(dailyGoalMinutes))
@@ -267,12 +267,12 @@ struct StatsView: View {
 
     private var streakCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Streak", systemImage: "calendar")
+            Label(QuestChatStrings.StatsView.streakTitle, systemImage: "calendar")
                 .font(.headline)
                 .foregroundStyle(.orange)
             Text("\(store.currentStreakDays)")
                 .font(.largeTitle.bold())
-            Text("Consecutive days with at least one session.")
+            Text(QuestChatStrings.StatsView.streakSubtitle)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

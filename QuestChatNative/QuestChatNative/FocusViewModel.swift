@@ -13,8 +13,8 @@ enum FocusTimerMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .focus: "Deep Focus"
-        case .selfCare: "Self Care"
+        case .focus: QuestChatStrings.FocusTimerModeTitles.focus
+        case .selfCare: QuestChatStrings.FocusTimerModeTitles.selfCare
         }
     }
 
@@ -74,13 +74,13 @@ enum FocusArea: String, CaseIterable, Identifiable, Codable {
     var title: String {
         switch self {
         case .work:
-            return "Work"
+            return QuestChatStrings.FocusAreaTitles.work
         case .home:
-            return "Home"
+            return QuestChatStrings.FocusAreaTitles.home
         case .health:
-            return "Health"
+            return QuestChatStrings.FocusAreaTitles.health
         case .chill:
-            return "Chill"
+            return QuestChatStrings.FocusAreaTitles.chill
         }
     }
 
@@ -186,15 +186,15 @@ final class SessionStatsStore: ObservableObject {
     var playerTitle: String {
         switch level {
         case 1...4:
-            return "Focus Rookie"
+            return QuestChatStrings.PlayerTitles.rookie
         case 5...9:
-            return "Deep Worker"
+            return QuestChatStrings.PlayerTitles.worker
         case 10...19:
-            return "Quest Knight"
+            return QuestChatStrings.PlayerTitles.knight
         case 20...29:
-            return "Flow Master"
+            return QuestChatStrings.PlayerTitles.master
         default:
-            return "Time Sage"
+            return QuestChatStrings.PlayerTitles.sage
         }
     }
 
@@ -212,10 +212,10 @@ final class SessionStatsStore: ObservableObject {
 
     var statusLine: String {
         if currentStreakDays > 0 {
-            return "On a \(currentStreakDays)-day streak. Keep it going!"
+            return QuestChatStrings.StatusLines.streak(currentStreakDays)
         }
 
-        return "\(xp) XP earned so far."
+        return QuestChatStrings.StatusLines.xpEarned(xp)
     }
 
     var dailyMinutesGoal: Int? { dailyConfig?.dailyMinutesGoal }
@@ -734,11 +734,11 @@ final class FocusViewModel: ObservableObject {
         var bodyText: String {
             switch self {
             case .thirtyMinutes:
-                return "Nice streak! Grab water and reset your posture."
+                return QuestChatStrings.HydrationNudges.streak
             case .sixtyMinutes:
-                return "Hydrate and stretch—your focus streak is over an hour!"
+                return QuestChatStrings.HydrationNudges.hour
             case .ninetyMinutes:
-                return "Amazing focus. Take a hydration + posture break before continuing."
+                return QuestChatStrings.HydrationNudges.long
             }
         }
     }
@@ -948,8 +948,8 @@ final class FocusViewModel: ObservableObject {
         cancelCompletionNotifications()
 
         let content = UNMutableNotificationContent()
-        content.title = "Timer complete"
-        content.body = "Hydrate and check your posture. Your session just wrapped up!"
+        content.title = QuestChatStrings.Notifications.timerCompleteTitle
+        content.body = QuestChatStrings.Notifications.timerCompleteBody
         content.sound = .default
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(secondsRemaining), repeats: false)
@@ -964,8 +964,8 @@ final class FocusViewModel: ObservableObject {
     private func sendImmediateHydrationReminder() {
         guard notificationAuthorized, hydrateNudgesEnabled else { return }
         let content = UNMutableNotificationContent()
-        content.title = "Great work!"
-        content.body = "Reward unlocked: stretch, hydrate, and maintain good posture."
+        content.title = QuestChatStrings.Notifications.hydrateReminderTitle
+        content.body = QuestChatStrings.Notifications.hydrateReminderBody
         content.sound = .default
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
@@ -990,7 +990,7 @@ final class FocusViewModel: ObservableObject {
         guard hydrateNudgesEnabled else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "Hydrate + posture check"
+        content.title = QuestChatStrings.Notifications.hydrateNudgeTitle
         content.body = level.bodyText
         content.sound = .default
 
@@ -1044,44 +1044,44 @@ extension FocusViewModel {
     static func seededCategories() -> [TimerCategory] {
         [
             TimerCategory(
-                name: "Deep focus",
+                name: QuestChatStrings.TimerCategories.deepFocusTitle,
                 emoji: "💡",
-                description: "Heads-down work, minimize distractions",
+                description: QuestChatStrings.TimerCategories.deepFocusSubtitle,
                 defaultDurationMinutes: 25,
                 mode: .focus
             ),
             TimerCategory(
-                name: "Work sprint",
+                name: QuestChatStrings.TimerCategories.workSprintTitle,
                 emoji: "🧠",
-                description: "Ship tasks and quests fast",
+                description: QuestChatStrings.TimerCategories.workSprintSubtitle,
                 defaultDurationMinutes: 45,
                 mode: .focus
             ),
             TimerCategory(
-                name: "Chores sprint",
+                name: QuestChatStrings.TimerCategories.choresTitle,
                 emoji: "🧹",
-                description: "Quick tidy-up and reset",
+                description: QuestChatStrings.TimerCategories.choresSubtitle,
                 defaultDurationMinutes: 15,
                 mode: .focus
             ),
             TimerCategory(
-                name: "Self care reset",
+                name: QuestChatStrings.TimerCategories.selfCareTitle,
                 emoji: "💆‍♀️",
-                description: "Move, breathe, hydrate",
+                description: QuestChatStrings.TimerCategories.selfCareSubtitle,
                 defaultDurationMinutes: 5,
                 mode: .selfCare
             ),
             TimerCategory(
-                name: "Gaming reset",
+                name: QuestChatStrings.TimerCategories.gamingResetTitle,
                 emoji: "🎮",
-                description: "Stretch between matches",
+                description: QuestChatStrings.TimerCategories.gamingResetSubtitle,
                 defaultDurationMinutes: 10,
                 mode: .selfCare
             ),
             TimerCategory(
-                name: "Quick break",
+                name: QuestChatStrings.TimerCategories.quickBreakTitle,
                 emoji: "☕️",
-                description: "Step away and unplug",
+                description: QuestChatStrings.TimerCategories.quickBreakSubtitle,
                 defaultDurationMinutes: 8,
                 mode: .selfCare
             ),

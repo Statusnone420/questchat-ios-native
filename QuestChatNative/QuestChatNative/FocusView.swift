@@ -38,13 +38,13 @@ struct FocusView: View {
 
     private var accessoryText: String {
         if viewModel.hasFinishedOnce {
-            return "Session complete. Ready for another round?"
+            return QuestChatStrings.FocusView.sessionCompleteAccessory
         }
         switch viewModel.selectedMode {
         case .focus:
-            return "Stay present. Every focus minute turns into XP."
+            return QuestChatStrings.FocusView.focusAccessory
         case .selfCare:
-            return "Micro break to stretch, hydrate, and reset posture."
+            return QuestChatStrings.FocusView.selfCareAccessory
         }
     }
 
@@ -53,16 +53,16 @@ struct FocusView: View {
     private var dailyFocusTarget: Int { viewModel.statsStore.dailyMinutesGoal ?? 40 }
 
     private var questSummaryText: String {
-        "\(questsViewModel.completedQuestsCount) / \(questsViewModel.totalQuestsCount) quests done"
+        QuestChatStrings.FocusView.questProgress(completed: questsViewModel.completedQuestsCount, total: questsViewModel.totalQuestsCount)
     }
 
     private var minutesSummaryText: String {
-        "\(focusMinutesToday + selfCareMinutesToday) / \(dailyFocusTarget) min"
+        QuestChatStrings.FocusView.minutesProgress(totalMinutes: focusMinutesToday + selfCareMinutesToday, targetMinutes: dailyFocusTarget)
     }
 
     private var streakSummaryText: String {
         let days = viewModel.statsStore.currentStreakDays
-        return days > 0 ? "\(days)-day streak" : "Start your streak"
+        return QuestChatStrings.FocusView.streakProgress(days: days)
     }
 
     var body: some View {
@@ -85,7 +85,7 @@ struct FocusView: View {
                     .padding(.horizontal, 16)
                 }
                 .background(Color.black.ignoresSafeArea())
-                .navigationTitle("Focus")
+                .navigationTitle(QuestChatStrings.FocusView.navigationTitle)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbarBackground(Color.black, for: .navigationBar)
                 .toolbarColorScheme(.dark, for: .navigationBar)
@@ -155,9 +155,9 @@ struct FocusView: View {
     @ViewBuilder
     private var compactStatusHeader: some View {
         HStack(spacing: 12) {
-            headerItem(title: "Quests", value: questSummaryText, icon: "checkmark.circle.fill", tint: .mint)
-            headerItem(title: "Today", value: minutesSummaryText, icon: "timer", tint: .cyan)
-            headerItem(title: "Streak", value: streakSummaryText, icon: "flame.fill", tint: .orange)
+            headerItem(title: QuestChatStrings.FocusView.headerQuestsTitle, value: questSummaryText, icon: "checkmark.circle.fill", tint: .mint)
+            headerItem(title: QuestChatStrings.FocusView.headerTodayTitle, value: minutesSummaryText, icon: "timer", tint: .cyan)
+            headerItem(title: QuestChatStrings.FocusView.headerStreakTitle, value: streakSummaryText, icon: "flame.fill", tint: .orange)
         }
         .padding(14)
         .frame(maxWidth: .infinity)
@@ -198,7 +198,7 @@ struct FocusView: View {
             } label: {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Today's Quest")
+                        Text(QuestChatStrings.FocusView.todayQuestLabel)
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
@@ -209,11 +209,11 @@ struct FocusView: View {
                     Spacer()
 
                     if quest.isCompleted {
-                        Label("Completed", systemImage: "checkmark.circle.fill")
+                        Label(QuestChatStrings.FocusView.questCompletedLabel, systemImage: "checkmark.circle.fill")
                             .font(.subheadline.bold())
                             .foregroundStyle(.mint)
                     } else {
-                        Text("+\(quest.xpReward) XP")
+                        Text(QuestChatStrings.xpRewardText(quest.xpReward))
                             .font(.caption.bold())
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
@@ -318,7 +318,7 @@ struct FocusView: View {
 
         return VStack(alignment: .leading, spacing: 12) {
             if !otherCategories.isEmpty {
-                Text("Quick timers")
+                Text(QuestChatStrings.FocusView.quickTimersTitle)
                     .font(.headline)
                     .foregroundStyle(.secondary)
 
@@ -380,13 +380,13 @@ struct FocusView: View {
     private func durationPickerSheet() -> some View {
         VStack(spacing: 0) {
             HStack {
-                Button("Cancel") {
+                Button(QuestChatStrings.FocusView.cancelButtonTitle) {
                     isShowingDurationPicker = false
                 }
 
                 Spacer()
 
-                Button("Done") {
+                Button(QuestChatStrings.FocusView.doneButtonTitle) {
                     if let selectedCategory = viewModel.selectedCategory {
                         viewModel.updateDuration(for: selectedCategory, to: tempDurationMinutes)
                     }
@@ -398,7 +398,7 @@ struct FocusView: View {
 
             Divider()
 
-            Picker("Duration", selection: $tempDurationMinutes) {
+            Picker(QuestChatStrings.FocusView.durationPickerTitle, selection: $tempDurationMinutes) {
                 ForEach(Array(stride(from: 5, through: 120, by: 5)), id: \.self) { minutes in
                     Text("\(minutes) min").tag(minutes)
                 }
@@ -467,7 +467,7 @@ struct FocusView: View {
                     animateButtonPress(scale: $primaryButtonScale)
                     viewModel.start()
                 }) {
-                    Label(viewModel.state == .paused ? "Resume" : "Start",
+                    Label(viewModel.state == .paused ? QuestChatStrings.FocusView.resumeButtonTitle : QuestChatStrings.FocusView.startButtonTitle,
                           systemImage: "play.fill")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -482,7 +482,7 @@ struct FocusView: View {
                     animateButtonPress(scale: $pauseButtonScale)
                     viewModel.pause()
                 }) {
-                    Label("Pause", systemImage: "pause.fill")
+                    Label(QuestChatStrings.FocusView.pauseButtonTitle, systemImage: "pause.fill")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
@@ -496,7 +496,7 @@ struct FocusView: View {
                 animateButtonPress(scale: $resetButtonScale)
                 viewModel.reset()
             }) {
-                Label("Reset", systemImage: "arrow.counterclockwise")
+                Label(QuestChatStrings.FocusView.resetButtonTitle, systemImage: "arrow.counterclockwise")
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
             }
@@ -504,9 +504,9 @@ struct FocusView: View {
             .scaleEffect(resetButtonScale)
 
             HStack {
-                statPill(title: "Sessions", value: "\(viewModel.statsStore.sessionsCompleted)")
+                statPill(title: QuestChatStrings.FocusView.sessionsLabel, value: "\(viewModel.statsStore.sessionsCompleted)")
                 let nudgesActive = viewModel.notificationAuthorized && viewModel.hydrationNudgesEnabled
-                statPill(title: "Hydrate + Posture", value: nudgesActive ? "On" : "Off")
+                statPill(title: QuestChatStrings.FocusView.hydratePostureLabel, value: nudgesActive ? QuestChatStrings.FocusView.hydratePostureOn : QuestChatStrings.FocusView.hydratePostureOff)
             }
         }
         .padding()
@@ -524,16 +524,16 @@ struct FocusView: View {
                 Image(systemName: "drop.fill")
                     .foregroundStyle(.cyan)
                 VStack(alignment: .leading) {
-                    Text("Hydrate + posture when the timer ends")
+                    Text(QuestChatStrings.FocusView.reminderTitle)
                         .font(.headline)
-                    Text("Notifications stay local for now. We'll sync stats to Supabase later.")
+                    Text(QuestChatStrings.FocusView.reminderSubtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
             }
 
-            Text("Tip: keep the display black to save battery on OLED. Your streak and XP stay stored on device even if you close the app.")
+            Text(QuestChatStrings.FocusView.reminderTip)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
@@ -553,7 +553,7 @@ struct FocusView: View {
                 .imageScale(.large)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Hydrate + posture check")
+                Text(QuestChatStrings.FocusView.hydrationBannerTitle)
                     .font(.headline)
                 Text(nudge.message)
                     .font(.subheadline)
@@ -589,10 +589,10 @@ struct FocusView: View {
 
         return Group {
             if comboComplete {
-                Label("Combo complete today!", systemImage: "sparkles")
+                Label(QuestChatStrings.FocusView.comboComplete, systemImage: "sparkles")
                     .labelStyle(.titleAndIcon)
             } else {
-                Label("Combo: \(comboCount) / 3", systemImage: "repeat")
+                Label("\(QuestChatStrings.FocusView.comboProgressPrefix) \(comboCount) / 3", systemImage: "repeat")
                     .labelStyle(.titleAndIcon)
             }
         }
@@ -625,11 +625,11 @@ struct FocusView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
-                Text("Level \(level)")
+                Text("\(QuestChatStrings.FocusView.levelUpTitlePrefix) \(level)")
                     .font(.system(size: 40, weight: .black, design: .rounded))
                     .foregroundStyle(.mint)
 
-                Text("Keep the momentum going! Your focus streak just leveled up.")
+                Text(QuestChatStrings.FocusView.levelUpSubtitle)
                     .multilineTextAlignment(.center)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -639,7 +639,7 @@ struct FocusView: View {
                         viewModel.statsStore.pendingLevelUp = nil
                     }
                 } label: {
-                    Text("Nice!")
+                    Text(QuestChatStrings.FocusView.levelUpButtonTitle)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                 }
@@ -663,13 +663,13 @@ struct FocusView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
-                Text("Session complete")
+                Text(QuestChatStrings.FocusView.sessionCompleteTitle)
                     .font(.system(size: 34, weight: .black, design: .rounded))
 
                 VStack(spacing: 6) {
                     Text("\(summary.mode.title) • \(minutes(from: summary.duration)) min")
                         .font(.headline)
-                    Text("+\(summary.xpGained) XP")
+                    Text(QuestChatStrings.xpRewardText(summary.xpGained))
                         .font(.subheadline.bold())
                         .foregroundStyle(.mint)
                 }
@@ -680,7 +680,7 @@ struct FocusView: View {
                         viewModel.lastCompletedSession = nil
                     }
                 } label: {
-                    Text("Nice, back to it")
+                    Text(QuestChatStrings.FocusView.sessionCompleteButtonTitle)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                 }
@@ -753,15 +753,15 @@ private struct DailySetupSheet: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Daily setup")
+                    Text(QuestChatStrings.FocusView.dailySetupTitle)
                         .font(.title2.bold())
-                    Text("Pick where to focus and your energy. We'll set a realistic minute goal for today.")
+                    Text(QuestChatStrings.FocusView.dailySetupDescription)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Focus area")
+                    Text(QuestChatStrings.FocusView.focusAreaLabel)
                         .font(.headline)
                     ForEach(FocusArea.allCases) { area in
                         Button {
@@ -787,10 +787,10 @@ private struct DailySetupSheet: View {
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Energy level")
+                    Text(QuestChatStrings.FocusView.energyLevelLabel)
                         .font(.headline)
 
-                    Picker("Energy", selection: $selectedEnergy) {
+                    Picker(QuestChatStrings.FocusView.energyLevelLabel, selection: $selectedEnergy) {
                         ForEach(DailyEnergyLevel.allCases) { level in
                             Text("\(level.emoji) \(level.title) - \(level.suggestedMinutes) min")
                                 .tag(level)
@@ -805,7 +805,7 @@ private struct DailySetupSheet: View {
                     onComplete(selectedFocusArea, selectedEnergy)
                     dismiss()
                 } label: {
-                    Text("Save today")
+                    Text(QuestChatStrings.FocusView.saveTodayButtonTitle)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)

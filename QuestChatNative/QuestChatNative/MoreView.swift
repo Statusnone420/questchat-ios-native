@@ -9,23 +9,23 @@ struct MoreView: View {
             Image(systemName: "ellipsis.circle")
                 .foregroundStyle(.mint)
                 .imageScale(.large)
-            Text("More coming soon")
+            Text(QuestChatStrings.MoreView.moreComing)
                 .font(.title3)
                 .foregroundStyle(.secondary)
 
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Timer durations")
+                    Text(QuestChatStrings.MoreView.timerDurationsTitle)
                         .foregroundStyle(.secondary)
-                    Text("Adjust each category directly from the Focus tab.")
+                    Text(QuestChatStrings.MoreView.timerDurationsDescription)
                         .font(.headline)
                 }
 
                 Toggle(isOn: $hydrateNudgesEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Hydrate + posture nudges")
+                        Text(QuestChatStrings.MoreView.hydrationToggleTitle)
                             .font(.headline)
-                        Text("In-app banners and local notifications when you cross focus milestones.")
+                        Text(QuestChatStrings.MoreView.hydrationToggleDescription)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -42,7 +42,7 @@ struct MoreView: View {
                     openURL(url)
                 }
             } label: {
-                Label("Visit questchat.app", systemImage: "safari")
+                Label(QuestChatStrings.MoreView.visitSite, systemImage: "safari")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)

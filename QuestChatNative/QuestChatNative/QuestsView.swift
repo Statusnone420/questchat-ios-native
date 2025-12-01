@@ -38,7 +38,7 @@ struct QuestsView: View {
                             Button {
                                 viewModel.reroll(quest: quest)
                             } label: {
-                                Label("Reroll", systemImage: "arrow.triangle.2.circlepath")
+                                Label(QuestChatStrings.QuestsView.rerollActionTitle, systemImage: "arrow.triangle.2.circlepath")
                             }
                             .tint(.orange)
                         }
@@ -63,10 +63,10 @@ struct QuestsView: View {
                 questChestOverlay()
             }
         }
-        .confirmationDialog("Reroll a quest", isPresented: $showingRerollPicker, titleVisibility: .visible) {
+        .confirmationDialog(QuestChatStrings.QuestsView.rerollDialogTitle, isPresented: $showingRerollPicker, titleVisibility: .visible) {
             let incompleteQuests = viewModel.incompleteQuests
             if incompleteQuests.isEmpty {
-                Button("No incomplete quests") {}
+                Button(QuestChatStrings.QuestsView.rerollDialogEmpty) {}
             } else {
                 ForEach(incompleteQuests) { quest in
                     Button(quest.title) {
@@ -74,7 +74,7 @@ struct QuestsView: View {
                     }
                 }
             }
-            Button("Cancel", role: .cancel) {}
+            Button(QuestChatStrings.QuestsView.rerollCancel, role: .cancel) {}
         }
     }
 }
@@ -84,9 +84,9 @@ private extension QuestsView {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Daily quests")
+                    Text(QuestChatStrings.QuestsView.headerTitle)
                         .font(.title2.bold())
-                    Text("\(viewModel.completedQuestsCount) / \(viewModel.totalQuestsCount) complete • \(viewModel.totalDailyXP) XP total")
+                    Text(QuestChatStrings.QuestsView.headerSubtitle(completed: viewModel.completedQuestsCount, total: viewModel.totalQuestsCount, totalXP: viewModel.totalDailyXP))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -100,7 +100,7 @@ private extension QuestsView {
                     HStack(spacing: 8) {
                         Image(systemName: "gift.fill")
                             .foregroundStyle(.yellow)
-                        Text("Quest Chest ready – tap to claim bonus XP")
+                        Text(QuestChatStrings.QuestsView.questChestReady)
                             .font(.subheadline.weight(.semibold))
                     }
                     .padding(10)
@@ -111,11 +111,11 @@ private extension QuestsView {
                 }
                 .buttonStyle(.plain)
             } else if !viewModel.allQuestsComplete {
-                Text("Complete \(viewModel.remainingQuestsUntilChest) more quests to unlock the chest")
+                Text(QuestChatStrings.QuestsView.chestProgress(viewModel.remainingQuestsUntilChest))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                Text("Quest Chest claimed for today")
+                Text(QuestChatStrings.QuestsView.chestClaimed)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -127,7 +127,7 @@ private extension QuestsView {
 
     var rerollFooter: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("You can reroll one incomplete quest per day.")
+            Text(QuestChatStrings.QuestsView.rerollFooterDescription)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
@@ -136,7 +136,7 @@ private extension QuestsView {
                     showingRerollPicker = true
                 } label: {
                     HStack {
-                        Text("Reroll a quest")
+                        Text(QuestChatStrings.QuestsView.rerollButtonTitle)
                             .font(.subheadline.bold())
                         Spacer()
                         Image(systemName: "arrow.triangle.2.circlepath")
@@ -148,7 +148,7 @@ private extension QuestsView {
                 }
                 .buttonStyle(.plain)
             } else {
-                Text("Reroll used for today")
+                Text(QuestChatStrings.QuestsView.rerollUsed)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -197,11 +197,11 @@ private extension QuestsView {
                     .font(.system(size: 44))
                     .foregroundStyle(.yellow)
 
-                Text("Daily quests cleared!")
+                Text(QuestChatStrings.QuestsView.questChestClearedTitle)
                     .font(.title2.bold())
                     .multilineTextAlignment(.center)
 
-                Text("You unlocked a Quest Chest for +\(viewModel.questChestRewardAmount) XP. Keep the streak alive!")
+                Text(QuestChatStrings.QuestsView.questChestClearedBody(reward: viewModel.questChestRewardAmount))
                     .font(.body)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
@@ -210,7 +210,7 @@ private extension QuestsView {
                 Button {
                     viewModel.claimQuestChest()
                 } label: {
-                    Text("Claim reward")
+                    Text(QuestChatStrings.QuestsView.claimRewardButton)
                         .font(.headline)
                         .padding(.horizontal, 18)
                         .padding(.vertical, 10)
@@ -271,7 +271,7 @@ private struct QuestCardView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                 if isShowingXPBoost {
-                    Text("+\(quest.xpReward) XP")
+                    Text(QuestChatStrings.xpRewardText(quest.xpReward))
                         .font(.caption.bold())
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
@@ -321,7 +321,7 @@ private struct QuestCardView: View {
     }
 
     private var xpPill: some View {
-        Text("+\(quest.xpReward) XP")
+        Text(QuestChatStrings.xpRewardText(quest.xpReward))
             .font(.caption.bold())
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
