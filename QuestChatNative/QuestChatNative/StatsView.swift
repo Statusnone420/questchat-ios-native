@@ -21,6 +21,20 @@ struct StatsView: View {
         return Double(store.xpIntoCurrentLevel) / total
     }
 
+    private var momentumStatusText: String {
+        let value = store.currentMomentum
+        switch value {
+        case let value where value >= 1.0:
+            return "Momentum: ready!"
+        case let value where value >= 0.5:
+            return "Momentum: almost there"
+        case let value where value > 0:
+            return "Momentum: charging"
+        default:
+            return "Momentum: start a session"
+        }
+    }
+
     private var recentSessions: [SessionStatsStore.SessionRecord] {
         Array(store.sessionHistory.suffix(5).reversed())
     }
@@ -54,6 +68,9 @@ struct StatsView: View {
             .sheet(isPresented: $showPlayerCard) {
                 PlayerCardView(store: store)
             }
+            .onAppear {
+                store.refreshMomentumIfNeeded()
+            }
         }
     }
 
@@ -81,6 +98,22 @@ struct StatsView: View {
                 Text("\(store.xpIntoCurrentLevel) / \(store.xpForNextLevel) XP into this level")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Label("Momentum", systemImage: "bolt.fill")
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.yellow)
+                        Spacer()
+                        Text(momentumStatusText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    ProgressView(value: store.currentMomentum, total: 1)
+                        .tint(.yellow)
+                        .progressViewStyle(.linear)
+                }
             }
             .padding()
             .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
