@@ -35,18 +35,6 @@ struct FocusView: View {
         }
     }
 
-    private var accessoryText: String {
-        if viewModel.hasFinishedOnce {
-            return QuestChatStrings.FocusView.sessionCompleteAccessory
-        }
-        switch viewModel.selectedMode {
-        case .focus:
-            return QuestChatStrings.FocusView.focusAccessory
-        case .selfCare:
-            return QuestChatStrings.FocusView.selfCareAccessory
-        }
-    }
-
     private var focusMinutesToday: Int { statsStore.focusSecondsToday / 60 }
     private var selfCareMinutesToday: Int { statsStore.selfCareSecondsToday / 60 }
     private var dailyFocusTarget: Int { statsStore.dailyMinutesGoal ?? 40 }
@@ -399,56 +387,53 @@ struct FocusView: View {
     }
 
     private var timerRing: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.gray.opacity(0.35), lineWidth: 18)
-            Circle()
-                .trim(from: 0, to: viewModel.progress)
-                .stroke(AngularGradient(colors: ringColors, center: .center), style: StrokeStyle(lineWidth: 18, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .scaleEffect(1 + (0.06 * warningFraction))
-                .animation(
-                    .easeInOut(duration: 0.2),
-                    value: viewModel.progress
-                )
-                .animation(
-                    .easeInOut(duration: 0.6).repeatForever(autoreverses: true),
-                    value: warningFraction > 0
-                )
-                .animation(
-                    .easeInOut(duration: 0.3),
-                    value: warningFraction
-                )
-                .overlay {
-                    Circle()
-                        .stroke(Color.white.opacity(0.22), lineWidth: 6)
-                        .scaleEffect(viewModel.secondsRemaining <= 10 && viewModel.secondsRemaining > 0 ? 1.05 : 1)
-                        .opacity(viewModel.secondsRemaining <= 10 && viewModel.secondsRemaining > 0 ? 0.9 : 0)
-                        .animation(
-                            .easeInOut(duration: 0.75).repeatForever(autoreverses: true),
-                            value: viewModel.secondsRemaining <= 10 && viewModel.secondsRemaining > 0
-                        )
-                }
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .stroke(Color.gray.opacity(0.35), lineWidth: 18)
+                Circle()
+                    .trim(from: 0, to: viewModel.progress)
+                    .stroke(AngularGradient(colors: ringColors, center: .center), style: StrokeStyle(lineWidth: 18, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .scaleEffect(1 + (0.06 * warningFraction))
+                    .animation(
+                        .easeInOut(duration: 0.2),
+                        value: viewModel.progress
+                    )
+                    .animation(
+                        .easeInOut(duration: 0.6).repeatForever(autoreverses: true),
+                        value: warningFraction > 0
+                    )
+                    .animation(
+                        .easeInOut(duration: 0.3),
+                        value: warningFraction
+                    )
+                    .overlay {
+                        Circle()
+                            .stroke(Color.white.opacity(0.22), lineWidth: 6)
+                            .scaleEffect(viewModel.secondsRemaining <= 10 && viewModel.secondsRemaining > 0 ? 1.05 : 1)
+                            .opacity(viewModel.secondsRemaining <= 10 && viewModel.secondsRemaining > 0 ? 0.9 : 0)
+                            .animation(
+                                .easeInOut(duration: 0.75).repeatForever(autoreverses: true),
+                                value: viewModel.secondsRemaining <= 10 && viewModel.secondsRemaining > 0
+                            )
+                    }
 
-            Text(formattedTime)
-                .font(.system(size: 64, weight: .black, design: .rounded))
-                .monospacedDigit()
-
-            VStack {
-                Spacer()
-                Text(accessoryText)
-                    .font(.footnote)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                    .padding(.horizontal, 24)
-                    .foregroundStyle(.secondary)
+                Text(formattedTime)
+                    .font(.system(size: 64, weight: .black, design: .rounded))
+                    .monospacedDigit()
             }
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .padding(.bottom, 36)
+            .frame(maxWidth: .infinity)
+            .frame(height: 280)
+
+            Text(viewModel.timerStatusText)
+                .font(.footnote)
+                .foregroundColor(.white.opacity(0.75))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+                .lineLimit(2)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 280)
         .padding(.vertical)
     }
 

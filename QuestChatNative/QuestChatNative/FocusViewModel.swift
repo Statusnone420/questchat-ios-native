@@ -950,6 +950,19 @@ final class FocusViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
+    var timerStatusText: String {
+        if hasFinishedOnce {
+            return QuestChatStrings.FocusView.sessionCompleteAccessory
+        }
+
+        switch selectedMode {
+        case .focus:
+            return QuestChatStrings.FocusView.focusAccessory
+        case .selfCare:
+            return QuestChatStrings.FocusView.selfCareAccessory
+        }
+    }
+
     var currentLevel: Int { statsStore.progression.level }
     var xpInCurrentLevel: Int { statsStore.progression.xpInCurrentLevel }
     var xpNeededForNextLevel: Int { statsStore.xpNeededToLevelUp(from: statsStore.progression.level) }
