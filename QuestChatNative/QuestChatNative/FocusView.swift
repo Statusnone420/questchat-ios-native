@@ -430,15 +430,22 @@ struct FocusView: View {
                         )
                 }
 
-            VStack(spacing: 8) {
-                Text(formattedTime)
-                    .font(.system(size: 64, weight: .black, design: .rounded))
-                    .monospacedDigit()
+            Text(formattedTime)
+                .font(.system(size: 64, weight: .black, design: .rounded))
+                .monospacedDigit()
+
+            VStack {
+                Spacer()
                 Text(accessoryText)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                    .padding(.horizontal, 24)
+                    .foregroundStyle(.secondary)
             }
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            .padding(.bottom, 36)
         }
         .frame(maxWidth: .infinity)
         .frame(height: 280)
