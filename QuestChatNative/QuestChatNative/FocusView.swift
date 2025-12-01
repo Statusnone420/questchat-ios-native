@@ -3,6 +3,7 @@ import UIKit
 
 struct FocusView: View {
     @StateObject var viewModel: FocusViewModel
+    @ObservedObject private var statsStore: SessionStatsStore
     @EnvironmentObject var questsViewModel: QuestsViewModel
     @Binding var selectedTab: MainTab
 
@@ -48,9 +49,9 @@ struct FocusView: View {
         }
     }
 
-    private var focusMinutesToday: Int { viewModel.statsStore.focusSecondsToday / 60 }
-    private var selfCareMinutesToday: Int { viewModel.statsStore.selfCareSecondsToday / 60 }
-    private var dailyFocusTarget: Int { viewModel.statsStore.dailyMinutesGoal ?? 40 }
+    private var focusMinutesToday: Int { statsStore.focusSecondsToday / 60 }
+    private var selfCareMinutesToday: Int { statsStore.selfCareSecondsToday / 60 }
+    private var dailyFocusTarget: Int { statsStore.dailyMinutesGoal ?? 40 }
 
     private var questSummaryText: String {
         QuestChatStrings.FocusView.questProgress(completed: questsViewModel.completedQuestsCount, total: questsViewModel.totalQuestsCount)
@@ -61,8 +62,14 @@ struct FocusView: View {
     }
 
     private var streakSummaryText: String {
-        let days = viewModel.statsStore.currentStreakDays
+        let days = statsStore.currentStreakDays
         return QuestChatStrings.FocusView.streakProgress(days: days)
+    }
+
+    init(viewModel: FocusViewModel, selectedTab: Binding<MainTab>) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+        _selectedTab = selectedTab
+        _statsStore = ObservedObject(wrappedValue: viewModel.statsStore)
     }
 
     var body: some View {
@@ -91,7 +98,7 @@ struct FocusView: View {
                 .toolbarColorScheme(.dark, for: .navigationBar)
             }
 
-            if let pendingLevel = viewModel.statsStore.pendingLevelUp {
+            if let pendingLevel = statsStore.pendingLevelUp {
                 levelUpOverlay(level: pendingLevel)
                     .transition(
                         .asymmetric(
@@ -113,12 +120,12 @@ struct FocusView: View {
                     .zIndex(2)
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: viewModel.statsStore.pendingLevelUp)
+        .animation(.easeInOut(duration: 0.25), value: statsStore.pendingLevelUp)
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
         .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.selectedCategoryID)
         .onAppear {
-            viewModel.statsStore.refreshMomentumIfNeeded()
+            statsStore.refreshMomentumIfNeeded()
         }
         .onChange(of: viewModel.selectedCategoryID) { _ in
             heroCardScale = 0.98
@@ -133,22 +140,22 @@ struct FocusView: View {
         }
         .sheet(
             isPresented: Binding(
-                get: { viewModel.statsStore.shouldShowDailySetup },
-                set: { viewModel.statsStore.shouldShowDailySetup = $0 }
+                get: { statsStore.shouldShowDailySetup },
+                set: { statsStore.shouldShowDailySetup = $0 }
             )
         ) {
             DailySetupSheet(
-                initialFocusArea: viewModel.statsStore.dailyConfig?.focusArea ?? .work,
+                initialFocusArea: statsStore.dailyConfig?.focusArea ?? .work,
                 initialEnergyLevel: .medium
             ) { focusArea, energyLevel in
-                viewModel.statsStore.completeDailyConfig(focusArea: focusArea, energyLevel: energyLevel)
+                statsStore.completeDailyConfig(focusArea: focusArea, energyLevel: energyLevel)
                 questsViewModel.markCoreQuests(for: focusArea)
             }
             .presentationDetents([.medium])
             .interactiveDismissDisabled()
         }
         .onAppear {
-            viewModel.statsStore.refreshDailySetupIfNeeded()
+            statsStore.refreshDailySetupIfNeeded()
         }
     }
 
@@ -504,7 +511,7 @@ struct FocusView: View {
             .scaleEffect(resetButtonScale)
 
             HStack {
-                statPill(title: QuestChatStrings.FocusView.sessionsLabel, value: "\(viewModel.statsStore.sessionsCompleted)")
+                statPill(title: QuestChatStrings.FocusView.sessionsLabel, value: "\(statsStore.sessionsCompleted)")
                 let nudgesActive = viewModel.notificationAuthorized && viewModel.hydrationNudgesEnabled
                 statPill(title: QuestChatStrings.FocusView.hydratePostureLabel, value: nudgesActive ? QuestChatStrings.FocusView.hydratePostureOn : QuestChatStrings.FocusView.hydratePostureOff)
             }
@@ -584,8 +591,8 @@ struct FocusView: View {
     }
 
     private func comboPill(for category: TimerCategory) -> some View {
-        let comboCount = viewModel.statsStore.comboCount(for: category.id)
-        let comboComplete = viewModel.statsStore.hasEarnedComboBonus(for: category.id)
+        let comboCount = statsStore.comboCount(for: category.id)
+        let comboComplete = statsStore.hasEarnedComboBonus(for: category.id)
 
         return Group {
             if comboComplete {
@@ -636,7 +643,7 @@ struct FocusView: View {
 
                 Button {
                     withAnimation {
-                        viewModel.statsStore.pendingLevelUp = nil
+                        statsStore.pendingLevelUp = nil
                     }
                 } label: {
                     Text(QuestChatStrings.FocusView.levelUpButtonTitle)
