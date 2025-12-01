@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftUI
 import UserNotifications
 
 /// Represents available timer modes.
@@ -60,6 +61,9 @@ final class SessionStatsStore: ObservableObject {
     @Published private(set) var sessionsCompleted: Int
     @Published private(set) var xp: Int
     @Published private(set) var sessionHistory: [SessionRecord]
+    @Published var pendingLevelUp: Int?
+
+    private(set) var lastKnownLevel: Int
 
     var level: Int {
         (xp / 100) + 1
@@ -79,6 +83,9 @@ final class SessionStatsStore: ObservableObject {
         selfCareSeconds = userDefaults.integer(forKey: Keys.selfCareSeconds)
         sessionsCompleted = userDefaults.integer(forKey: Keys.sessionsCompleted)
         xp = userDefaults.integer(forKey: Keys.xp)
+        let storedLevel = userDefaults.integer(forKey: Keys.lastKnownLevel)
+        lastKnownLevel = storedLevel > 0 ? storedLevel : level
+        pendingLevelUp = nil
         if
             let data = userDefaults.data(forKey: Keys.sessionHistory),
             let decoded = try? JSONDecoder().decode([SessionRecord].self, from: data)
@@ -100,6 +107,7 @@ final class SessionStatsStore: ObservableObject {
         }
         sessionsCompleted += 1
         recordSessionHistory(mode: mode, duration: duration)
+        handleLevelChange()
         persist()
     }
 
@@ -120,6 +128,7 @@ final class SessionStatsStore: ObservableObject {
     func grantBonusXP(_ amount: Int) {
         guard amount > 0 else { return }
         xp += amount
+        handleLevelChange()
         persist()
     }
 
@@ -128,6 +137,8 @@ final class SessionStatsStore: ObservableObject {
         selfCareSeconds = 0
         sessionsCompleted = 0
         xp = 0
+        lastKnownLevel = level
+        pendingLevelUp = nil
         sessionHistory = []
         persist()
     }
@@ -140,6 +151,7 @@ final class SessionStatsStore: ObservableObject {
         static let sessionsCompleted = "sessionsCompleted"
         static let xp = "xp"
         static let sessionHistory = "sessionHistory"
+        static let lastKnownLevel = "lastKnownLevel"
     }
 
     private func persist() {
@@ -147,6 +159,7 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(selfCareSeconds, forKey: Keys.selfCareSeconds)
         userDefaults.set(sessionsCompleted, forKey: Keys.sessionsCompleted)
         userDefaults.set(xp, forKey: Keys.xp)
+        userDefaults.set(lastKnownLevel, forKey: Keys.lastKnownLevel)
         persistSessionHistory()
     }
 
@@ -176,6 +189,19 @@ final class SessionStatsStore: ObservableObject {
         }
 
         return streak
+    }
+
+    private func handleLevelChange() {
+        let newLevel = level
+        guard newLevel != lastKnownLevel else { return }
+
+        if newLevel > lastKnownLevel {
+            withAnimation {
+                pendingLevelUp = newLevel
+            }
+        }
+
+        lastKnownLevel = newLevel
     }
 }
 

@@ -28,26 +28,40 @@ struct FocusView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    xpStrip
+        ZStack {
+            NavigationStack {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        xpStrip
 
-                    timerCard
+                        timerCard
 
-                    controlPanel
+                        controlPanel
 
-                    reminderCard
+                        reminderCard
+                    }
+                    .padding(.vertical, 24)
+                    .padding(.horizontal, 16)
                 }
-                .padding(.vertical, 24)
-                .padding(.horizontal, 16)
+                .background(Color.black.ignoresSafeArea())
+                .navigationTitle("Focus")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(Color.black, for: .navigationBar)
+                .toolbarColorScheme(.dark, for: .navigationBar)
             }
-            .background(Color.black.ignoresSafeArea())
-            .navigationTitle("Focus")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.black, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+
+            if let pendingLevel = viewModel.statsStore.pendingLevelUp {
+                levelUpOverlay(level: pendingLevel)
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 1.05)),
+                            removal: .opacity.combined(with: .scale(scale: 0.96))
+                        )
+                    )
+                    .zIndex(1)
+            }
         }
+        .animation(.easeInOut(duration: 0.25), value: viewModel.statsStore.pendingLevelUp)
     }
 
     private var xpStrip: some View {
@@ -196,6 +210,44 @@ struct FocusView: View {
 
     private func minutes(from seconds: Int) -> Int {
         seconds / 60
+    }
+
+    private func levelUpOverlay(level: Int) -> some View {
+        ZStack {
+            Color.black.opacity(0.75)
+                .ignoresSafeArea()
+
+            VStack(spacing: 16) {
+                Text("Level \(level)")
+                    .font(.system(size: 40, weight: .black, design: .rounded))
+                    .foregroundStyle(.mint)
+
+                Text("Keep the momentum going! Your focus streak just leveled up.")
+                    .multilineTextAlignment(.center)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                Button {
+                    withAnimation {
+                        viewModel.statsStore.pendingLevelUp = nil
+                    }
+                } label: {
+                    Text("Nice!")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.mint)
+            }
+            .padding(24)
+            .frame(maxWidth: 320)
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.95))
+            .cornerRadius(24)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+            )
+        }
     }
 }
 
