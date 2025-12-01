@@ -100,9 +100,13 @@ final class FocusViewModel: ObservableObject {
     private var timerCancellable: AnyCancellable?
     private let notificationCenter = UNUserNotificationCenter.current()
 
-    init(statsStore: SessionStatsStore = SessionStatsStore()) {
+    init(
+        statsStore: SessionStatsStore = SessionStatsStore(),
+        initialMode: FocusTimerMode = .focus
+    ) {
         self.statsStore = statsStore
-        secondsRemaining = selectedMode.duration
+        selectedMode = initialMode
+        secondsRemaining = initialMode.duration
         requestNotificationAuthorization()
     }
 
