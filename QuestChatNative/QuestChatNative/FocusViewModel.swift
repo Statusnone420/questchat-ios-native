@@ -62,6 +62,7 @@ final class SessionStatsStore: ObservableObject {
     @Published private(set) var sessionsCompleted: Int
     @Published private(set) var xp: Int
     @Published private(set) var sessionHistory: [SessionRecord]
+    @Published private(set) var totalFocusSecondsToday: Int
     @Published var pendingLevelUp: Int?
 
     private(set) var lastKnownLevel: Int
@@ -108,6 +109,17 @@ final class SessionStatsStore: ObservableObject {
             sessionHistory = []
         }
 
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let storedDate = userDefaults.object(forKey: Keys.totalFocusDate) as? Date
+        if let storedDate, calendar.isDate(storedDate, inSameDayAs: today) {
+            totalFocusSecondsToday = userDefaults.integer(forKey: Keys.totalFocusSecondsToday)
+        } else {
+            totalFocusSecondsToday = 0
+            userDefaults.set(today, forKey: Keys.totalFocusDate)
+            userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
+        }
+
         let storedLevel = userDefaults.integer(forKey: Keys.lastKnownLevel)
         let initialLevel = (storedXP / 100) + 1
         lastKnownLevel = storedLevel > 0 ? storedLevel : initialLevel
@@ -116,10 +128,13 @@ final class SessionStatsStore: ObservableObject {
 
     @discardableResult
     func recordSession(mode: FocusTimerMode, duration: Int) -> Int {
+        refreshDailyTotalsIfNeeded()
+
         let xpAwarded: Int
         switch mode {
         case .focus:
             focusSeconds += duration
+            totalFocusSecondsToday += duration
             xpAwarded = 15
         case .selfCare:
             selfCareSeconds += duration
@@ -131,6 +146,10 @@ final class SessionStatsStore: ObservableObject {
         handleLevelChange()
         persist()
         return xpAwarded
+    }
+
+    func refreshDailyFocusTotal() {
+        refreshDailyTotalsIfNeeded()
     }
 
     func recordSessionHistory(mode: FocusTimerMode, duration: Int) {
@@ -159,6 +178,8 @@ final class SessionStatsStore: ObservableObject {
         selfCareSeconds = 0
         sessionsCompleted = 0
         xp = 0
+        totalFocusSecondsToday = 0
+        userDefaults.set(Calendar.current.startOfDay(for: Date()), forKey: Keys.totalFocusDate)
         lastKnownLevel = level
         pendingLevelUp = nil
         sessionHistory = []
@@ -174,6 +195,8 @@ final class SessionStatsStore: ObservableObject {
         static let xp = "xp"
         static let sessionHistory = "sessionHistory"
         static let lastKnownLevel = "lastKnownLevel"
+        static let totalFocusSecondsToday = "totalFocusSecondsToday"
+        static let totalFocusDate = "totalFocusDate"
     }
 
     private var todaySessions: [SessionRecord] {
@@ -190,6 +213,8 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(sessionsCompleted, forKey: Keys.sessionsCompleted)
         userDefaults.set(xp, forKey: Keys.xp)
         userDefaults.set(lastKnownLevel, forKey: Keys.lastKnownLevel)
+        userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
+        userDefaults.set(Calendar.current.startOfDay(for: Date()), forKey: Keys.totalFocusDate)
         persistSessionHistory()
     }
 
@@ -197,6 +222,18 @@ final class SessionStatsStore: ObservableObject {
         if let data = try? JSONEncoder().encode(sessionHistory) {
             userDefaults.set(data, forKey: Keys.sessionHistory)
         }
+    }
+
+    private func refreshDailyTotalsIfNeeded() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let storedDate = userDefaults.object(forKey: Keys.totalFocusDate) as? Date
+
+        guard !calendar.isDate(storedDate ?? Date.distantPast, inSameDayAs: today) else { return }
+
+        totalFocusSecondsToday = 0
+        userDefaults.set(today, forKey: Keys.totalFocusDate)
+        userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
     }
 
     var currentStreakDays: Int {
@@ -244,6 +281,37 @@ final class FocusViewModel: ObservableObject {
         let timestamp: Date
     }
 
+    struct HydrationNudge: Identifiable {
+        let id = UUID()
+        let level: HydrationNudgeLevel
+        let message: String
+    }
+
+    enum HydrationNudgeLevel: CaseIterable {
+        case thirtyMinutes
+        case sixtyMinutes
+        case ninetyMinutes
+
+        var thresholdSeconds: Int {
+            switch self {
+            case .thirtyMinutes: 1_800
+            case .sixtyMinutes: 3_600
+            case .ninetyMinutes: 5_400
+            }
+        }
+
+        var bodyText: String {
+            switch self {
+            case .thirtyMinutes:
+                return "Nice streak! Grab water and reset your posture."
+            case .sixtyMinutes:
+                return "Hydrate and stretch—your focus streak is over an hour!"
+            case .ninetyMinutes:
+                return "Amazing focus. Take a hydration + posture break before continuing."
+            }
+        }
+    }
+
     @Published var isRunning: Bool = false
     @Published var secondsRemaining: Int
     @Published var hasFinishedOnce: Bool = false
@@ -251,12 +319,15 @@ final class FocusViewModel: ObservableObject {
         didSet { resetForModeChange() }
     }
     @Published var lastCompletedSession: SessionSummary?
+    @Published var activeHydrationNudge: HydrationNudge?
 
     @Published private(set) var notificationAuthorized: Bool = false
     let statsStore: SessionStatsStore
 
     private var timerCancellable: AnyCancellable?
+    @AppStorage("hydrateNudgesEnabled") private var hydrateNudgesEnabled: Bool = true
     private let notificationCenter = UNUserNotificationCenter.current()
+    private let userDefaults = UserDefaults.standard
 
     init(
         statsStore: SessionStatsStore = SessionStatsStore(),
@@ -274,6 +345,8 @@ final class FocusViewModel: ObservableObject {
         let value = 1 - (Double(secondsRemaining) / total)
         return min(max(value, 0), 1)
     }
+
+    var hydrationNudgesEnabled: Bool { hydrateNudgesEnabled }
 
     /// Starts or pauses the timer depending on the current state.
     func startOrPause() {
@@ -325,6 +398,8 @@ final class FocusViewModel: ObservableObject {
     private func finishSession() {
         stopTimer()
         hasFinishedOnce = true
+        statsStore.refreshDailyFocusTotal()
+        let previousFocusTotal = statsStore.totalFocusSecondsToday
         let xpGained = statsStore.recordSession(mode: selectedMode, duration: selectedMode.duration)
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         withAnimation(.easeInOut(duration: 0.25)) {
@@ -336,6 +411,7 @@ final class FocusViewModel: ObservableObject {
             )
         }
         secondsRemaining = 0
+        handleHydrationThresholds(previousTotal: previousFocusTotal, newTotal: statsStore.totalFocusSecondsToday)
         sendImmediateHydrationReminder()
     }
 
@@ -372,7 +448,7 @@ final class FocusViewModel: ObservableObject {
     }
 
     private func sendImmediateHydrationReminder() {
-        guard notificationAuthorized else { return }
+        guard notificationAuthorized, hydrateNudgesEnabled else { return }
         let content = UNMutableNotificationContent()
         content.title = "Great work!"
         content.body = "Reward unlocked: stretch, hydrate, and maintain good posture."
@@ -381,5 +457,68 @@ final class FocusViewModel: ObservableObject {
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         let request = UNNotificationRequest(identifier: "focus_timer_hydrate", content: content, trigger: trigger)
         notificationCenter.add(request)
+    }
+
+    private func handleHydrationThresholds(previousTotal: Int, newTotal: Int) {
+        guard hydrateNudgesEnabled, selectedMode == .focus else { return }
+
+        for level in HydrationNudgeLevel.allCases {
+            let threshold = level.thresholdSeconds
+            guard previousTotal < threshold, newTotal >= threshold else { continue }
+            guard !hasTriggeredNudge(for: level) else { continue }
+
+            sendHydrationNudge(level: level)
+            markNudgeTriggered(for: level)
+        }
+    }
+
+    func sendHydrationNudge(level: HydrationNudgeLevel) {
+        guard hydrateNudgesEnabled else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Hydrate + posture check"
+        content.body = level.bodyText
+        content.sound = .default
+
+        if notificationAuthorized {
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            let request = UNNotificationRequest(
+                identifier: "hydrate_nudge_\(level.thresholdSeconds)",
+                content: content,
+                trigger: trigger
+            )
+            notificationCenter.add(request)
+        }
+
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            activeHydrationNudge = HydrationNudge(level: level, message: level.bodyText)
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                self?.activeHydrationNudge = nil
+            }
+        }
+    }
+
+    private func hasTriggeredNudge(for level: HydrationNudgeLevel) -> Bool {
+        let calendar = Calendar.current
+        let storedDate = userDefaults.object(forKey: level.triggerKey) as? Date
+        return calendar.isDateInToday(storedDate ?? Date.distantPast)
+    }
+
+    private func markNudgeTriggered(for level: HydrationNudgeLevel) {
+        let today = Calendar.current.startOfDay(for: Date())
+        userDefaults.set(today, forKey: level.triggerKey)
+    }
+}
+
+private extension FocusViewModel.HydrationNudgeLevel {
+    var triggerKey: String {
+        switch self {
+        case .thirtyMinutes: return "hydrateNudge30Date"
+        case .sixtyMinutes: return "hydrateNudge60Date"
+        case .ninetyMinutes: return "hydrateNudge90Date"
+        }
     }
 }

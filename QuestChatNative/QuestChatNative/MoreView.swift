@@ -4,6 +4,7 @@ struct MoreView: View {
     @Environment(\.openURL) private var openURL
     @AppStorage("focusDurationMinutes") private var focusDurationMinutes: Int = 25
     @AppStorage("selfCareDurationMinutes") private var selfCareDurationMinutes: Int = 5
+    @AppStorage("hydrateNudgesEnabled") private var hydrateNudgesEnabled: Bool = true
 
     var body: some View {
         VStack(spacing: 16) {
@@ -28,6 +29,17 @@ struct MoreView: View {
                 Stepper(value: $selfCareDurationMinutes, in: 3...20) {
                     Text("\(selfCareDurationMinutes) minutes")
                         .font(.headline)
+                }
+                .tint(.mint)
+
+                Toggle(isOn: $hydrateNudgesEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Hydrate + posture nudges")
+                            .font(.headline)
+                        Text("In-app banners and local notifications when you cross focus milestones.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .tint(.mint)
             }

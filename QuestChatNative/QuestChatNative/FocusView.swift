@@ -108,6 +108,7 @@ struct FocusView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.statsStore.pendingLevelUp)
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
+        .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)
     }
 
     @ViewBuilder
@@ -233,6 +234,13 @@ struct FocusView: View {
             RoundedRectangle(cornerRadius: 24)
                 .stroke(Color.gray.opacity(0.25), lineWidth: 1)
         )
+        .overlay(alignment: .top) {
+            if let nudge = viewModel.activeHydrationNudge {
+                hydrationBanner(nudge: nudge)
+                    .padding(.horizontal, 12)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
     }
 
     private var controlPanel: some View {
@@ -265,7 +273,8 @@ struct FocusView: View {
 
             HStack {
                 statPill(title: "Sessions", value: "\(viewModel.statsStore.sessionsCompleted)")
-                statPill(title: "Hydrate + Posture", value: viewModel.notificationAuthorized ? "On" : "Off")
+                let nudgesActive = viewModel.notificationAuthorized && viewModel.hydrationNudgesEnabled
+                statPill(title: "Hydrate + Posture", value: nudgesActive ? "On" : "Off")
             }
         }
         .padding()
@@ -303,6 +312,29 @@ struct FocusView: View {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(Color.gray.opacity(0.25), lineWidth: 1)
         )
+    }
+
+    private func hydrationBanner(nudge: FocusViewModel.HydrationNudge) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "figure.walk")
+                .foregroundStyle(.mint)
+                .imageScale(.large)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Hydrate + posture check")
+                    .font(.headline)
+                Text(nudge.message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(.ultraThinMaterial.opacity(0.85))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 6)
     }
 
     private func statPill(title: String, value: String) -> some View {
