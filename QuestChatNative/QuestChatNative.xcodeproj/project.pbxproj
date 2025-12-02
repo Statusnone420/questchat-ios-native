@@ -1,337 +1,131 @@
 // !$*UTF8*$!
 {
-	archiveVersion = 1;
-	classes = {
-	};
-	objectVersion = 77;
-	objects = {
+archiveVersion = 1;
+classes = {
+};
+objectVersion = 77;
+objects = {
+
+/* Begin PBXBuildFile section */
+D8A200012EDE07B400A6A001 /* RPGStatBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */; };
+D8A200022EDE07B400A6A001 /* HealthBarModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0022EDE07B400A6A002 /* HealthBarModels.swift */; };
+D8A200032EDE07B400A6A001 /* FocusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0032EDE07B400A6A003 /* FocusView.swift */; };
+D8A200042EDE07B400A6A001 /* HealthBarCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0042EDE07B400A6A004 /* HealthBarCardView.swift */; };
+D8A200052EDE07B400A6A001 /* MoreViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0052EDE07B400A6A005 /* MoreViewModel.swift */; };
+D8A200062EDE07B400A6A001 /* DependencyContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0062EDE07B400A6A006 /* DependencyContainer.swift */; };
+D8A200072EDE07B400A6A001 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0072EDE07B400A6A007 /* MoreView.swift */; };
+D8A200082EDE07B400A6A001 /* QuestsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0082EDE07B400A6A008 /* QuestsViewModel.swift */; };
+D8A200092EDE07B400A6A001 /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0092EDE07B400A6A009 /* AppCoordinator.swift */; };
+D8A2000A2EDE07B400A6A001 /* HealthBarViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A00A2EDE07B400A6A00A /* HealthBarViewModel.swift */; };
+D8A2000B2EDE07B400A6A001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A00B2EDE07B400A6A00B /* SettingsView.swift */; };
+D8A2000C2EDE07B400A6A001 /* HealthBarStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A00C2EDE07B400A6A00C /* HealthBarStorage.swift */; };
+D8A2000D2EDE07B400A6A001 /* GameDataResetter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A00D2EDE07B400A6A00D /* GameDataResetter.swift */; };
+D8A2000E2EDE07B400A6A001 /* LevelUpModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A00E2EDE07B400A6A00E /* LevelUpModalView.swift */; };
+D8A2000F2EDE07B400A6A001 /* StatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A00F2EDE07B400A6A00F /* StatsViewModel.swift */; };
+D8A200102EDE07B400A6A001 /* HealthTrackingStorageKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0102EDE07B400A6A010 /* HealthTrackingStorageKeys.swift */; };
+D8A200112EDE07B400A6A001 /* QuestChatStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0112EDE07B400A6A011 /* QuestChatStrings.swift */; };
+D8A200122EDE07B400A6A001 /* FocusTimerLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0122EDE07B400A6A012 /* FocusTimerLiveActivity.swift */; };
+D8A200132EDE07B400A6A001 /* PlayerCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0132EDE07B400A6A013 /* PlayerCardView.swift */; };
+D8A200142EDE07B400A6A001 /* HealthBarCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0142EDE07B400A6A014 /* HealthBarCalculator.swift */; };
+D8A200152EDE07B400A6A001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0152EDE07B400A6A015 /* ContentView.swift */; };
+D8A200162EDE07B400A6A001 /* TodaySummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0162EDE07B400A6A016 /* TodaySummaryView.swift */; };
+D8A200172EDE07B400A6A001 /* AboutHealthBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0172EDE07B400A6A017 /* AboutHealthBarView.swift */; };
+D8A200182EDE07B400A6A001 /* HealthBarIRLStatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0182EDE07B400A6A018 /* HealthBarIRLStatsStore.swift */; };
+D8A200192EDE07B400A6A001 /* HydrationSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0192EDE07B400A6A019 /* HydrationSettingsStore.swift */; };
+D8A2001A2EDE07B400A6A001 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01A2EDE07B400A6A01A /* StatsView.swift */; };
+D8A2001B2EDE07B400A6A001 /* DurationWheelPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */; };
+D8A2001C2EDE07B400A6A001 /* FocusViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01C2EDE07B400A6A01C /* FocusViewModel.swift */; };
+D8A2001D2EDE07B400A6A001 /* QuestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01D2EDE07B400A6A01D /* QuestsView.swift */; };
+D8A2001E2EDE07B400A6A001 /* QuestChatNativeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01E2EDE07B400A6A01E /* QuestChatNativeApp.swift */; };
+D8A2001F2EDE07B400A6A001 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01F2EDE07B400A6A01F /* SettingsViewModel.swift */; };
+D8A200202EDE07B400A6A001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D8A1A0202EDE07B400A6A020 /* Assets.xcassets */; };
+D8A200212EDE07B400A6A001 /* QuestChatLiveActivitiesBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0212EDE07B400A6A021 /* QuestChatLiveActivitiesBundle.swift */; };
+D8A200222EDE07B400A6A001 /* FocusTimerLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0122EDE07B400A6A012 /* FocusTimerLiveActivity.swift */; };
+/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		D881CF932EDD1BC200A8A09F /* QuestChatNative.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuestChatNative.app; sourceTree = BUILT_PRODUCTS_DIR; };
+D881CF932EDD1BC200A8A09F /* QuestChatNative.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuestChatNative.app; sourceTree = BUILT_PRODUCTS_DIR; };
+D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPGStatBar.swift; sourceTree = "<group>"; };
+D8A1A0022EDE07B400A6A002 /* HealthBarModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthBarModels.swift; sourceTree = "<group>"; };
+D8A1A0032EDE07B400A6A003 /* FocusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusView.swift; sourceTree = "<group>"; };
+D8A1A0042EDE07B400A6A004 /* HealthBarCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthBarCardView.swift; sourceTree = "<group>"; };
+D8A1A0052EDE07B400A6A005 /* MoreViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreViewModel.swift; sourceTree = "<group>"; };
+D8A1A0062EDE07B400A6A006 /* DependencyContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DependencyContainer.swift; sourceTree = "<group>"; };
+D8A1A0072EDE07B400A6A007 /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreView.swift; sourceTree = "<group>"; };
+D8A1A0082EDE07B400A6A008 /* QuestsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestsViewModel.swift; sourceTree = "<group>"; };
+D8A1A0092EDE07B400A6A009 /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
+D8A1A00A2EDE07B400A6A00A /* HealthBarViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthBarViewModel.swift; sourceTree = "<group>"; };
+D8A1A00B2EDE07B400A6A00B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+D8A1A00C2EDE07B400A6A00C /* HealthBarStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthBarStorage.swift; sourceTree = "<group>"; };
+D8A1A00D2EDE07B400A6A00D /* GameDataResetter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameDataResetter.swift; sourceTree = "<group>"; };
+D8A1A00E2EDE07B400A6A00E /* LevelUpModalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelUpModalView.swift; sourceTree = "<group>"; };
+D8A1A00F2EDE07B400A6A00F /* StatsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsViewModel.swift; sourceTree = "<group>"; };
+D8A1A0102EDE07B400A6A010 /* HealthTrackingStorageKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthTrackingStorageKeys.swift; sourceTree = "<group>"; };
+D8A1A0112EDE07B400A6A011 /* QuestChatStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestChatStrings.swift; sourceTree = "<group>"; };
+D8A1A0122EDE07B400A6A012 /* FocusTimerLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusTimerLiveActivity.swift; sourceTree = "<group>"; };
+D8A1A0132EDE07B400A6A013 /* PlayerCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerCardView.swift; sourceTree = "<group>"; };
+D8A1A0142EDE07B400A6A014 /* HealthBarCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthBarCalculator.swift; sourceTree = "<group>"; };
+D8A1A0152EDE07B400A6A015 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+D8A1A0162EDE07B400A6A016 /* TodaySummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodaySummaryView.swift; sourceTree = "<group>"; };
+D8A1A0172EDE07B400A6A017 /* AboutHealthBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutHealthBarView.swift; sourceTree = "<group>"; };
+D8A1A0182EDE07B400A6A018 /* HealthBarIRLStatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthBarIRLStatsStore.swift; sourceTree = "<group>"; };
+D8A1A0192EDE07B400A6A019 /* HydrationSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HydrationSettingsStore.swift; sourceTree = "<group>"; };
+D8A1A01A2EDE07B400A6A01A /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationWheelPickerView.swift; sourceTree = "<group>"; };
+D8A1A01C2EDE07B400A6A01C /* FocusViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusViewModel.swift; sourceTree = "<group>"; };
+D8A1A01D2EDE07B400A6A01D /* QuestsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestsView.swift; sourceTree = "<group>"; };
+D8A1A01E2EDE07B400A6A01E /* QuestChatNativeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestChatNativeApp.swift; sourceTree = "<group>"; };
+D8A1A01F2EDE07B400A6A01F /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
+D8A1A0202EDE07B400A6A020 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+D8A1A0212EDE07B400A6A021 /* QuestChatLiveActivitiesBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestChatLiveActivitiesBundle.swift; sourceTree = "<group>"; };
+D8A1A0222EDE07B400A6A022 /* QuestChatLiveActivities.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = QuestChatLiveActivities.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedRootGroup section */
-		D881CF952EDD1BC200A8A09F /* QuestChatNative */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = QuestChatNative;
-			sourceTree = "<group>";
-		};
-/* End PBXFileSystemSynchronizedRootGroup section */
-
 /* Begin PBXFrameworksBuildPhase section */
-		D881CF902EDD1BC200A8A09F /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+D881CF902EDD1BC200A8A09F /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = ( ); runOnlyForDeploymentPostprocessing = 0; };
+D8A1A0262EDE07B400A6A026 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = ( ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		D881CF8A2EDD1BC200A8A09F = {
-			isa = PBXGroup;
-			children = (
-				D881CF952EDD1BC200A8A09F /* QuestChatNative */,
-				D881CF942EDD1BC200A8A09F /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		D881CF942EDD1BC200A8A09F /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				D881CF932EDD1BC200A8A09F /* QuestChatNative.app */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
+D881CF8A2EDD1BC200A8A09F = {isa = PBXGroup; children = (D881CF952EDD1BC200A8A09F /* QuestChatNative */, D8A1A0232EDE07B400A6A023 /* QuestChatLiveActivities */, D881CF942EDD1BC200A8A09F /* Products */); sourceTree = "<group>"; };
+D881CF942EDD1BC200A8A09F /* Products */ = {isa = PBXGroup; children = (D881CF932EDD1BC200A8A09F /* QuestChatNative.app */, D8A1A0222EDE07B400A6A022 /* QuestChatLiveActivities.appex */); name = Products; sourceTree = "<group>"; };
+D881CF952EDD1BC200A8A09F /* QuestChatNative */ = {isa = PBXGroup; children = (D8A1A01E2EDE07B400A6A01E /* QuestChatNativeApp.swift */, D8A1A0152EDE07B400A6A015 /* ContentView.swift */, D8A1A0092EDE07B400A6A009 /* AppCoordinator.swift */, D8A1A0062EDE07B400A6A006 /* DependencyContainer.swift */, D8A1A0112EDE07B400A6A011 /* QuestChatStrings.swift */, D8A1A0142EDE07B400A6A014 /* HealthBarCalculator.swift */, D8A1A0202EDE07B400A6A020 /* Assets.xcassets */, D8A1A0192EDE07B400A6A019 /* HydrationSettingsStore.swift */, D8A1A0102EDE07B400A6A010 /* HealthTrackingStorageKeys.swift */, D8A1A00C2EDE07B400A6A00C /* HealthBarStorage.swift */, D8A1A0182EDE07B400A6A018 /* HealthBarIRLStatsStore.swift */, D8A1A00A2EDE07B400A6A00A /* HealthBarViewModel.swift */, D8A1A0132EDE07B400A6A013 /* PlayerCardView.swift */, D8A1A0042EDE07B400A6A004 /* HealthBarCardView.swift */, D8A1A0022EDE07B400A6A002 /* HealthBarModels.swift */, D8A1A0172EDE07B400A6A017 /* AboutHealthBarView.swift */, D8A1A0122EDE07B400A6A012 /* FocusTimerLiveActivity.swift */, D8A1A0032EDE07B400A6A003 /* FocusView.swift */, D8A1A01C2EDE07B400A6A01C /* FocusViewModel.swift */, D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */, D8A1A0072EDE07B400A6A007 /* MoreView.swift */, D8A1A0052EDE07B400A6A005 /* MoreViewModel.swift */, D8A1A01D2EDE07B400A6A01D /* QuestsView.swift */, D8A1A0082EDE07B400A6A008 /* QuestsViewModel.swift */, D8A1A01A2EDE07B400A6A01A /* StatsView.swift */, D8A1A00F2EDE07B400A6A00F /* StatsViewModel.swift */, D8A1A00B2EDE07B400A6A00B /* SettingsView.swift */, D8A1A01F2EDE07B400A6A01F /* SettingsViewModel.swift */, D8A1A00E2EDE07B400A6A00E /* LevelUpModalView.swift */, D8A1A0162EDE07B400A6A016 /* TodaySummaryView.swift */, D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */, D8A1A00D2EDE07B400A6A00D /* GameDataResetter.swift */); path = QuestChatNative; sourceTree = "<group>"; };
+D8A1A0232EDE07B400A6A023 /* QuestChatLiveActivities */ = {isa = PBXGroup; children = (D8A1A0212EDE07B400A6A021 /* QuestChatLiveActivitiesBundle.swift */); path = QuestChatLiveActivities; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		D881CF922EDD1BC200A8A09F /* QuestChatNative */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = D881CF9E2EDD1BC300A8A09F /* Build configuration list for PBXNativeTarget "QuestChatNative" */;
-			buildPhases = (
-				D881CF8F2EDD1BC200A8A09F /* Sources */,
-				D881CF902EDD1BC200A8A09F /* Frameworks */,
-				D881CF912EDD1BC200A8A09F /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				D881CF952EDD1BC200A8A09F /* QuestChatNative */,
-			);
-			name = QuestChatNative;
-			packageProductDependencies = (
-			);
-			productName = QuestChatNative;
-			productReference = D881CF932EDD1BC200A8A09F /* QuestChatNative.app */;
-			productType = "com.apple.product-type.application";
-		};
+D881CF922EDD1BC200A8A09F /* QuestChatNative */ = {isa = PBXNativeTarget; buildConfigurationList = D881CF9E2EDD1BC300A8A09F /* Build configuration list for PBXNativeTarget "QuestChatNative" */; buildPhases = (D881CF8F2EDD1BC200A8A09F /* Sources */, D881CF902EDD1BC200A8A09F /* Frameworks */, D881CF912EDD1BC200A8A09F /* Resources */); buildRules = ( ); dependencies = ( ); name = QuestChatNative; packageProductDependencies = ( ); productName = QuestChatNative; productReference = D881CF932EDD1BC200A8A09F /* QuestChatNative.app */; productType = "com.apple.product-type.application"; };
+D8A1A0252EDE07B400A6A025 /* QuestChatLiveActivities */ = {isa = PBXNativeTarget; buildConfigurationList = D8A1A02C2EDE07B400A6A02C /* Build configuration list for PBXNativeTarget "QuestChatLiveActivities" */; buildPhases = (D8A1A0242EDE07B400A6A024 /* Sources */, D8A1A0262EDE07B400A6A026 /* Frameworks */, D8A1A0272EDE07B400A6A027 /* Resources */); buildRules = ( ); dependencies = ( ); name = QuestChatLiveActivities; packageProductDependencies = ( ); productName = QuestChatLiveActivities; productReference = D8A1A0222EDE07B400A6A022 /* QuestChatLiveActivities.appex */; productType = "com.apple.product-type.app-extension"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		D881CF8B2EDD1BC200A8A09F /* Project object */ = {
-			isa = PBXProject;
-			attributes = {
-				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2610;
-				LastUpgradeCheck = 2610;
-				TargetAttributes = {
-					D881CF922EDD1BC200A8A09F = {
-						CreatedOnToolsVersion = 26.1.1;
-					};
-				};
-			};
-			buildConfigurationList = D881CF8E2EDD1BC200A8A09F /* Build configuration list for PBXProject "QuestChatNative" */;
-			developmentRegion = en;
-			hasScannedForEncodings = 0;
-			knownRegions = (
-				en,
-				Base,
-			);
-			mainGroup = D881CF8A2EDD1BC200A8A09F;
-			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
-			productRefGroup = D881CF942EDD1BC200A8A09F /* Products */;
-			projectDirPath = "";
-			projectRoot = "";
-			targets = (
-				D881CF922EDD1BC200A8A09F /* QuestChatNative */,
-			);
-		};
+D881CF8B2EDD1BC200A8A09F /* Project object */ = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 2610; LastUpgradeCheck = 2610; TargetAttributes = {D881CF922EDD1BC200A8A09F = {CreatedOnToolsVersion = 26.1.1; }; D8A1A0252EDE07B400A6A025 = {CreatedOnToolsVersion = 26.1.1; }; }; }; buildConfigurationList = D881CF8E2EDD1BC200A8A09F /* Build configuration list for PBXProject "QuestChatNative" */; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base, ); mainGroup = D881CF8A2EDD1BC200A8A09F; minimizedProjectReferenceProxies = 1; preferredProjectObjectVersion = 77; productRefGroup = D881CF942EDD1BC200A8A09F /* Products */; projectDirPath = ""; projectRoot = ""; targets = (D881CF922EDD1BC200A8A09F /* QuestChatNative */, D8A1A0252EDE07B400A6A025 /* QuestChatLiveActivities */); };
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		D881CF912EDD1BC200A8A09F /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+D881CF912EDD1BC200A8A09F /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (D8A200202EDE07B400A6A001 /* Assets.xcassets in Resources */); runOnlyForDeploymentPostprocessing = 0; };
+D8A1A0272EDE07B400A6A027 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = ( ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		D881CF8F2EDD1BC200A8A09F /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
+D881CF8F2EDD1BC200A8A09F /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (D8A2001F2EDE07B400A6A001 /* SettingsViewModel.swift in Sources */, D8A2001E2EDE07B400A6A001 /* QuestChatNativeApp.swift in Sources */, D8A2001D2EDE07B400A6A001 /* QuestsView.swift in Sources */, D8A2001C2EDE07B400A6A001 /* FocusViewModel.swift in Sources */, D8A2001B2EDE07B400A6A001 /* DurationWheelPickerView.swift in Sources */, D8A2001A2EDE07B400A6A001 /* StatsView.swift in Sources */, D8A200192EDE07B400A6A001 /* HydrationSettingsStore.swift in Sources */, D8A200182EDE07B400A6A001 /* HealthBarIRLStatsStore.swift in Sources */, D8A200172EDE07B400A6A001 /* AboutHealthBarView.swift in Sources */, D8A200162EDE07B400A6A001 /* TodaySummaryView.swift in Sources */, D8A200152EDE07B400A6A001 /* ContentView.swift in Sources */, D8A200142EDE07B400A6A001 /* HealthBarCalculator.swift in Sources */, D8A200132EDE07B400A6A001 /* PlayerCardView.swift in Sources */, D8A200122EDE07B400A6A001 /* FocusTimerLiveActivity.swift in Sources */, D8A200112EDE07B400A6A001 /* QuestChatStrings.swift in Sources */, D8A200102EDE07B400A6A001 /* HealthTrackingStorageKeys.swift in Sources */, D8A2000F2EDE07B400A6A001 /* StatsViewModel.swift in Sources */, D8A2000E2EDE07B400A6A001 /* LevelUpModalView.swift in Sources */, D8A2000D2EDE07B400A6A001 /* GameDataResetter.swift in Sources */, D8A2000C2EDE07B400A6A001 /* HealthBarStorage.swift in Sources */, D8A2000B2EDE07B400A6A001 /* SettingsView.swift in Sources */, D8A2000A2EDE07B400A6A001 /* HealthBarViewModel.swift in Sources */, D8A200092EDE07B400A6A001 /* AppCoordinator.swift in Sources */, D8A200082EDE07B400A6A001 /* QuestsViewModel.swift in Sources */, D8A200072EDE07B400A6A001 /* MoreView.swift in Sources */, D8A200062EDE07B400A6A001 /* DependencyContainer.swift in Sources */, D8A200052EDE07B400A6A001 /* MoreViewModel.swift in Sources */, D8A200042EDE07B400A6A001 /* HealthBarCardView.swift in Sources */, D8A200032EDE07B400A6A001 /* FocusView.swift in Sources */, D8A200022EDE07B400A6A001 /* HealthBarModels.swift in Sources */, D8A200012EDE07B400A6A001 /* RPGStatBar.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
+D8A1A0242EDE07B400A6A024 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (D8A200222EDE07B400A6A001 /* FocusTimerLiveActivity.swift in Sources */, D8A200212EDE07B400A6A001 /* QuestChatLiveActivitiesBundle.swift in Sources */); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		D881CF9C2EDD1BC300A8A09F /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = CGX65757S6;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				MTL_FAST_MATH = YES;
-				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
-				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-			};
-			name = Debug;
-		};
-		D881CF9D2EDD1BC300A8A09F /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ALWAYS_SEARCH_USER_PATHS = NO;
-				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_BOOL_CONVERSION = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_CONSTANT_CONVERSION = YES;
-				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_EMPTY_BODY = YES;
-				CLANG_WARN_ENUM_CONVERSION = YES;
-				CLANG_WARN_INFINITE_RECURSION = YES;
-				CLANG_WARN_INT_CONVERSION = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_SUSPICIOUS_MOVE = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CLANG_WARN_UNREACHABLE_CODE = YES;
-				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = CGX65757S6;
-				ENABLE_NS_ASSERTIONS = NO;
-				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				GCC_C_LANGUAGE_STANDARD = gnu17;
-				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNDECLARED_SELECTOR = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				GCC_WARN_UNUSED_FUNCTION = YES;
-				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				MTL_FAST_MATH = YES;
-				SDKROOT = iphoneos;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
-		D881CF9F2EDD1BC300A8A09F /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = CGX65757S6;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.statusnone.QuestChatNative;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		D881CFA02EDD1BC300A8A09F /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = CGX65757S6;
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.statusnone.QuestChatNative;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
+D881CF9C2EDD1BC300A8A09F /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES; CLANG_ANALYZER_NONNULL = YES; CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE; CLANG_CXX_LANGUAGE_STANDARD = "gnu++20"; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; CLANG_ENABLE_OBJC_WEAK = YES; CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES; CLANG_WARN_BOOL_CONVERSION = YES; CLANG_WARN_COMMA = YES; CLANG_WARN_CONSTANT_CONVERSION = YES; CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES; CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR; CLANG_WARN_DOCUMENTATION_COMMENTS = YES; CLANG_WARN_EMPTY_BODY = YES; CLANG_WARN_ENUM_CONVERSION = YES; CLANG_WARN_INFINITE_RECURSION = YES; CLANG_WARN_INT_CONVERSION = YES; CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES; CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES; CLANG_WARN_OBJC_LITERAL_CONVERSION = YES; CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR; CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES; CLANG_WARN_RANGE_LOOP_ANALYSIS = YES; CLANG_WARN_STRICT_PROTOTYPES = YES; CLANG_WARN_SUSPICIOUS_MOVE = YES; CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE; CLANG_WARN_UNREACHABLE_CODE = YES; CLANG_WARN__DUPLICATE_METHOD_MATCH = YES; COPY_PHASE_STRIP = NO; DEBUG_INFORMATION_FORMAT = dwarf; DEVELOPMENT_TEAM = CGX65757S6; ENABLE_STRICT_OBJC_MSGSEND = YES; ENABLE_TESTABILITY = YES; ENABLE_USER_SCRIPT_SANDBOXING = YES; GCC_C_LANGUAGE_STANDARD = gnu17; GCC_DYNAMIC_NO_PIC = NO; GCC_NO_COMMON_BLOCKS = YES; GCC_OPTIMIZATION_LEVEL = 0; GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1", "$(inherited)"); GCC_WARN_64_TO_32_BIT_CONVERSION = YES; GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR; GCC_WARN_UNDECLARED_SELECTOR = YES; GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE; GCC_WARN_UNUSED_FUNCTION = YES; GCC_WARN_UNUSED_VARIABLE = YES; IPHONEOS_DEPLOYMENT_TARGET = 16.0; LOCALIZATION_PREFERS_STRING_CATALOGS = YES; MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE; MTL_FAST_MATH = YES; ONLY_ACTIVE_ARCH = YES; SDKROOT = iphoneos; SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+D881CF9D2EDD1BC300A8A09F /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES; CLANG_ANALYZER_NONNULL = YES; CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE; CLANG_CXX_LANGUAGE_STANDARD = "gnu++20"; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; CLANG_ENABLE_OBJC_WEAK = YES; CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES; CLANG_WARN_BOOL_CONVERSION = YES; CLANG_WARN_COMMA = YES; CLANG_WARN_CONSTANT_CONVERSION = YES; CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES; CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR; CLANG_WARN_DOCUMENTATION_COMMENTS = YES; CLANG_WARN_EMPTY_BODY = YES; CLANG_WARN_ENUM_CONVERSION = YES; CLANG_WARN_INFINITE_RECURSION = YES; CLANG_WARN_INT_CONVERSION = YES; CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES; CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES; CLANG_WARN_OBJC_LITERAL_CONVERSION = YES; CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR; CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES; CLANG_WARN_RANGE_LOOP_ANALYSIS = YES; CLANG_WARN_STRICT_PROTOTYPES = YES; CLANG_WARN_SUSPICIOUS_MOVE = YES; CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE; CLANG_WARN_UNREACHABLE_CODE = YES; CLANG_WARN__DUPLICATE_METHOD_MATCH = YES; COPY_PHASE_STRIP = NO; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; DEVELOPMENT_TEAM = CGX65757S6; ENABLE_NS_ASSERTIONS = NO; ENABLE_STRICT_OBJC_MSGSEND = YES; ENABLE_USER_SCRIPT_SANDBOXING = YES; GCC_C_LANGUAGE_STANDARD = gnu17; GCC_NO_COMMON_BLOCKS = YES; GCC_WARN_64_TO_32_BIT_CONVERSION = YES; GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR; GCC_WARN_UNDECLARED_SELECTOR = YES; GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE; GCC_WARN_UNUSED_FUNCTION = YES; GCC_WARN_UNUSED_VARIABLE = YES; IPHONEOS_DEPLOYMENT_TARGET = 16.0; LOCALIZATION_PREFERS_STRING_CATALOGS = YES; MTL_ENABLE_DEBUG_INFO = NO; MTL_FAST_MATH = YES; SDKROOT = iphoneos; SWIFT_COMPILATION_MODE = wholemodule; VALIDATE_PRODUCT = YES; }; name = Release; };
+D881CF9F2EDD1BC300A8A09F /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_TEAM = CGX65757S6; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"; INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks"); MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.statusnone.QuestChatNative; PRODUCT_NAME = "$(TARGET_NAME)"; STRING_CATALOG_GENERATE_SYMBOLS = YES; SWIFT_APPROACHABLE_CONCURRENCY = YES; SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Debug; };
+D881CFA02EDD1BC300A8A09F /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_TEAM = CGX65757S6; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"; INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks"); MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.statusnone.QuestChatNative; PRODUCT_NAME = "$(TARGET_NAME)"; STRING_CATALOG_GENERATE_SYMBOLS = YES; SWIFT_APPROACHABLE_CONCURRENCY = YES; SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Release; };
+D8A1A02A2EDE07B400A6A02A /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_TEAM = CGX65757S6; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = QuestChatLiveActivities; INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier = "com.apple.widgetkit-extension"; INFOPLIST_KEY_NSExtension_NSExtensionPrincipalClass = "WidgetExtension"; IPHONEOS_DEPLOYMENT_TARGET = 16.1; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks"); MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.statusnone.QuestChatNative.QuestChatLiveActivities; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; }; name = Debug; };
+D8A1A02B2EDE07B400A6A02B /* Release */ = {isa = XCBuildConfiguration; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; DEVELOPMENT_TEAM = CGX65757S6; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = QuestChatLiveActivities; INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier = "com.apple.widgetkit-extension"; INFOPLIST_KEY_NSExtension_NSExtensionPrincipalClass = "WidgetExtension"; IPHONEOS_DEPLOYMENT_TARGET = 16.1; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks"); MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.statusnone.QuestChatNative.QuestChatLiveActivities; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D881CF8E2EDD1BC200A8A09F /* Build configuration list for PBXProject "QuestChatNative" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				D881CF9C2EDD1BC300A8A09F /* Debug */,
-				D881CF9D2EDD1BC300A8A09F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		D881CF9E2EDD1BC300A8A09F /* Build configuration list for PBXNativeTarget "QuestChatNative" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				D881CF9F2EDD1BC300A8A09F /* Debug */,
-				D881CFA02EDD1BC300A8A09F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
+D881CF8E2EDD1BC200A8A09F /* Build configuration list for PBXProject "QuestChatNative" */ = {isa = XCConfigurationList; buildConfigurations = (D881CF9C2EDD1BC300A8A09F /* Debug */, D881CF9D2EDD1BC300A8A09F /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+D881CF9E2EDD1BC300A8A09F /* Build configuration list for PBXNativeTarget "QuestChatNative" */ = {isa = XCConfigurationList; buildConfigurations = (D881CF9F2EDD1BC300A8A09F /* Debug */, D881CFA02EDD1BC300A8A09F /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+D8A1A02C2EDE07B400A6A02C /* Build configuration list for PBXNativeTarget "QuestChatLiveActivities" */ = {isa = XCConfigurationList; buildConfigurations = (D8A1A02A2EDE07B400A6A02A /* Debug */, D8A1A02B2EDE07B400A6A02B /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
-	};
-	rootObject = D881CF8B2EDD1BC200A8A09F /* Project object */;
+};
+rootObject = D881CF8B2EDD1BC200A8A09F /* Project object */;
 }
