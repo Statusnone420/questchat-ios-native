@@ -1073,7 +1073,9 @@ final class FocusViewModel: ObservableObject {
     private let userDefaults = UserDefaults.standard
 
     @available(iOS 16.1, *)
-    private let liveActivityManager = FocusTimerLiveActivityManager.shared
+    private var liveActivityManager: FocusTimerLiveActivityManager? {
+        FocusTimerLiveActivityManager.shared
+    }
 
     private static let persistedSessionKey = "focus_current_session_v1"
     private var hasInitialized = false
@@ -1316,7 +1318,7 @@ final class FocusViewModel: ObservableObject {
             let category = selectedCategoryData ?? TimerCategory(id: selectedCategory, durationSeconds: currentDuration)
             let sessionType = category.id.rawValue
             let title = category.id.title
-            liveActivityManager.start(
+            liveActivityManager?.start(
                 endDate: session.endDate,
                 sessionType: sessionType,
                 title: title
@@ -1347,7 +1349,7 @@ final class FocusViewModel: ObservableObject {
         activeSessionDuration = nil
         clearPersistedSession()
         if #available(iOS 16.1, *) {
-            liveActivityManager.cancel()
+            liveActivityManager?.cancel()
         }
         state = .idle
     }
@@ -1445,7 +1447,7 @@ final class FocusViewModel: ObservableObject {
         handleHydrationThresholds(previousTotal: previousFocusTotal, newTotal: statsStore.totalFocusSecondsToday)
         sendImmediateHydrationReminder()
         if #available(iOS 16.1, *) {
-            liveActivityManager.end()
+            liveActivityManager?.end()
         }
         onSessionComplete?()
     }
