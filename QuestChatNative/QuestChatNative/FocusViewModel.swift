@@ -1204,6 +1204,44 @@ final class FocusViewModel: ObservableObject {
         return max(0, min(total, maxHP))
     }
 
+    var hpProgress: Double {
+        clampProgress(Double(currentHP) / Double(maxHP))
+    }
+
+    var hydrationProgress: Double {
+        let goal = hydrationSettingsStore.dailyWaterGoalOunces
+        guard goal > 0 else { return 0 }
+        let intake = (healthBarViewModel?.inputs.hydrationCount ?? 0) * hydrationSettingsStore.ouncesPerWaterTap
+        return clampProgress(Double(intake) / Double(goal))
+    }
+
+    var sleepProgress: Double {
+        let normalized = Double(sleepQuality.rawValue) / Double(SleepQuality.allCases.count - 1)
+        return clampProgress(normalized)
+    }
+
+    var moodProgress: Double {
+        let mood = healthBarViewModel?.inputs.moodStatus ?? .none
+        let value: Double = {
+            switch mood {
+            case .none:
+                return 0
+            case .bad:
+                return 0.25
+            case .neutral:
+                return 0.5
+            case .good:
+                return 1
+            }
+        }()
+
+        return clampProgress(value)
+    }
+
+    private func clampProgress(_ value: Double) -> Double {
+        min(max(value, 0), 1)
+    }
+
     var activeEffects: [StatusEffect] {
         var effects: [StatusEffect] = []
 
