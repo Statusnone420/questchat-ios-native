@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D899A6D22EDF6D6500F90F46 /* PlayerStatusBarsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D899A6D12EDF6D6500F90F46 /* PlayerStatusBarsView.swift */; };
 		D8A200012EDE07B400A6A001 /* RPGStatBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */; };
 		D8A200022EDE07B400A6A001 /* HealthBarModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0022EDE07B400A6A002 /* HealthBarModels.swift */; };
 		D8A200032EDE07B400A6A001 /* FocusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0032EDE07B400A6A003 /* FocusView.swift */; };
@@ -45,6 +46,7 @@
 
 /* Begin PBXFileReference section */
 		D881CF932EDD1BC200A8A09F /* QuestChatNative.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuestChatNative.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D899A6D12EDF6D6500F90F46 /* PlayerStatusBarsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerStatusBarsView.swift; sourceTree = "<group>"; };
 		D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPGStatBar.swift; sourceTree = "<group>"; };
 		D8A1A0022EDE07B400A6A002 /* HealthBarModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthBarModels.swift; sourceTree = "<group>"; };
 		D8A1A0032EDE07B400A6A003 /* FocusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusView.swift; sourceTree = "<group>"; };
@@ -121,39 +123,40 @@
 		D881CF952EDD1BC200A8A09F /* QuestChatNative */ = {
 			isa = PBXGroup;
 			children = (
-				D8A1A01E2EDE07B400A6A01E /* QuestChatNativeApp.swift */,
-				D8A1A0152EDE07B400A6A015 /* ContentView.swift */,
-				D8A1A0092EDE07B400A6A009 /* AppCoordinator.swift */,
-				D8A1A0062EDE07B400A6A006 /* DependencyContainer.swift */,
-				D8A1A0112EDE07B400A6A011 /* QuestChatStrings.swift */,
-				D8A1A0142EDE07B400A6A014 /* HealthBarCalculator.swift */,
-				D8A1A0202EDE07B400A6A020 /* Assets.xcassets */,
-				D8A1A0192EDE07B400A6A019 /* HydrationSettingsStore.swift */,
-				D8A1A0102EDE07B400A6A010 /* HealthTrackingStorageKeys.swift */,
-				D8A1A00C2EDE07B400A6A00C /* HealthBarStorage.swift */,
-				D8A1A0182EDE07B400A6A018 /* HealthBarIRLStatsStore.swift */,
-				D8A1A00A2EDE07B400A6A00A /* HealthBarViewModel.swift */,
-				D8A1A0132EDE07B400A6A013 /* PlayerCardView.swift */,
-				D8A1A0042EDE07B400A6A004 /* HealthBarCardView.swift */,
-				D8A1A0022EDE07B400A6A002 /* HealthBarModels.swift */,
+				D899A6D12EDF6D6500F90F46 /* PlayerStatusBarsView.swift */,
 				D8A1A0172EDE07B400A6A017 /* AboutHealthBarView.swift */,
+				D8A1A0092EDE07B400A6A009 /* AppCoordinator.swift */,
+				D8A1A0202EDE07B400A6A020 /* Assets.xcassets */,
+				D8A1A0152EDE07B400A6A015 /* ContentView.swift */,
+				D8A1A0062EDE07B400A6A006 /* DependencyContainer.swift */,
+				D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */,
 				D8A1A0122EDE07B400A6A012 /* FocusTimerLiveActivity.swift */,
 				D8A1A0032EDE07B400A6A003 /* FocusView.swift */,
 				D8A1A01C2EDE07B400A6A01C /* FocusViewModel.swift */,
-				D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */,
+				D8A1A00D2EDE07B400A6A00D /* GameDataResetter.swift */,
+				D8A1A0142EDE07B400A6A014 /* HealthBarCalculator.swift */,
+				D8A1A0042EDE07B400A6A004 /* HealthBarCardView.swift */,
+				D8A1A0182EDE07B400A6A018 /* HealthBarIRLStatsStore.swift */,
+				D8A1A0022EDE07B400A6A002 /* HealthBarModels.swift */,
+				D8A1A00C2EDE07B400A6A00C /* HealthBarStorage.swift */,
+				D8A1A00A2EDE07B400A6A00A /* HealthBarViewModel.swift */,
+				D8A1A0102EDE07B400A6A010 /* HealthTrackingStorageKeys.swift */,
+				D8A1A0192EDE07B400A6A019 /* HydrationSettingsStore.swift */,
+				D8A1A00E2EDE07B400A6A00E /* LevelUpModalView.swift */,
 				D8A1A0072EDE07B400A6A007 /* MoreView.swift */,
 				D8A1A0052EDE07B400A6A005 /* MoreViewModel.swift */,
+				D8A1A0132EDE07B400A6A013 /* PlayerCardView.swift */,
+				D8C41B002F0F579E009E596C /* QuestChatNative.entitlements */,
+				D8A1A01E2EDE07B400A6A01E /* QuestChatNativeApp.swift */,
+				D8A1A0112EDE07B400A6A011 /* QuestChatStrings.swift */,
 				D8A1A01D2EDE07B400A6A01D /* QuestsView.swift */,
 				D8A1A0082EDE07B400A6A008 /* QuestsViewModel.swift */,
-				D8A1A01A2EDE07B400A6A01A /* StatsView.swift */,
-				D8A1A00F2EDE07B400A6A00F /* StatsViewModel.swift */,
+				D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */,
 				D8A1A00B2EDE07B400A6A00B /* SettingsView.swift */,
 				D8A1A01F2EDE07B400A6A01F /* SettingsViewModel.swift */,
-				D8A1A00E2EDE07B400A6A00E /* LevelUpModalView.swift */,
+				D8A1A01A2EDE07B400A6A01A /* StatsView.swift */,
+				D8A1A00F2EDE07B400A6A00F /* StatsViewModel.swift */,
 				D8A1A0162EDE07B400A6A016 /* TodaySummaryView.swift */,
-				D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */,
-				D8A1A00D2EDE07B400A6A00D /* GameDataResetter.swift */,
-				D8C41B002F0F579E009E596C /* QuestChatNative.entitlements */,
 			);
 			path = QuestChatNative;
 			sourceTree = "<group>";
@@ -277,6 +280,7 @@
 				D8A200192EDE07B400A6A001 /* HydrationSettingsStore.swift in Sources */,
 				D8A200182EDE07B400A6A001 /* HealthBarIRLStatsStore.swift in Sources */,
 				D8A200172EDE07B400A6A001 /* AboutHealthBarView.swift in Sources */,
+				D899A6D22EDF6D6500F90F46 /* PlayerStatusBarsView.swift in Sources */,
 				D8A200162EDE07B400A6A001 /* TodaySummaryView.swift in Sources */,
 				D8A200152EDE07B400A6A001 /* ContentView.swift in Sources */,
 				D8A200142EDE07B400A6A001 /* HealthBarCalculator.swift in Sources */,
