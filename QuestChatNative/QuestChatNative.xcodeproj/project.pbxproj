@@ -40,11 +40,24 @@
 		D8A2001E2EDE07B400A6A001 /* QuestChatNativeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01E2EDE07B400A6A01E /* QuestChatNativeApp.swift */; };
 		D8A2001F2EDE07B400A6A001 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01F2EDE07B400A6A01F /* SettingsViewModel.swift */; };
 		D8A200202EDE07B400A6A001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D8A1A0202EDE07B400A6A020 /* Assets.xcassets */; };
-		D8A200212EDE07B400A6A001 /* QuestChatLiveActivitiesBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0212EDE07B400A6A021 /* QuestChatLiveActivitiesBundle.swift */; };
-		D8A200222EDE07B400A6A001 /* FocusTimerLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0122EDE07B400A6A012 /* FocusTimerLiveActivity.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		D87C18442EDF9B7000438C3A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		D87C182B2EDF9B6F00438C3A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		D87C182D2EDF9B6F00438C3A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		D881CF932EDD1BC200A8A09F /* QuestChatNative.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuestChatNative.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D899A6D12EDF6D6500F90F46 /* PlayerStatusBarsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerStatusBarsView.swift; sourceTree = "<group>"; };
 		D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPGStatBar.swift; sourceTree = "<group>"; };
@@ -80,9 +93,21 @@
 		D8A1A01F2EDE07B400A6A01F /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		D8A1A0202EDE07B400A6A020 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D8A1A0212EDE07B400A6A021 /* QuestChatLiveActivitiesBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestChatLiveActivitiesBundle.swift; sourceTree = "<group>"; };
-		D8A1A0222EDE07B400A6A022 /* QuestChatLiveActivities.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QuestChatLiveActivities.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8C41B002F0F579E009E596C /* QuestChatNative.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QuestChatNative.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D87C182F2EDF9B6F00438C3A /* QuestChatLiveActivity */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = QuestChatLiveActivity;
+			sourceTree = "<group>";
+		};
+		D87C184C2EDF9E6600438C3A /* QuestChatLiveActivity */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = QuestChatLiveActivity;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		D881CF902EDD1BC200A8A09F /* Frameworks */ = {
@@ -92,21 +117,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		D8A1A0262EDE07B400A6A026 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		D87C182A2EDF9B6F00438C3A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D87C182B2EDF9B6F00438C3A /* WidgetKit.framework */,
+				D87C182D2EDF9B6F00438C3A /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		D881CF8A2EDD1BC200A8A09F = {
 			isa = PBXGroup;
 			children = (
 				D881CF952EDD1BC200A8A09F /* QuestChatNative */,
 				D8A1A0232EDE07B400A6A023 /* QuestChatLiveActivities */,
+				D87C182F2EDF9B6F00438C3A /* QuestChatLiveActivity */,
+				D87C184C2EDF9E6600438C3A /* QuestChatLiveActivity */,
+				D87C182A2EDF9B6F00438C3A /* Frameworks */,
 				D881CF942EDD1BC200A8A09F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -115,7 +145,6 @@
 			isa = PBXGroup;
 			children = (
 				D881CF932EDD1BC200A8A09F /* QuestChatNative.app */,
-				D8A1A0222EDE07B400A6A022 /* QuestChatLiveActivities.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -179,6 +208,7 @@
 				D881CF8F2EDD1BC200A8A09F /* Sources */,
 				D881CF902EDD1BC200A8A09F /* Frameworks */,
 				D881CF912EDD1BC200A8A09F /* Resources */,
+				D87C18442EDF9B7000438C3A /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -191,25 +221,6 @@
 			productReference = D881CF932EDD1BC200A8A09F /* QuestChatNative.app */;
 			productType = "com.apple.product-type.application";
 		};
-		D8A1A0252EDE07B400A6A025 /* QuestChatLiveActivities */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = D8A1A02C2EDE07B400A6A02C /* Build configuration list for PBXNativeTarget "QuestChatLiveActivities" */;
-			buildPhases = (
-				D8A1A0242EDE07B400A6A024 /* Sources */,
-				D8A1A0262EDE07B400A6A026 /* Frameworks */,
-				D8A1A0272EDE07B400A6A027 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = QuestChatLiveActivities;
-			packageProductDependencies = (
-			);
-			productName = QuestChatLiveActivities;
-			productReference = D8A1A0222EDE07B400A6A022 /* QuestChatLiveActivities.appex */;
-			productType = "com.apple.product-type.app-extension";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -221,9 +232,6 @@
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
 					D881CF922EDD1BC200A8A09F = {
-						CreatedOnToolsVersion = 26.1.1;
-					};
-					D8A1A0252EDE07B400A6A025 = {
 						CreatedOnToolsVersion = 26.1.1;
 					};
 				};
@@ -243,7 +251,6 @@
 			projectRoot = "";
 			targets = (
 				D881CF922EDD1BC200A8A09F /* QuestChatNative */,
-				D8A1A0252EDE07B400A6A025 /* QuestChatLiveActivities */,
 			);
 		};
 /* End PBXProject section */
@@ -254,13 +261,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				D8A200202EDE07B400A6A001 /* Assets.xcassets in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		D8A1A0272EDE07B400A6A027 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -303,15 +303,6 @@
 				D8A200032EDE07B400A6A001 /* FocusView.swift in Sources */,
 				D8A200022EDE07B400A6A001 /* HealthBarModels.swift in Sources */,
 				D8A200012EDE07B400A6A001 /* RPGStatBar.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		D8A1A0242EDE07B400A6A024 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				D8A200222EDE07B400A6A001 /* FocusTimerLiveActivity.swift in Sources */,
-				D8A200212EDE07B400A6A001 /* QuestChatLiveActivitiesBundle.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -444,7 +435,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = QuestChatNative/QuestChatNative.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = CGX65757S6;
@@ -478,7 +468,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = QuestChatNative/QuestChatNative.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = CGX65757S6;
@@ -507,64 +496,6 @@
 			};
 			name = Release;
 		};
-		D8A1A02A2EDE07B400A6A02A /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = CGX65757S6;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = QuestChatLiveActivities;
-				INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier = "com.apple.widgetkit-extension";
-				INFOPLIST_KEY_NSExtension_NSExtensionPrincipalClass = WidgetExtension;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.statusnone.QuestChatNative.QuestChatLiveActivities;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
-		D8A1A02B2EDE07B400A6A02B /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				APPLICATION_EXTENSION_API_ONLY = YES;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = CGX65757S6;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = QuestChatLiveActivities;
-				INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier = "com.apple.widgetkit-extension";
-				INFOPLIST_KEY_NSExtension_NSExtensionPrincipalClass = WidgetExtension;
-				IPHONEOS_DEPLOYMENT_TARGET = 16.1;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.statusnone.QuestChatNative.QuestChatLiveActivities;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -582,15 +513,6 @@
 			buildConfigurations = (
 				D881CF9F2EDD1BC300A8A09F /* Debug */,
 				D881CFA02EDD1BC300A8A09F /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		D8A1A02C2EDE07B400A6A02C /* Build configuration list for PBXNativeTarget "QuestChatLiveActivities" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				D8A1A02A2EDE07B400A6A02A /* Debug */,
-				D8A1A02B2EDE07B400A6A02B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
