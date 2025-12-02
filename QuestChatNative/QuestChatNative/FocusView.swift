@@ -14,6 +14,7 @@ struct FocusView: View {
     @State private var resetButtonScale: CGFloat = 1
     @State private var heroCardScale: CGFloat = 0.98
     @State private var heroCardOpacity: Double = 0.92
+    @State private var selectedStatusEffect: StatusEffect?
 
     @Namespace private var categoryAnimation
 
@@ -74,7 +75,9 @@ struct FocusView: View {
             NavigationStack {
                 ScrollView (.vertical, showsIndicators: false) {
                     VStack(spacing: 20) {
-                        healthBarCard
+                        healthHeaderCard
+                        vitalsCard
+                        potionsCard
                         compactStatusHeader
                         todayQuestBanner
 
@@ -198,42 +201,59 @@ struct FocusView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var sleepQualityBinding: Binding<Double> {
-        Binding<Double>(
-            get: { Double(viewModel.sleepQuality.rawValue) },
-            set: { newValue in
-                if let quality = SleepQuality(rawValue: Int(newValue)) {
-                    viewModel.sleepQuality = quality
+    private func statusEffectIcon(for effect: StatusEffect) -> some View {
+        let tint: Color = effect.kind == .buff ? .green : .red
+
+        return VStack(spacing: 6) {
+            Image(systemName: effect.systemImageName)
+                .font(.subheadline.weight(.bold))
+                .frame(width: 32, height: 32)
+                .foregroundStyle(.black)
+                .background(tint)
+                .clipShape(Circle())
+                .shadow(color: tint.opacity(0.35), radius: 6, x: 0, y: 3)
+
+            Text(effect.title)
+                .font(.caption2.weight(.semibold))
+                .lineLimit(1)
+        }
+        .padding(10)
+        .frame(minWidth: 90)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.3))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(tint.opacity(0.5), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func statusEffectDetail(for effect: StatusEffect) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(effect.title, systemImage: effect.systemImageName)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(effect.kind == .buff ? .green : .red)
+
+            Text(effect.description)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if !effect.affectedStats.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "wand.and.stars")
+                        .foregroundStyle(.yellow)
+                    Text(effect.affectedStats.joined(separator: ", "))
+                        .font(.caption.bold())
                 }
             }
-        )
-    }
-
-    private func statusChip(for effect: FocusViewModel.StatusEffect) -> some View {
-        let isBuff = effect.kind == .buff
-        let tint: Color = isBuff ? .green : .red
-
-        return HStack(spacing: 6) {
-            Text(effect.icon)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(effect.title)
-                    .font(.subheadline.weight(.semibold))
-                Text(effect.reason)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 10)
-        .background(tint.opacity(0.12))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(tint.opacity(0.65), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.4))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .transition(.opacity.combined(with: .scale))
     }
 
-    private var healthBarCard: some View {
+    private var healthHeaderCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 Text("HealthBar IRL")
@@ -244,80 +264,135 @@ struct FocusView: View {
                     .foregroundStyle(.secondary)
             }
 
-            PlayerStatusBarsView(
-                hpProgress: viewModel.hpProgress,
-                hydrationProgress: viewModel.hydrationProgress,
-                sleepProgress: viewModel.sleepProgress,
-                moodProgress: viewModel.moodProgress
+            RPGStatBar(
+                iconName: "heart.fill",
+                label: "HP",
+                color: .red,
+                progress: viewModel.hpProgress,
+                segments: 12
             )
 
             if !viewModel.activeEffects.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(viewModel.activeEffects) { effect in
-                            statusChip(for: effect)
+                VStack(alignment: .leading, spacing: 10) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(viewModel.activeEffects) { effect in
+                                Button {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        if selectedStatusEffect?.id == effect.id {
+                                            selectedStatusEffect = nil
+                                        } else {
+                                            selectedStatusEffect = effect
+                                        }
+                                    }
+                                } label: {
+                                    statusEffectIcon(for: effect)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
+                        .padding(.vertical, 4)
                     }
-                    .padding(.vertical, 4)
-                }
-            }
 
-            HStack(spacing: 8) {
-                StatPill(icon: "drop.fill", label: "Hydration", value: "\(healthBarViewModel.inputs.hydrationCount)x")
-                StatPill(icon: "figure.mind.and.body", label: "Comfort bev.", value: "\(healthBarViewModel.inputs.selfCareSessions)")
-                StatPill(icon: "bolt.fill", label: "Focus", value: "\(healthBarViewModel.inputs.focusSprints)")
-            }
-
-            HStack(alignment: .top, spacing: 12) {
-                GutStatusPicker(selected: healthBarViewModel.inputs.gutStatus) { status in
-                    healthBarViewModel.setGutStatus(status)
-                }
-                MoodStatusPicker(selected: healthBarViewModel.inputs.moodStatus) { status in
-                    healthBarViewModel.setMoodStatus(status)
-                }
-            }
-
-            HStack(spacing: 12) {
-                Label("Sleep", systemImage: "bed.double.fill")
-                    .font(.caption)
-                    .foregroundStyle(.indigo)
-                    .frame(width: 70, alignment: .leading)
-
-                Slider(value: sleepQualityBinding, in: 0...2, step: 1)
-
-                Text(viewModel.sleepQuality.label)
-                    .font(.subheadline.weight(.semibold))
-                    .frame(minWidth: 70, alignment: .trailing)
-            }
-
-            HStack(spacing: 12) {
-                Button {
-                    viewModel.logHydrationPillTapped()
-                } label: {
-                    Label {
-                        Text("Drank water")
-                    } icon: {
-                        Image(systemName: "cross.case.fill")
-                            .foregroundStyle(.red)
+                    if let selectedStatusEffect {
+                        statusEffectDetail(for: selectedStatusEffect)
                     }
                 }
-                .buttonStyle(HealthPotionButtonStyle(color: Color.cyan))
-
-                Button {
-                    viewModel.logComfortBeverageTapped()
-                } label: {
-                    Label {
-                        Text("Comfort beverage")
-                    } icon: {
-                        Image(systemName: "cup.and.saucer.fill")
-                            .foregroundStyle(.yellow)
-                    }
-                }
-                .buttonStyle(HealthPotionButtonStyle(color: Color.cyan))
             }
         }
         .padding(14)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.65))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var vitalsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .lastTextBaseline) {
+                Text("Vitals")
+                    .font(.headline.weight(.semibold))
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(viewModel.hydrationSummaryText)
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                    if let cups = viewModel.hydrationCupsText {
+                        Text(cups)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            StatusBarRow(
+                iconName: "drop.fill",
+                label: "Hydration",
+                tint: .blue,
+                progress: viewModel.hydrationProgress,
+                segments: 10,
+                detailText: viewModel.hydrationSummaryText
+            )
+
+            StatusBarRow(
+                iconName: "moon.fill",
+                label: "Sleep",
+                tint: .purple,
+                progress: viewModel.sleepProgress,
+                segments: 8,
+                detailText: viewModel.sleepQualityLabel
+            )
+
+            StatusBarRow(
+                iconName: "face.smiling",
+                label: "Mood",
+                tint: .green,
+                progress: viewModel.moodProgress,
+                segments: 8,
+                detailText: viewModel.moodStatusLabel
+            )
+
+            StatusBarRow(
+                iconName: "bolt.fill",
+                label: "Stamina",
+                tint: .orange,
+                progress: viewModel.staminaProgress,
+                segments: 8,
+                detailText: viewModel.staminaLabel
+            )
+        }
+        .padding(14)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.45))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func potionButton(title: String, systemImage: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.subheadline.weight(.semibold))
+        }
+        .buttonStyle(HealthPotionButtonStyle(color: color))
+    }
+
+    private var potionsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Potions")
+                .font(.headline.weight(.semibold))
+
+            HStack(spacing: 10) {
+                potionButton(title: "Health", systemImage: "cross.case.fill", color: .green) {
+                    viewModel.logComfortBeverageTapped()
+                }
+
+                potionButton(title: "Mana", systemImage: "drop.fill", color: .cyan) {
+                    viewModel.logHydrationPillTapped()
+                }
+
+                potionButton(title: "Stamina", systemImage: "bolt.fill", color: .orange) {
+                    viewModel.logStaminaPotionTapped()
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.45))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 

@@ -4,6 +4,8 @@ struct StatsView: View {
     @ObservedObject var store: SessionStatsStore
     @ObservedObject var viewModel: StatsViewModel
     @ObservedObject var questsViewModel: QuestsViewModel
+    @ObservedObject var healthBarViewModel: HealthBarViewModel
+    @ObservedObject var focusViewModel: FocusViewModel
     @State private var showPlayerCard = false
 
     private var focusMinutes: Int { store.focusSeconds / 60 }
@@ -102,7 +104,12 @@ struct StatsView: View {
             .toolbarBackground(Color.black, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(isPresented: $showPlayerCard) {
-                PlayerCardView(store: store, viewModel: viewModel)
+                PlayerCardView(
+                    store: store,
+                    statsViewModel: viewModel,
+                    healthBarViewModel: healthBarViewModel,
+                    focusViewModel: focusViewModel
+                )
             }
             .onAppear {
                 store.refreshMomentumIfNeeded()
@@ -407,9 +414,13 @@ struct StatsView: View {
     let store = SessionStatsStore()
     let healthStats = HealthBarIRLStatsStore()
     let hydrationSettingsStore = HydrationSettingsStore()
+    let healthBarViewModel = HealthBarViewModel()
+    let focusViewModel = DependencyContainer.shared.makeFocusViewModel()
     StatsView(
         store: store,
         viewModel: StatsViewModel(healthStore: healthStats, hydrationSettingsStore: hydrationSettingsStore),
-        questsViewModel: QuestsViewModel(statsStore: store)
+        questsViewModel: QuestsViewModel(statsStore: store),
+        healthBarViewModel: healthBarViewModel,
+        focusViewModel: focusViewModel
     )
 }

@@ -8,6 +8,8 @@ struct ContentView: View {
     @State private var selectedTab: MainTab = .focus
     @StateObject private var statsStore = DependencyContainer.shared.makeStatsStore()
     @StateObject private var healthStatsViewModel = DependencyContainer.shared.makeHealthStatsViewModel()
+    @StateObject private var healthBarViewModel = DependencyContainer.shared.makeHealthBarViewModel()
+    @StateObject private var focusViewModel = DependencyContainer.shared.makeFocusViewModel()
     @StateObject private var questsViewModel = DependencyContainer.shared.makeQuestsViewModel()
     @StateObject private var moreViewModel = DependencyContainer.shared.makeMoreViewModel()
     private let appCoordinator = AppCoordinator()
@@ -27,7 +29,9 @@ struct ContentView: View {
                 StatsView(
                     store: statsStore,
                     viewModel: healthStatsViewModel,
-                    questsViewModel: questsViewModel
+                    questsViewModel: questsViewModel,
+                    healthBarViewModel: healthBarViewModel,
+                    focusViewModel: focusViewModel
                 )
                     .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
                     .tag(MainTab.stats)

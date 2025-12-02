@@ -979,16 +979,6 @@ final class FocusViewModel: ObservableObject {
         let timestamp: Date
     }
 
-    struct StatusEffect: Identifiable {
-        enum Kind { case buff, debuff }
-
-        let id = UUID()
-        let title: String
-        let reason: String
-        let icon: String
-        let kind: Kind
-    }
-
     struct HydrationNudge: Identifiable {
         let id = UUID()
         let level: HydrationNudgeLevel
@@ -1238,6 +1228,46 @@ final class FocusViewModel: ObservableObject {
         return clampProgress(value)
     }
 
+    var staminaProgress: Double {
+        let focusCount = healthBarViewModel?.inputs.focusSprints ?? 0
+        let target = 4.0
+        return clampProgress(Double(focusCount) / target)
+    }
+
+    var hydrationSummaryText: String {
+        let intake = waterIntakeOuncesToday
+        let goal = hydrationSettingsStore.dailyWaterGoalOunces
+        let goalText = goal > 0 ? " / \(goal) oz" : " oz"
+        return "\(intake)\(goalText)"
+    }
+
+    var hydrationCupsText: String? {
+        let intake = waterIntakeOuncesToday
+        let goal = hydrationSettingsStore.dailyWaterGoalOunces
+        guard intake > 0 || goal > 0 else { return nil }
+
+        let intakeCups = Double(intake) / 8
+        let goalCups = goal > 0 ? Double(goal) / 8 : nil
+        if let goalCups { return String(format: "%.0f / %.0f cups", intakeCups, goalCups) }
+        return String(format: "%.0f cups", intakeCups)
+    }
+
+    var staminaLabel: String {
+        let sprints = healthBarViewModel?.inputs.focusSprints ?? 0
+        return "\(sprints) focus sprints"
+    }
+
+    var sleepQualityLabel: String { sleepQuality.label }
+
+    var moodStatusLabel: String {
+        switch moodStatus {
+        case .good: return "Good"
+        case .neutral: return "Neutral"
+        case .bad: return "Bad"
+        case .none: return "Not set"
+        }
+    }
+
     private func clampProgress(_ value: Double) -> Double {
         min(max(value, 0), 1)
     }
@@ -1247,28 +1277,76 @@ final class FocusViewModel: ObservableObject {
 
         switch gutStatus {
         case .rough:
-            effects.append(StatusEffect(title: "Full of 💩", reason: "Gut status is rough", icon: "💩", kind: .debuff))
+            effects.append(
+                StatusEffect(
+                    title: "Gut Trouble",
+                    description: "Rough digestion is draining HP recovery.",
+                    systemImageName: "exclamationmark.triangle.fill",
+                    kind: .debuff,
+                    affectedStats: ["HP"]
+                )
+            )
         case .great:
-            effects.append(StatusEffect(title: "Gut of steel", reason: "Digestion feels great", icon: "🛡️", kind: .buff))
+            effects.append(
+                StatusEffect(
+                    title: "Gut of Steel",
+                    description: "Great gut health boosts HP gains.",
+                    systemImageName: "shield.fill",
+                    kind: .buff,
+                    affectedStats: ["HP"]
+                )
+            )
         case .meh, .none:
             break
         }
 
         switch moodStatus {
         case .good:
-            effects.append(StatusEffect(title: "Ray of sunshine", reason: "Mood is bright", icon: "🌞", kind: .buff))
+            effects.append(
+                StatusEffect(
+                    title: "Upbeat",
+                    description: "Bright mood increases resilience.",
+                    systemImageName: "face.smiling.fill",
+                    kind: .buff,
+                    affectedStats: ["Mood", "HP"]
+                )
+            )
         case .bad:
-            effects.append(StatusEffect(title: "Stormy mood", reason: "Feeling off", icon: "🌩️", kind: .debuff))
+            effects.append(
+                StatusEffect(
+                    title: "Stormy Mood",
+                    description: "Feeling off reduces overall HP.",
+                    systemImageName: "cloud.bolt.fill",
+                    kind: .debuff,
+                    affectedStats: ["Mood", "HP"]
+                )
+            )
         case .neutral, .none:
             break
         }
 
         if sleepQuality == .awful, let debuffLabel = sleepQuality.debuffLabel {
-            effects.append(StatusEffect(title: debuffLabel, reason: "Barely slept", icon: "🥱", kind: .debuff))
+            effects.append(
+                StatusEffect(
+                    title: debuffLabel,
+                    description: "Poor sleep hurts stamina and HP.",
+                    systemImageName: "bed.double.fill",
+                    kind: .debuff,
+                    affectedStats: ["Sleep", "HP", "Stamina"]
+                )
+            )
         }
 
         if sleepQuality == .great, let buffLabel = sleepQuality.buffLabel {
-            effects.append(StatusEffect(title: buffLabel, reason: "Slept like a champ", icon: "😴", kind: .buff))
+            effects.append(
+                StatusEffect(
+                    title: buffLabel,
+                    description: "Rested up and ready to quest.",
+                    systemImageName: "moon.zzz.fill",
+                    kind: .buff,
+                    affectedStats: ["Sleep", "HP", "Stamina"]
+                )
+            )
         }
 
         return effects
@@ -1322,6 +1400,12 @@ final class FocusViewModel: ObservableObject {
 
         totalComfortOuncesToday += hydrationSettingsStore.ouncesPerComfortTap
         recordHealthBarSnapshot(inputs: healthBarViewModel.inputs, hp: healthBarViewModel.hp)
+    }
+
+    func logStaminaPotionTapped() {
+        guard let healthBarViewModel else { return }
+
+        healthBarViewModel.logFocusSprint()
     }
 
     /// Starts the timer if currently idle or paused.

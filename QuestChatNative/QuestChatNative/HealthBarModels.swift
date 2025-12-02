@@ -21,3 +21,14 @@ struct DailyHealthInputs: Codable {
     var gutStatus: GutStatus
     var moodStatus: MoodStatus
 }
+
+struct StatusEffect: Identifiable, Equatable {
+    enum Kind { case buff, debuff }
+
+    let id = UUID()
+    let title: String
+    let description: String
+    let systemImageName: String
+    let kind: Kind
+    let affectedStats: [String]
+}

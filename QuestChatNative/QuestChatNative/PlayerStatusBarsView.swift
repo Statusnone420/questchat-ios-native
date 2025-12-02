@@ -6,6 +6,16 @@ struct StatusBarRow: View {
     let tint: Color
     let progress: Double
     let segments: Int
+    let detailText: String?
+
+    init(iconName: String, label: String, tint: Color, progress: Double, segments: Int, detailText: String? = nil) {
+        self.iconName = iconName
+        self.label = label
+        self.tint = tint
+        self.progress = progress
+        self.segments = segments
+        self.detailText = detailText
+    }
 
     private var clampedProgress: Double {
         min(max(progress, 0), 1)
@@ -45,6 +55,13 @@ struct StatusBarRow: View {
                 }
             }
             .frame(height: 16)
+
+            if let detailText {
+                Text(detailText)
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 90, alignment: .trailing)
+            }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
