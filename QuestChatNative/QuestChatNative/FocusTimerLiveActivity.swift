@@ -29,7 +29,12 @@ final class FocusTimerLiveActivityManager {
     ///   - title: user-facing title like "Deep focus"
     func start(endDate: Date, sessionType: String, title: String) {
         let authInfo = ActivityAuthorizationInfo()
-        guard authInfo.areActivitiesEnabled else { return }
+        print("🔍 LiveActivity auth – enabled:", authInfo.areActivitiesEnabled)
+
+        guard authInfo.areActivitiesEnabled else {
+            print("❌ Live Activities not enabled for this device/app.")
+            return
+        }
 
         let attributes = FocusTimerAttributes(sessionType: sessionType)
         let contentState = FocusTimerAttributes.ContentState(
@@ -39,18 +44,21 @@ final class FocusTimerLiveActivityManager {
         )
 
         do {
+            print("🚀 Requesting Live Activity – title:", title, "end:", endDate)
             activity = try Activity.request(
                 attributes: attributes,
                 contentState: contentState,
                 pushType: nil
             )
+            print("✅ Live Activity started:", String(describing: activity))
         } catch {
-            print("⚠️ Failed to start Live Activity: \(error)")
+            print("❌ Failed to start Live Activity:", error)
         }
     }
 
     func end() {
         Task {
+            print("🧹 Ending Live Activity")
             await activity?.end(dismissalPolicy: .immediate)
             activity = nil
         }
@@ -58,6 +66,7 @@ final class FocusTimerLiveActivityManager {
 
     func cancel() {
         Task {
+            print("🛑 Cancelling Live Activity")
             await activity?.end(dismissalPolicy: .immediate)
             activity = nil
         }
