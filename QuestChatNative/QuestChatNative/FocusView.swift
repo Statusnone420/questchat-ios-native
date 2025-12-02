@@ -198,21 +198,6 @@ struct FocusView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var hpPercentage: Double {
-        Double(viewModel.currentHP) / 100
-    }
-
-    private func healthBarColor(for percentage: Double) -> Color {
-        switch percentage {
-        case ..<0.34:
-            return .red
-        case ..<0.67:
-            return .yellow
-        default:
-            return .green
-        }
-    }
-
     private var sleepQualityBinding: Binding<Double> {
         Binding<Double>(
             get: { Double(viewModel.sleepQuality.rawValue) },
@@ -259,17 +244,12 @@ struct FocusView: View {
                     .foregroundStyle(.secondary)
             }
 
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.gray.opacity(0.25))
-                    Capsule()
-                        .fill(healthBarColor(for: hpPercentage))
-                        .frame(width: geometry.size.width * CGFloat(hpPercentage))
-                        .animation(.easeInOut(duration: 0.25), value: hpPercentage)
-                }
-            }
-            .frame(height: 14)
+            PlayerStatusBarsView(
+                hpProgress: viewModel.hpProgress,
+                hydrationProgress: viewModel.hydrationProgress,
+                sleepProgress: viewModel.sleepProgress,
+                moodProgress: viewModel.moodProgress
+            )
 
             if !viewModel.activeEffects.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {

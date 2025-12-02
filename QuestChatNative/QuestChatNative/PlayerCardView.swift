@@ -59,31 +59,12 @@ struct PlayerCardView: View {
     }
 
     private var playerHUDSection: some View {
-        VStack(spacing: 8) {
-            RPGStatBar(iconName: "heart.fill",
-                       label: "HP",
-                       color: .red,
-                       progress: viewModel.hpProgress,
-                       segments: 10)
-
-            RPGStatBar(iconName: "drop.fill",
-                       label: "Hydration",
-                       color: .blue,
-                       progress: viewModel.hydrationProgress,
-                       segments: 10)
-
-            RPGStatBar(iconName: "moon.fill",
-                       label: "Sleep",
-                       color: .purple,
-                       progress: viewModel.sleepProgress,
-                       segments: 10)
-
-            RPGStatBar(iconName: "face.smiling",
-                       label: "Mood",
-                       color: .green,
-                       progress: viewModel.moodProgress,
-                       segments: 10)
-        }
+        PlayerStatusBarsView(
+            hpProgress: viewModel.hpProgress,
+            hydrationProgress: viewModel.hydrationProgress,
+            sleepProgress: viewModel.sleepProgress,
+            moodProgress: viewModel.moodProgress
+        )
     }
 }
 
