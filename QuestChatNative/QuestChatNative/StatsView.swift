@@ -75,7 +75,7 @@ struct StatsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ScrollView (.vertical, showsIndicators: false) {
                 VStack(spacing: 18) {
                     TodaySummaryView(
                         completedQuests: questsViewModel.completedQuestsCount,

@@ -72,7 +72,7 @@ struct FocusView: View {
     var body: some View {
         ZStack {
             NavigationStack {
-                ScrollView {
+                ScrollView (.vertical, showsIndicators: false) {
                     VStack(spacing: 20) {
                         healthBarCard
                         compactStatusHeader
