@@ -5,24 +5,15 @@ import SwiftUI
 // MARK: - Helpers
 
 @available(iOS 17.0, *)
-private func formattedTime(_ seconds: Int) -> String {
-    let s = max(seconds, 0)
-    let hours = s / 3600
-    let minutes = (s % 3600) / 60
-    let secs = s % 60
-    if hours > 0 {
-        return String(format: "%d:%02d:%02d", hours, minutes, secs)
+private func timeLabel(for seconds: Int) -> String {
+    if seconds <= 0 { return "0s" }
+    let minutes = seconds / 60
+    let secs = seconds % 60
+    if minutes > 0 {
+        return "\(minutes)m"
     } else {
-        return String(format: "%d:%02d", minutes, secs)
+        return "\(secs)s"
     }
-}
-
-@available(iOS 17.0, *)
-private func timeAbbrev(_ seconds: Int) -> String {
-    let s = max(seconds, 0)
-    if s >= 3600 { return "\(s / 3600)h" }
-    if s >= 60 { return "\(s / 60)m" }
-    return "\(s)s"
 }
 
 @available(iOS 17.0, *)
@@ -32,6 +23,15 @@ private func ringColor(forRemaining remaining: Int, total: Int) -> Color {
     if fraction >= 0.5 { return .green }
     if fraction >= 0.25 { return .yellow }
     return .red
+}
+
+@available(iOS 17.0, *)
+private func timerMetrics(for context: ActivityViewContext<FocusSessionAttributes>, at date: Date) -> (remaining: Int, total: Int, progress: Double) {
+    let total = max(context.state.totalSeconds, 1)
+    let rawRemaining = context.state.endTime.timeIntervalSince(date)
+    let remaining = max(Int(ceil(rawRemaining)), 0)
+    let progress = min(1.0, max(0.0, 1.0 - (Double(remaining) / Double(total))))
+    return (remaining, total, progress)
 }
 
 @available(iOS 17.0, *)
@@ -54,7 +54,6 @@ private struct CircularTimerRing: View {
     var size: CGFloat = 56
     var lineWidth: CGFloat = 8
     var showText: Bool = true
-    var endDate: Date? = nil
 
     var clampedProgress: CGFloat { CGFloat(min(max(progress, 0), 1)) }
 
@@ -68,15 +67,9 @@ private struct CircularTimerRing: View {
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 0.2), value: progress)
             if showText {
-                if let endDate {
-                    Text(endDate, style: .timer)
-                        .font(.system(size: size * 0.32, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.primary)
-                } else {
-                    Text(formattedTime(remainingSeconds))
-                        .font(.system(size: size * 0.32, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.primary)
-                }
+                Text(timeLabel(for: remainingSeconds))
+                    .font(.system(size: size * 0.32, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(.primary)
             }
         }
         .frame(width: size, height: size)
@@ -91,21 +84,19 @@ struct FocusSessionLiveActivityView: View {
 
     var body: some View {
         TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-            let now = timeline.date
-            let total = max(context.state.totalSeconds, 1)
-            let remaining = max(Int(ceil(context.state.endTime.timeIntervalSince(now))), 0)
-            let progress = 1 - (Double(remaining) / Double(total))
+            let metrics = timerMetrics(for: context, at: timeline.date)
+            let remaining = metrics.remaining
+            let progress = metrics.progress
 
             HStack(alignment: .center, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(timerInterval: now...context.state.endTime, countsDown: true)
+                    Text(timeLabel(for: remaining))
                         .font(.system(size: 34, weight: .bold, design: .monospaced))
-                        .monospacedDigit()
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
                         .allowsTightening(true)
-                    Text("min left")
+                    Text("remaining")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -148,11 +139,10 @@ struct FocusSessionLiveActivityWidget: Widget {
                 // Expanded Regions
                 DynamicIslandExpandedRegion(.leading) {
                     TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-                        let now = timeline.date
-                        let total = max(context.state.totalSeconds, 1)
-                        let remaining = max(Int(ceil(context.state.endTime.timeIntervalSince(now))), 0)
-                        let progress = 1 - (Double(remaining) / Double(total))
-                        let color = ringColor(forRemaining: remaining, total: total)
+                        let metrics = timerMetrics(for: context, at: timeline.date)
+                        let remaining = metrics.remaining
+                        let progress = metrics.progress
+                        let color = ringColor(forRemaining: remaining, total: metrics.total)
                         let symbol = symbolName(forTitle: context.state.title)
 
                         HStack(spacing: 6) {
@@ -167,8 +157,7 @@ struct FocusSessionLiveActivityWidget: Widget {
                                 ringColor: color,
                                 size: 32,
                                 lineWidth: 4,
-                                showText: true,
-                                endDate: context.state.endTime
+                                showText: true
                             )
                             .padding(2)
                         }
@@ -189,11 +178,10 @@ struct FocusSessionLiveActivityWidget: Widget {
 
                 DynamicIslandExpandedRegion(.bottom) {
                     TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-                        let now = timeline.date
-                        let total = max(context.state.totalSeconds, 1)
-                        let remaining = max(Int(ceil(context.state.endTime.timeIntervalSince(now))), 0)
-                        let progress = 1 - (Double(remaining) / Double(total))
-                        let color = ringColor(forRemaining: remaining, total: total)
+                        let metrics = timerMetrics(for: context, at: timeline.date)
+                        let remaining = metrics.remaining
+                        let progress = metrics.progress
+                        let color = ringColor(forRemaining: remaining, total: metrics.total)
 
                         ProgressView(value: progress)
                             .progressViewStyle(.linear)
@@ -206,22 +194,19 @@ struct FocusSessionLiveActivityWidget: Widget {
                 }
             } compactLeading: {
                 TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-                    let now = timeline.date
-                    let remaining = max(Int(ceil(context.state.endTime.timeIntervalSince(now))), 0)
-                    Text(timeAbbrev(remaining))
+                    let metrics = timerMetrics(for: context, at: timeline.date)
+                    Text(timeLabel(for: metrics.remaining))
                         .font(.caption2.weight(.semibold))
                 }
             } compactTrailing: {
                 TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-                    let now = timeline.date
-                    let total = max(context.state.totalSeconds, 1)
-                    let remaining = max(Int(ceil(context.state.endTime.timeIntervalSince(now))), 0)
-                    let progress = 1 - (Double(remaining) / Double(total))
-                    let color = ringColor(forRemaining: remaining, total: total)
+                    let metrics = timerMetrics(for: context, at: timeline.date)
+                    let progress = metrics.progress
+                    let color = ringColor(forRemaining: metrics.remaining, total: metrics.total)
 
                     CircularTimerRing(
                         progress: progress,
-                        remainingSeconds: remaining,
+                        remainingSeconds: metrics.remaining,
                         ringColor: color,
                         size: 14,
                         lineWidth: 2.5,
@@ -231,15 +216,13 @@ struct FocusSessionLiveActivityWidget: Widget {
                 }
             } minimal: {
                 TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-                    let now = timeline.date
-                    let total = max(context.state.totalSeconds, 1)
-                    let remaining = max(Int(ceil(context.state.endTime.timeIntervalSince(now))), 0)
-                    let progress = 1 - (Double(remaining) / Double(total))
-                    let color = ringColor(forRemaining: remaining, total: total)
+                    let metrics = timerMetrics(for: context, at: timeline.date)
+                    let progress = metrics.progress
+                    let color = ringColor(forRemaining: metrics.remaining, total: metrics.total)
 
                     CircularTimerRing(
                         progress: progress,
-                        remainingSeconds: remaining,
+                        remainingSeconds: metrics.remaining,
                         ringColor: color,
                         size: 16,
                         lineWidth: 2.5,

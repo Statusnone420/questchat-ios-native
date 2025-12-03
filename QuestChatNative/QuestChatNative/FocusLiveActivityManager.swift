@@ -31,11 +31,13 @@ enum FocusLiveActivityManager {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         guard let activity else { return }
 
+        let originalEndTime = activity.content.state.endTime
+
         let contentState = FocusSessionAttributes.ContentState(
             remainingSeconds: remainingSeconds,
             totalSeconds: totalSeconds,
             title: title,
-            endTime: Date().addingTimeInterval(TimeInterval(remainingSeconds))
+            endTime: originalEndTime
         )
 
         Task {
