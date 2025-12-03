@@ -4,6 +4,10 @@ import SwiftUI
 import UserNotifications
 import UIKit
 
+/// Timer + Live Activity coordination summary
+/// - The `timerStatus` struct is the single source of truth for countdown state (remaining seconds, total duration, endDate, phase).
+/// - All transitions (start/pause/resume/finish/reset) update `timerStatus` first, then trigger UI timers, notifications, stats, and Live Activity sync.
+/// - Live Activities are driven through `FocusLiveActivityManaging` so the lock screen/Island always mirrors the in-app timer without drifting or counting up past zero.
 /// Represents available timer modes.
 enum FocusTimerMode: String, CaseIterable, Identifiable, Codable {
     case focus
@@ -1046,7 +1050,15 @@ final class FocusViewModel: ObservableObject {
         case finished
     }
 
+    struct TimerStatus {
+        var totalDurationSeconds: Int
+        var remainingSeconds: Int
+        var endDate: Date?
+        var state: TimerState
+    }
+
     @Published var state: TimerState = .idle
+    @Published private(set) var timerStatus: TimerStatus
 
     @Published private(set) var notificationAuthorized: Bool = false
     let statsStore: SessionStatsStore
@@ -1055,21 +1067,12 @@ final class FocusViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var healthBarViewModel: HealthBarViewModel?
 
-    @Published private var pausedRemainingSeconds: Int?
-    @Published private var timerTick: Date = Date()
     private var timerCancellable: AnyCancellable?
     @AppStorage("hydrateNudgesEnabled") private var hydrateNudgesEnabled: Bool = true
     private let notificationCenter = UNUserNotificationCenter.current()
     private let userDefaults = UserDefaults.standard
 
-    @available(iOS 16.1, *)
-    private var liveActivityManager: FocusTimerLiveActivityManager? {
-        FocusTimerLiveActivityManager.shared
-    }
-
-    private var liveActivityOriginalDuration: Int?
-    private var liveActivityTitle: String?
-    private var lastLiveActivityRemainingSeconds: Int?
+    private let liveActivityManager: FocusLiveActivityManaging?
 
     private static let persistedSessionKey = "focus_current_session_v1"
     private var hasInitialized = false
@@ -1083,13 +1086,15 @@ final class FocusViewModel: ObservableObject {
         healthStatsStore: HealthBarIRLStatsStore = HealthBarIRLStatsStore(),
         healthBarViewModel: HealthBarViewModel? = nil,
         hydrationSettingsStore: HydrationSettingsStore = HydrationSettingsStore(),
-        initialMode: FocusTimerMode = .focus
+        initialMode: FocusTimerMode = .focus,
+        liveActivityManager: FocusLiveActivityManaging? = FocusLiveActivityManager()
     ) {
         // Assign non-dependent stored properties first
         self.statsStore = statsStore
         self.healthStatsStore = healthStatsStore
         self.healthBarViewModel = healthBarViewModel
         self.hydrationSettingsStore = hydrationSettingsStore
+        self.liveActivityManager = liveActivityManager
         self.currentHP = healthStatsStore.currentHP
 
         let seeded = FocusViewModel.seededCategories()
@@ -1104,7 +1109,12 @@ final class FocusViewModel: ObservableObject {
         let initialCategory = loadedCategories.first { $0.id.mode == initialMode } ?? loadedCategories[0]
         self.selectedCategory = initialCategory.id
         self.selectedMode = initialCategory.id.mode
-        self.pausedRemainingSeconds = initialCategory.durationSeconds
+        self.timerStatus = TimerStatus(
+            totalDurationSeconds: initialCategory.durationSeconds,
+            remainingSeconds: initialCategory.durationSeconds,
+            endDate: nil,
+            state: .idle
+        )
 
         hasInitialized = true
 
@@ -1332,22 +1342,10 @@ final class FocusViewModel: ObservableObject {
         durationForSelectedCategory()
     }
 
-    var remainingSeconds: Int {
-        _ = timerTick
-        if let session = currentSession {
-            let remaining = Int(ceil(session.endDate.timeIntervalSinceNow))
-            return max(0, remaining)
-        }
-
-        if let pausedRemainingSeconds {
-            return pausedRemainingSeconds
-        }
-
-        return currentDuration
-    }
+    var remainingSeconds: Int { timerStatus.remainingSeconds }
 
     var progress: Double {
-        let total = Double(activeSessionDuration ?? currentDuration)
+        let total = Double(timerStatus.totalDurationSeconds)
         guard total > 0 else { return 0 }
         let value = 1 - (Double(remainingSeconds) / total)
         return min(max(value, 0), 1)
@@ -1386,53 +1384,34 @@ final class FocusViewModel: ObservableObject {
 
     /// Starts the timer if currently idle or paused.
     func start() {
-        guard state == .idle || state == .paused else { return }
-
-        let rawDuration = remainingSeconds == 0 ? currentDuration : remainingSeconds
-        let clampedDuration = max(rawDuration, Int(minimumSessionDuration))
-
-        if remainingSeconds == 0 || state == .idle {
-            hasFinishedOnce = false
+        if state == .paused {
+            resume()
+            return
         }
 
-        if activeSessionDuration == nil || state == .idle {
-            activeSessionDuration = clampedDuration
-        }
+        guard state == .idle || state == .finished else { return }
 
-        let totalDuration = activeSessionDuration ?? clampedDuration
-
-        let session = FocusSession(
+        hasFinishedOnce = false
+        let clampedDuration = max(currentDuration, Int(minimumSessionDuration))
+        activeSessionDuration = clampedDuration
+        let endDate = Date().addingTimeInterval(TimeInterval(clampedDuration))
+        currentSession = FocusSession(
             id: currentSession?.id ?? UUID(),
             type: selectedMode,
             duration: TimeInterval(clampedDuration),
-            startDate: Date()
+            startDate: endDate.addingTimeInterval(-TimeInterval(clampedDuration))
         )
 
-        pausedRemainingSeconds = nil
-        currentSession = session
-        state = .running
+        updateTimerStatus(
+            totalSeconds: clampedDuration,
+            remainingSeconds: clampedDuration,
+            endDate: endDate,
+            state: .running
+        )
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         scheduleCompletionNotification()
+        syncLiveActivity(isPaused: false)
         startUITimer()
-        let category = selectedCategoryData ?? TimerCategory(id: selectedCategory, durationSeconds: currentDuration)
-        let title = category.id.title
-        if #available(iOS 17.0, *) {
-            liveActivityOriginalDuration = totalDuration
-            liveActivityTitle = title
-            lastLiveActivityRemainingSeconds = remainingSeconds
-            FocusLiveActivityManager.start(
-                title: title,
-                totalSeconds: totalDuration
-            )
-        }
-        if #available(iOS 16.1, *) {
-            let sessionType = category.id.rawValue
-            liveActivityManager?.start(
-                endDate: session.endDate,
-                sessionType: sessionType,
-                title: title
-            )
-        }
         handleSessionCompletionIfNeeded()
     }
 
@@ -1441,30 +1420,91 @@ final class FocusViewModel: ObservableObject {
         guard state == .running else { return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         cancelCompletionNotifications()
-        pausedRemainingSeconds = remainingSeconds
-        currentSession = nil
+        let remaining = remainingSecondsForPause()
         stopUITimer()
         clearPersistedSession()
-        state = .paused
+        updateTimerStatus(
+            totalSeconds: timerStatus.totalDurationSeconds,
+            remainingSeconds: remaining,
+            endDate: nil,
+            state: .paused
+        )
+        syncLiveActivity(isPaused: true)
     }
 
     /// Resets the timer to the selected category duration.
     func reset() {
         cancelCompletionNotifications()
-        pausedRemainingSeconds = nil
-        currentSession = nil
         stopUITimer()
         hasFinishedOnce = false
         activeSessionDuration = nil
+        currentSession = nil
         clearPersistedSession()
-        if #available(iOS 17.0, *) {
-            FocusLiveActivityManager.end()
+        liveActivityManager?.end()
+        let resetDuration = durationForSelectedCategory()
+        updateTimerStatus(
+            totalSeconds: resetDuration,
+            remainingSeconds: resetDuration,
+            endDate: nil,
+            state: .idle
+        )
+    }
+
+    private func resume() {
+        guard state == .paused else { return }
+        let remaining = timerStatus.remainingSeconds
+        guard remaining > 0 else {
+            reset()
+            return
         }
-        if #available(iOS 16.1, *) {
-            liveActivityManager?.cancel()
+
+        let endDate = Date().addingTimeInterval(TimeInterval(remaining))
+        updateTimerStatus(
+            totalSeconds: timerStatus.totalDurationSeconds,
+            remainingSeconds: remaining,
+            endDate: endDate,
+            state: .running
+        )
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        scheduleCompletionNotification()
+        syncLiveActivity(isPaused: false)
+        startUITimer()
+    }
+
+    private func remainingSecondsForPause() -> Int {
+        if let endDate = timerStatus.endDate {
+            return max(0, Int(ceil(endDate.timeIntervalSinceNow)))
         }
-        clearLiveActivityState()
-        state = .idle
+        return timerStatus.remainingSeconds
+    }
+
+    private func syncLiveActivity(isPaused: Bool) {
+        guard let liveActivityManager else { return }
+
+        let title = selectedCategoryData?.id.title ?? QuestChatStrings.FocusView.navigationTitle
+        liveActivityManager.startOrUpdate(
+            title: title,
+            totalDurationSeconds: timerStatus.totalDurationSeconds,
+            remainingSeconds: timerStatus.remainingSeconds,
+            endDate: isPaused ? nil : timerStatus.endDate,
+            isPaused: isPaused
+        )
+    }
+
+    private func updateTimerStatus(
+        totalSeconds: Int? = nil,
+        remainingSeconds: Int? = nil,
+        endDate: Date?,
+        state: TimerState? = nil
+    ) {
+        var status = timerStatus
+        if let totalSeconds { status.totalDurationSeconds = totalSeconds }
+        if let remainingSeconds { status.remainingSeconds = max(0, remainingSeconds) }
+        status.endDate = endDate
+        if let state { status.state = state }
+
+        timerStatus = status
+        self.state = status.state
     }
 
     func selectCategory(_ category: TimerCategory) {
@@ -1473,10 +1513,14 @@ final class FocusViewModel: ObservableObject {
 
         selectedCategory = category.id
         selectedMode = category.id.mode
-        pausedRemainingSeconds = category.durationSeconds
         hasFinishedOnce = false
         activeSessionDuration = nil
-        state = .idle
+        updateTimerStatus(
+            totalSeconds: category.durationSeconds,
+            remainingSeconds: category.durationSeconds,
+            endDate: nil,
+            state: .idle
+        )
     }
 
     func durationForSelectedCategory() -> Int {
@@ -1493,8 +1537,13 @@ final class FocusViewModel: ObservableObject {
         saveDuration(clamped, for: categories[index].id)
 
         if state == .idle {
-            pausedRemainingSeconds = clamped
             activeSessionDuration = nil
+            updateTimerStatus(
+                totalSeconds: clamped,
+                remainingSeconds: clamped,
+                endDate: nil,
+                state: .idle
+            )
         }
     }
 
@@ -1507,49 +1556,49 @@ final class FocusViewModel: ObservableObject {
         return String(format: "%d:%02d", minutes, secondsPart)
     }
 
-    private func clearLiveActivityState() {
-        liveActivityOriginalDuration = nil
-        liveActivityTitle = nil
-        lastLiveActivityRemainingSeconds = nil
-    }
-
     private func stopUITimer() {
         timerCancellable?.cancel()
         timerCancellable = nil
     }
 
     private func startUITimer() {
-        guard state == .running else { return }
+        guard timerStatus.state == .running else { return }
         timerCancellable?.cancel()
         timerCancellable = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
-            .sink { [weak self] date in
-                guard let self else { return }
-                self.timerTick = date
-                if #available(iOS 17.0, *) {
-                    if state == .running,
-                       let totalSeconds = liveActivityOriginalDuration,
-                       let title = liveActivityTitle
-                    {
-                        let remaining = self.remainingSeconds
-                        if remaining != lastLiveActivityRemainingSeconds {
-                            lastLiveActivityRemainingSeconds = remaining
-                            FocusLiveActivityManager.update(
-                                remainingSeconds: remaining,
-                                totalSeconds: totalSeconds,
-                                title: title
-                            )
-                        }
-                    }
-                }
-                self.handleSessionCompletionIfNeeded()
+            .sink { [weak self] _ in
+                self?.handleTick()
             }
+    }
+
+    private func handleTick() {
+        guard timerStatus.state == .running, let endDate = timerStatus.endDate else { return }
+
+        let remaining = max(0, Int(ceil(endDate.timeIntervalSinceNow)))
+        if remaining != timerStatus.remainingSeconds {
+            updateTimerStatus(
+                totalSeconds: timerStatus.totalDurationSeconds,
+                remainingSeconds: remaining,
+                endDate: endDate,
+                state: .running
+            )
+            syncLiveActivity(isPaused: false)
+        }
+
+        if remaining <= 0 {
+            finishSession()
+        }
     }
 
     private func finishSession() {
         cancelCompletionNotifications()
         stopUITimer()
-        state = .finished
+        updateTimerStatus(
+            totalSeconds: timerStatus.totalDurationSeconds,
+            remainingSeconds: 0,
+            endDate: nil,
+            state: .finished
+        )
         hasFinishedOnce = true
         if let sessionType = currentSession?.type {
             selectedMode = sessionType
@@ -1557,7 +1606,7 @@ final class FocusViewModel: ObservableObject {
         statsStore.refreshDailyFocusTotal()
         let previousFocusTotal = statsStore.totalFocusSecondsToday
         let xpBefore = statsStore.progression.totalXP
-        let recordedDuration = Int(currentSession?.duration ?? TimeInterval(activeSessionDuration ?? currentDuration))
+        let recordedDuration = timerStatus.totalDurationSeconds
         _ = statsStore.recordSession(mode: selectedMode, duration: recordedDuration)
         _ = statsStore.recordCategorySession(categoryID: selectedCategory)
         let streakLevelUp = statsStore.registerActiveToday()
@@ -1576,27 +1625,24 @@ final class FocusViewModel: ObservableObject {
                 timestamp: Date()
             )
         }
-        pausedRemainingSeconds = 0
         currentSession = nil
         clearPersistedSession()
         handleHydrationThresholds(previousTotal: previousFocusTotal, newTotal: statsStore.totalFocusSecondsToday)
         sendImmediateHydrationReminder()
-        if #available(iOS 17.0, *) {
-            FocusLiveActivityManager.end()
-        }
-        if #available(iOS 16.1, *) {
-            liveActivityManager?.end()
-        }
-        clearLiveActivityState()
+        liveActivityManager?.end()
         onSessionComplete?()
     }
 
     private func resetForModeChange() {
         cancelCompletionNotifications()
         stopUITimer()
-        pausedRemainingSeconds = currentDuration
         hasFinishedOnce = false
-        state = .idle
+        updateTimerStatus(
+            totalSeconds: currentDuration,
+            remainingSeconds: currentDuration,
+            endDate: nil,
+            state: .idle
+        )
     }
 
     private func requestNotificationAuthorization() {
@@ -1616,8 +1662,8 @@ final class FocusViewModel: ObservableObject {
         content.body = QuestChatStrings.Notifications.timerCompleteBody
         content.sound = .default
 
-        guard let session = currentSession else { return }
-        let interval = session.endDate.timeIntervalSinceNow
+        guard let endDate = timerStatus.endDate else { return }
+        let interval = endDate.timeIntervalSinceNow
         guard interval > 0 else { return }
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
@@ -1644,13 +1690,11 @@ final class FocusViewModel: ObservableObject {
         }
     }
     func handleAppear() {
-        if #available(iOS 17.0, *) {
-            FocusLiveActivityManager.cleanupStaleActivities()
-        }
+        liveActivityManager?.cleanupStaleActivities()
     }
     private func handleSessionCompletionIfNeeded() {
-        guard let session = currentSession else { return }
-        if Date() >= session.endDate {
+        guard timerStatus.state == .running, let endDate = timerStatus.endDate else { return }
+        if Date() >= endDate {
             finishSession()
         }
     }
@@ -1661,10 +1705,14 @@ final class FocusViewModel: ObservableObject {
             return
         }
 
-        guard let session = currentSession else {
-            clearPersistedSession()
-            return
-        }
+        guard let endDate = timerStatus.endDate else { return }
+        let duration = timerStatus.totalDurationSeconds
+        let session = FocusSession(
+            id: currentSession?.id ?? UUID(),
+            type: selectedMode,
+            duration: TimeInterval(duration),
+            startDate: endDate.addingTimeInterval(-TimeInterval(duration))
+        )
 
         if let data = try? JSONEncoder().encode(session) {
             userDefaults.set(data, forKey: Self.persistedSessionKey)
@@ -1680,7 +1728,15 @@ final class FocusViewModel: ObservableObject {
         currentSession = session
         activeSessionDuration = Int(session.duration)
         selectedMode = session.type
-        state = .running
+        let endDate = session.endDate
+        let remaining = max(0, Int(ceil(endDate.timeIntervalSinceNow)))
+        updateTimerStatus(
+            totalSeconds: Int(session.duration),
+            remainingSeconds: remaining,
+            endDate: endDate,
+            state: .running
+        )
+        startUITimer()
     }
 
     private func clearPersistedSession() {
