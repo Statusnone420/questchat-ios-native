@@ -18,14 +18,6 @@ private func formattedTime(_ seconds: Int) -> String {
 }
 
 @available(iOS 17.0, *)
-private func timeAbbrev(_ seconds: Int) -> String {
-    let s = max(seconds, 0)
-    if s >= 3600 { return "\(s / 3600)h" }
-    if s >= 60 { return "\(s / 60)m" }
-    return "\(s)s"
-}
-
-@available(iOS 17.0, *)
 private func ringColor(forRemaining remaining: Int, total: Int) -> Color {
     let t = max(total, 1)
     let fraction = Double(max(remaining, 0)) / Double(t)
@@ -35,51 +27,66 @@ private func ringColor(forRemaining remaining: Int, total: Int) -> Color {
 }
 
 @available(iOS 17.0, *)
-private func symbolName(forTitle title: String) -> String {
-    let t = title.lowercased()
-    if t.contains("deep") || t.contains("focus") { return "brain.head.profile" }
-    if t.contains("work") || t.contains("sprint") { return "bolt.circle" }
-    if t.contains("chore") { return "house.fill" }
-    if t.contains("self") || t.contains("care") { return "figure.mind.and.body" }
-    if t.contains("game") { return "gamecontroller" }
-    if t.contains("break") || t.contains("quick") { return "cup.and.saucer.fill" }
-    return "timer"
+private func remainingSeconds(for state: FocusSessionAttributes.ContentState, at date: Date) -> Int {
+    if state.isRunning, let endTime = state.endTime {
+        return max(Int(ceil(endTime.timeIntervalSince(date))), 0)
+    }
+    return max(state.remainingSeconds, 0)
 }
 
 @available(iOS 17.0, *)
-private struct CircularTimerRing: View {
-    let progress: Double
-    let remainingSeconds: Int
-    let ringColor: Color
-    var size: CGFloat = 56
-    var lineWidth: CGFloat = 8
-    var showText: Bool = true
-    var endDate: Date? = nil
+private struct VitalHeartView: View {
+    let color: Color
+    let percent: Double
 
-    var clampedProgress: CGFloat { CGFloat(min(max(progress, 0), 1)) }
+    private var clampedPercent: Double { min(max(percent, 0), 1) }
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Image(systemName: "heart.fill")
+                .foregroundStyle(color.opacity(0.25))
+                .font(.system(size: 16, weight: .bold))
+            Image(systemName: "heart.fill")
+                .foregroundStyle(color)
+                .font(.system(size: 16, weight: .bold))
+                .mask(
+                    GeometryReader { proxy in
+                        let width = proxy.size.width * clampedPercent
+                        Rectangle()
+                            .frame(width: width)
+                    }
+                )
+                .opacity(clampedPercent > 0 ? 1 : 0)
+        }
+        .frame(width: 18, height: 18)
+        .accessibilityLabel("Vital at \(Int(clampedPercent * 100)) percent")
+    }
+}
+
+@available(iOS 17.0, *)
+private struct CategoryIconRing: View {
+    let symbol: String
+    let progress: Double
+    let isRunning: Bool
+
+    private var clampedProgress: Double { min(max(progress, 0), 1) }
 
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.primary.opacity(0.15), lineWidth: lineWidth)
+                .stroke(Color.primary.opacity(0.12), lineWidth: 4)
             Circle()
                 .trim(from: 0, to: clampedProgress)
-                .stroke(ringColor, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+                .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .animation(.linear(duration: 0.2), value: progress)
-            if showText {
-                if let endDate {
-                    Text(endDate, style: .timer)
-                        .font(.system(size: size * 0.32, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.primary)
-                } else {
-                    Text(formattedTime(remainingSeconds))
-                        .font(.system(size: size * 0.32, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.primary)
-                }
-            }
+                .opacity(isRunning ? 1 : 0.4)
+            Image(systemName: symbol)
+                .imageScale(.medium)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.primary)
+                .opacity(isRunning ? 1 : 0.7)
         }
-        .frame(width: size, height: size)
+        .frame(width: 32, height: 32)
     }
 }
 
@@ -93,19 +100,28 @@ struct FocusSessionLiveActivityView: View {
         TimelineView(.periodic(from: Date(), by: 1)) { timeline in
             let now = timeline.date
             let total = max(context.state.totalSeconds, 1)
-            let remaining = max(Int(ceil(context.state.endTime.timeIntervalSince(now))), 0)
+            let remaining = remainingSeconds(for: context.state, at: now)
             let progress = 1 - (Double(remaining) / Double(total))
+            let isRunning = context.state.isRunning && context.state.endTime != nil
+            let progressTint = ringColor(forRemaining: remaining, total: total)
 
             HStack(alignment: .center, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(timerInterval: now...context.state.endTime, countsDown: true)
-                        .font(.system(size: 34, weight: .bold, design: .monospaced))
-                        .monospacedDigit()
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                        .allowsTightening(true)
-                    Text("min left")
+                    if let endTime = context.state.endTime, isRunning {
+                        Text(timerInterval: now...endTime, countsDown: true)
+                            .font(.system(size: 34, weight: .bold, design: .monospaced))
+                            .monospacedDigit()
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                            .allowsTightening(true)
+                    } else {
+                        Text(formattedTime(remaining))
+                            .font(.system(size: 34, weight: .bold, design: .monospaced))
+                            .monospacedDigit()
+                            .foregroundStyle(.primary)
+                    }
+                    Text(isRunning ? "min left" : "Paused")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -117,21 +133,26 @@ struct FocusSessionLiveActivityView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     ProgressView(value: progress)
                         .progressViewStyle(.linear)
+                        .tint(progressTint)
                 }
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("Ends")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                    Text(context.state.endTime, style: .time)
-                        .font(.headline)
-                        .foregroundColor(.primary)
+                if let endTime = context.state.endTime {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("Ends")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Text(endTime, style: .time)
+                            .font(.headline.weight(.semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(.primary)
+                    }
+                    .frame(minWidth: 72, alignment: .trailing)
                 }
-                .frame(minWidth: 72, alignment: .trailing)
             }
-            .padding()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
     }
 }
@@ -145,109 +166,124 @@ struct FocusSessionLiveActivityWidget: Widget {
             FocusSessionLiveActivityView(context: context)
         } dynamicIsland: { context in
             DynamicIsland {
-                // Expanded Regions
+                // Expanded Regions as HealthBar HUD
                 DynamicIslandExpandedRegion(.leading) {
                     TimelineView(.periodic(from: Date(), by: 1)) { timeline in
                         let now = timeline.date
-                        let total = max(context.state.totalSeconds, 1)
-                        let remaining = max(Int(ceil(context.state.endTime.timeIntervalSince(now))), 0)
-                        let progress = 1 - (Double(remaining) / Double(total))
-                        let color = ringColor(forRemaining: remaining, total: total)
-                        let symbol = symbolName(forTitle: context.state.title)
-
-                        HStack(spacing: 6) {
-                            Image(systemName: symbol)
-                                .symbolRenderingMode(.hierarchical)
-                                .imageScale(.medium)
-                                .font(.subheadline)
-                                .foregroundStyle(color)
-                            CircularTimerRing(
-                                progress: progress,
-                                remainingSeconds: remaining,
-                                ringColor: color,
-                                size: 32,
-                                lineWidth: 4,
-                                showText: true,
-                                endDate: context.state.endTime
-                            )
-                            .padding(2)
-                        }
+                        let remaining = remainingSeconds(for: context.state, at: now)
+                        let progress = 1 - (Double(remaining) / Double(max(context.state.totalSeconds, 1)))
+                        CategoryIconRing(
+                            symbol: context.state.categorySymbolName,
+                            progress: progress,
+                            isRunning: context.state.isRunning
+                        )
                     }
                 }
 
                 DynamicIslandExpandedRegion(.center) {
-                    Text(context.state.title)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(context.state.title)
+                                .font(.subheadline.weight(.semibold))
+                                .lineLimit(1)
+                            Spacer()
+                            Text("Lv \(context.state.level)")
+                                .font(.footnote.weight(.semibold))
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            vitalRow(label: "HP", color: .green, percent: context.state.hpPercent)
+                            vitalRow(label: "Hydration", color: .blue, percent: context.state.hydrationPercent)
+                            vitalRow(label: "Mood", color: .yellow, percent: context.state.moodPercent)
+                            vitalRow(label: "Stamina", color: .red, percent: context.state.staminaPercent)
+                        }
+                    }
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text(context.state.endTime, style: .time)
-                        .font(.subheadline)
+                    VStack(alignment: .trailing, spacing: 4) {
+                        if let endTime = context.state.endTime, context.state.isRunning {
+                            Text(endTime, style: .time)
+                                .font(.subheadline)
+                        } else {
+                            Text("Paused")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        Text("Lv \(context.state.level)")
+                            .font(.footnote.weight(.semibold))
+                    }
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
                     TimelineView(.periodic(from: Date(), by: 1)) { timeline in
                         let now = timeline.date
                         let total = max(context.state.totalSeconds, 1)
-                        let remaining = max(Int(ceil(context.state.endTime.timeIntervalSince(now))), 0)
+                        let remaining = remainingSeconds(for: context.state, at: now)
                         let progress = 1 - (Double(remaining) / Double(total))
-                        let color = ringColor(forRemaining: remaining, total: total)
 
-                        ProgressView(value: progress)
-                            .progressViewStyle(.linear)
-                            .tint(color)
-                            .frame(height: 1)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .padding(.bottom, 8)
+                        VStack(alignment: .leading, spacing: 6) {
+                            ProgressView(value: progress)
+                                .progressViewStyle(.linear)
+                                .tint(.accentColor)
+                            HStack {
+                                if let endTime = context.state.endTime {
+                                    Text("Ends \(endTime, style: .time)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Text("Quest in progress — don't let future you down.")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 4)
                     }
                 }
             } compactLeading: {
                 TimelineView(.periodic(from: Date(), by: 1)) { timeline in
                     let now = timeline.date
-                    let remaining = max(Int(ceil(context.state.endTime.timeIntervalSince(now))), 0)
-                    Text(timeAbbrev(remaining))
-                        .font(.caption2.weight(.semibold))
+                    let remaining = remainingSeconds(for: context.state, at: now)
+                    let progress = 1 - (Double(remaining) / Double(max(context.state.totalSeconds, 1)))
+                    CategoryIconRing(
+                        symbol: context.state.categorySymbolName,
+                        progress: progress,
+                        isRunning: context.state.isRunning
+                    )
                 }
             } compactTrailing: {
-                TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-                    let now = timeline.date
-                    let total = max(context.state.totalSeconds, 1)
-                    let remaining = max(Int(ceil(context.state.endTime.timeIntervalSince(now))), 0)
-                    let progress = 1 - (Double(remaining) / Double(total))
-                    let color = ringColor(forRemaining: remaining, total: total)
-
-                    CircularTimerRing(
-                        progress: progress,
-                        remainingSeconds: remaining,
-                        ringColor: color,
-                        size: 14,
-                        lineWidth: 2.5,
-                        showText: false
-                    )
-                    .padding(2)
+                HStack(spacing: 4) {
+                    VitalHeartView(color: .green, percent: context.state.hpPercent)
+                    VitalHeartView(color: .blue, percent: context.state.hydrationPercent)
+                    VitalHeartView(color: .yellow, percent: context.state.moodPercent)
+                    VitalHeartView(color: .red, percent: context.state.staminaPercent)
                 }
             } minimal: {
                 TimelineView(.periodic(from: Date(), by: 1)) { timeline in
                     let now = timeline.date
-                    let total = max(context.state.totalSeconds, 1)
-                    let remaining = max(Int(ceil(context.state.endTime.timeIntervalSince(now))), 0)
-                    let progress = 1 - (Double(remaining) / Double(total))
-                    let color = ringColor(forRemaining: remaining, total: total)
-
-                    CircularTimerRing(
+                    let remaining = remainingSeconds(for: context.state, at: now)
+                    let progress = 1 - (Double(remaining) / Double(max(context.state.totalSeconds, 1)))
+                    CategoryIconRing(
+                        symbol: context.state.categorySymbolName,
                         progress: progress,
-                        remainingSeconds: remaining,
-                        ringColor: color,
-                        size: 16,
-                        lineWidth: 2.5,
-                        showText: false
+                        isRunning: context.state.isRunning
                     )
-                    .padding(2)
                 }
             }
+        }
+    }
+
+    @available(iOS 17.0, *)
+    private func vitalRow(label: String, color: Color, percent: Double) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .frame(width: 64, alignment: .leading)
+            ProgressView(value: min(max(percent, 0), 1))
+                .progressViewStyle(.linear)
+                .tint(color)
         }
     }
 }
@@ -261,8 +297,15 @@ struct FocusSessionLiveActivityWidget: Widget {
         remainingSeconds: 1500,
         totalSeconds: 1800,
         title: "Deep Work",
-        endTime: Date().addingTimeInterval(1500)
+        endTime: Date().addingTimeInterval(1500),
+        isRunning: true,
+        level: 10,
+        overallProgress: 0.25,
+        hpPercent: 0.8,
+        hydrationPercent: 0.6,
+        moodPercent: 0.7,
+        staminaPercent: 0.4,
+        categorySymbolName: "brain.head.profile"
     )
 }
 #endif
-
