@@ -1069,7 +1069,6 @@ final class FocusViewModel: ObservableObject {
 
     private var liveActivityOriginalDuration: Int?
     private var liveActivityTitle: String?
-    private var lastLiveActivityRemainingSeconds: Int?
 
     private static let persistedSessionKey = "focus_current_session_v1"
     private var hasInitialized = false
@@ -1419,7 +1418,6 @@ final class FocusViewModel: ObservableObject {
         if #available(iOS 17.0, *) {
             liveActivityOriginalDuration = totalDuration
             liveActivityTitle = title
-            lastLiveActivityRemainingSeconds = remainingSeconds
             FocusLiveActivityManager.start(
                 title: title,
                 totalSeconds: totalDuration
@@ -1510,7 +1508,6 @@ final class FocusViewModel: ObservableObject {
     private func clearLiveActivityState() {
         liveActivityOriginalDuration = nil
         liveActivityTitle = nil
-        lastLiveActivityRemainingSeconds = nil
     }
 
     private func stopUITimer() {
@@ -1526,22 +1523,6 @@ final class FocusViewModel: ObservableObject {
             .sink { [weak self] date in
                 guard let self else { return }
                 self.timerTick = date
-                if #available(iOS 17.0, *) {
-                    if state == .running,
-                       let totalSeconds = liveActivityOriginalDuration,
-                       let title = liveActivityTitle
-                    {
-                        let remaining = self.remainingSeconds
-                        if remaining != lastLiveActivityRemainingSeconds {
-                            lastLiveActivityRemainingSeconds = remaining
-                            FocusLiveActivityManager.update(
-                                remainingSeconds: remaining,
-                                totalSeconds: totalSeconds,
-                                title: title
-                            )
-                        }
-                    }
-                }
                 self.handleSessionCompletionIfNeeded()
             }
     }
