@@ -66,32 +66,25 @@ final class FocusTimerLiveActivityManager {
     func end() {
         Task {
             print("🧹 Ending Live Activity")
-            await end(activity)
-            await MainActor.run { self.activity = nil }
+            await activity?.end(dismissalPolicy: .immediate)
+            activity = nil
         }
     }
 
     func cancel() {
         Task {
             print("🛑 Cancelling Live Activity")
-            await end(activity)
-            await MainActor.run { self.activity = nil }
+            await activity?.end(dismissalPolicy: .immediate)
+            activity = nil
         }
     }
 
     private func endAllActivities() async {
         for activity in Activity<FocusTimerAttributes>.activities {
-            await end(activity)
+            await activity.end(dismissalPolicy: .immediate)
         }
         await MainActor.run {
             self.activity = nil
         }
-    }
-
-    private func end(_ activity: Activity<FocusTimerAttributes>?) async {
-        guard let activity else { return }
-        let state = activity.content.state
-        let finalContent = ActivityContent(state: state, staleDate: nil)
-        await activity.end(finalContent, dismissalPolicy: .immediate)
     }
 }
