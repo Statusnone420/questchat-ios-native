@@ -1,8 +1,14 @@
 import Foundation
 
 enum HealthTrackingStorageKeys {
-    static let sleepQualityValue = "sleepQualityValue"
-    static let sleepQualityDate = "sleepQualityDate"
+    static let gutRatingValue = "gutRatingValue"
+    static let gutRatingDate = "gutRatingDate"
+
+    static let moodRatingValue = "moodRatingValue"
+    static let moodRatingDate = "moodRatingDate"
+
+    static let sleepRatingValue = "sleepRatingValue"
+    static let sleepRatingDate = "sleepRatingDate"
     static let sleepQualityLogged = "sleepQualityLogged"
 
     static let waterGoalAwardDate = "waterGoalAwardDate"

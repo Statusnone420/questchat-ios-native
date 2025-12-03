@@ -71,42 +71,14 @@ struct PlayerCardView: View {
         )
     }
 
-    private var sleepQualityBinding: Binding<Double> {
-        Binding<Double>(
-            get: { Double(focusViewModel.sleepQuality.rawValue) },
-            set: { newValue in
-                if let quality = SleepQuality(rawValue: Int(newValue)) {
-                    focusViewModel.sleepQuality = quality
-                }
-            }
-        )
-    }
-
     private var statusSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Status")
                 .font(.headline)
 
-            GutStatusPicker(selected: healthBarViewModel.inputs.gutStatus) { status in
-                healthBarViewModel.setGutStatus(status)
-            }
-
-            MoodStatusPicker(selected: healthBarViewModel.inputs.moodStatus) { status in
-                healthBarViewModel.setMoodStatus(status)
-            }
-
-            HStack(spacing: 12) {
-                Label("Sleep", systemImage: "bed.double.fill")
-                    .font(.caption)
-                    .foregroundStyle(.indigo)
-                    .frame(width: 70, alignment: .leading)
-
-                Slider(value: sleepQualityBinding, in: 0...2, step: 1)
-
-                Text(focusViewModel.sleepQuality.label)
-                    .font(.subheadline.weight(.semibold))
-                    .frame(minWidth: 70, alignment: .trailing)
-            }
+            WellbeingSliderRow(label: "Gut", rating: $focusViewModel.gutRating)
+            WellbeingSliderRow(label: "Mood", rating: $focusViewModel.moodRating)
+            WellbeingSliderRow(label: "Sleep", rating: $focusViewModel.sleepRating)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
