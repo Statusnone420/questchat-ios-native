@@ -8,12 +8,13 @@ enum FocusLiveActivityManager {
     static func start(title: String, totalSeconds: Int) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
-        let attributes = FocusSessionAttributes(sessionId: UUID())
+        let attributes = FocusSessionAttributes(sessionId: UUID(), totalSeconds: totalSeconds)
         let contentState = FocusSessionAttributes.ContentState(
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(TimeInterval(totalSeconds)),
+            isPaused: false,
             remainingSeconds: totalSeconds,
-            totalSeconds: totalSeconds,
-            title: title,
-            endTime: Date().addingTimeInterval(TimeInterval(totalSeconds))
+            title: title
         )
 
         do {
@@ -32,10 +33,11 @@ enum FocusLiveActivityManager {
         guard let activity else { return }
 
         let contentState = FocusSessionAttributes.ContentState(
+            startDate: Date(),
+            endDate: Date().addingTimeInterval(TimeInterval(remainingSeconds)),
+            isPaused: false,
             remainingSeconds: remainingSeconds,
-            totalSeconds: totalSeconds,
-            title: title,
-            endTime: Date().addingTimeInterval(TimeInterval(remainingSeconds))
+            title: title
         )
 
         Task {
