@@ -1067,6 +1067,10 @@ final class FocusViewModel: ObservableObject {
         FocusTimerLiveActivityManager.shared
     }
 
+    private var liveActivityOriginalDuration: Int?
+    private var liveActivityTitle: String?
+    private var lastLiveActivityRemainingSeconds: Int?
+
     private static let persistedSessionKey = "focus_current_session_v1"
     private var hasInitialized = false
     private let minimumSessionDuration: TimeInterval = 60
@@ -1383,7 +1387,6 @@ final class FocusViewModel: ObservableObject {
     /// Starts the timer if currently idle or paused.
     func start() {
         guard state == .idle || state == .paused else { return }
-        let wasPaused = state == .paused
 
         let rawDuration = remainingSeconds == 0 ? currentDuration : remainingSeconds
         let clampedDuration = max(rawDuration, Int(minimumSessionDuration))
@@ -1414,19 +1417,18 @@ final class FocusViewModel: ObservableObject {
         let category = selectedCategoryData ?? TimerCategory(id: selectedCategory, durationSeconds: currentDuration)
         let title = category.id.title
         if #available(iOS 17.0, *) {
-            let snapshot = liveActivitySnapshot(isRunningOverride: true)
-            if wasPaused { // This was a resume
-                FocusLiveActivityManager.resume(with: snapshot)
-            } else {
-                FocusLiveActivityManager.startNewSession(with: snapshot)
-            }
+            liveActivityOriginalDuration = totalDuration
+            liveActivityTitle = title
+            lastLiveActivityRemainingSeconds = remainingSeconds
+            FocusLiveActivityManager.start(
+                title: title,
+                totalSeconds: totalDuration
+            )
         }
         if #available(iOS 16.1, *) {
             let sessionType = category.id.rawValue
             liveActivityManager?.start(
-                remainingSeconds: remainingSeconds,
-                isRunning: true,
-                isNewSession: !wasPaused,
+                endDate: session.endDate,
                 sessionType: sessionType,
                 title: title
             )
@@ -1444,19 +1446,6 @@ final class FocusViewModel: ObservableObject {
         stopUITimer()
         clearPersistedSession()
         state = .paused
-        if #available(iOS 17.0, *) {
-            FocusLiveActivityManager.pause(with: liveActivitySnapshot(usingRemaining: pausedRemainingSeconds ?? remainingSeconds, isRunningOverride: false))
-        }
-        if #available(iOS 16.1, *) {
-            let sessionType = selectedCategory.rawValue
-            liveActivityManager?.start(
-                remainingSeconds: pausedRemainingSeconds ?? remainingSeconds,
-                isRunning: false,
-                isNewSession: false,
-                sessionType: sessionType,
-                title: selectedCategoryData?.id.title ?? "Focus"
-            )
-        }
     }
 
     /// Resets the timer to the selected category duration.
@@ -1519,36 +1508,9 @@ final class FocusViewModel: ObservableObject {
     }
 
     private func clearLiveActivityState() {
-    }
-
-    @available(iOS 17.0, *)
-    private func liveActivitySnapshot(usingRemaining: Int? = nil, isRunningOverride: Bool? = nil) -> FocusLiveActivityManager.Snapshot {
-        let totalSeconds = max(activeSessionDuration ?? currentDuration, 1)
-        let remaining = max(usingRemaining ?? remainingSeconds, 0)
-        let isRunning = isRunningOverride ?? (state == .running)
-        let progressValue = 1 - (Double(remaining) / Double(totalSeconds))
-
-        // Hearts map to the same HealthBar IRL percentages used in-app. Keep clamped to avoid weird rendering states.
-        let hp = clampProgress(hpProgress)
-        let hydration = clampProgress(hydrationProgress)
-        let mood = clampProgress(moodProgress)
-        let stamina = clampProgress(staminaProgress)
-
-        let symbolName = selectedCategoryData?.id.systemImageName ?? "timer"
-
-        return FocusLiveActivityManager.Snapshot(
-            title: selectedCategoryData?.id.title ?? "Focus",
-            totalSeconds: totalSeconds,
-            remainingSeconds: remaining,
-            isRunning: isRunning,
-            level: currentLevel,
-            overallProgress: clampProgress(progressValue),
-            hpPercent: hp,
-            hydrationPercent: hydration,
-            moodPercent: mood,
-            staminaPercent: stamina,
-            categorySymbolName: symbolName
-        )
+        liveActivityOriginalDuration = nil
+        liveActivityTitle = nil
+        lastLiveActivityRemainingSeconds = nil
     }
 
     private func stopUITimer() {
@@ -1564,6 +1526,22 @@ final class FocusViewModel: ObservableObject {
             .sink { [weak self] date in
                 guard let self else { return }
                 self.timerTick = date
+                if #available(iOS 17.0, *) {
+                    if state == .running,
+                       let totalSeconds = liveActivityOriginalDuration,
+                       let title = liveActivityTitle
+                    {
+                        let remaining = self.remainingSeconds
+                        if remaining != lastLiveActivityRemainingSeconds {
+                            lastLiveActivityRemainingSeconds = remaining
+                            FocusLiveActivityManager.update(
+                                remainingSeconds: remaining,
+                                totalSeconds: totalSeconds,
+                                title: title
+                            )
+                        }
+                    }
+                }
                 self.handleSessionCompletionIfNeeded()
             }
     }
@@ -1604,8 +1582,6 @@ final class FocusViewModel: ObservableObject {
         handleHydrationThresholds(previousTotal: previousFocusTotal, newTotal: statsStore.totalFocusSecondsToday)
         sendImmediateHydrationReminder()
         if #available(iOS 17.0, *) {
-            let snapshot = liveActivitySnapshot(usingRemaining: 0, isRunningOverride: false)
-            FocusLiveActivityManager.refresh(with: snapshot)
             FocusLiveActivityManager.end()
         }
         if #available(iOS 16.1, *) {

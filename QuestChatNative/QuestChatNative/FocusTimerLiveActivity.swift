@@ -5,9 +5,8 @@ import ActivityKit
 struct FocusTimerAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
         var title: String
-        var endDate: Date?
+        var endDate: Date
         var isPaused: Bool
-        var remainingSeconds: Int
     }
 
     // Static identity info for the activity
@@ -23,21 +22,12 @@ final class FocusTimerLiveActivityManager {
 
     private init() {}
 
-    /// Start or update a Live Activity for the timer.
-    /// If the activity already exists, this refreshes the content instead of creating a duplicate.
+    /// Start a Live Activity for the timer.
     /// - Parameters:
-    ///   - remainingSeconds: seconds left in the session
-    ///   - isRunning: whether the timer is actively counting down
-    ///   - isNewSession: set to true only when moving from idle -> running
+    ///   - endDate: when the timer finishes
     ///   - sessionType: an identifier like "deepFocus", "workSprint", etc.
     ///   - title: user-facing title like "Deep focus"
-    func start(
-        remainingSeconds: Int,
-        isRunning: Bool,
-        isNewSession: Bool,
-        sessionType: String,
-        title: String
-    ) {
+    func start(endDate: Date, sessionType: String, title: String) {
         let authInfo = ActivityAuthorizationInfo()
         print("🔍 LiveActivity auth – enabled:", authInfo.areActivitiesEnabled)
 
@@ -46,33 +36,23 @@ final class FocusTimerLiveActivityManager {
             return
         }
 
+        let attributes = FocusTimerAttributes(sessionType: sessionType)
         let contentState = FocusTimerAttributes.ContentState(
             title: title,
-            endDate: isRunning ? Date().addingTimeInterval(TimeInterval(remainingSeconds)) : nil,
-            isPaused: !isRunning,
-            remainingSeconds: max(remainingSeconds, 0)
+            endDate: endDate,
+            isPaused: false
         )
 
-        if isNewSession {
-            Task { await activity?.end(dismissalPolicy: .immediate) }
-            let attributes = FocusTimerAttributes(sessionType: sessionType)
-            do {
-                print("🚀 Requesting Live Activity – title:", title)
-                activity = try Activity.request(
-                    attributes: attributes,
-                    contentState: contentState,
-                    pushType: nil
-                )
-                print("✅ Live Activity started:", String(describing: activity))
-            } catch {
-                print("❌ Failed to start Live Activity:", error)
-            }
-        } else {
-            guard let activity else { return }
-            Task {
-                print("🔄 Updating Live Activity – running: \(!contentState.isPaused), remaining: \(contentState.remainingSeconds)")
-                await activity.update(using: contentState)
-            }
+        do {
+            print("🚀 Requesting Live Activity – title:", title, "end:", endDate)
+            activity = try Activity.request(
+                attributes: attributes,
+                contentState: contentState,
+                pushType: nil
+            )
+            print("✅ Live Activity started:", String(describing: activity))
+        } catch {
+            print("❌ Failed to start Live Activity:", error)
         }
     }
 

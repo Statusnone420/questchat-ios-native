@@ -7,15 +7,7 @@ struct FocusSessionAttributes: ActivityAttributes {
         var remainingSeconds: Int
         var totalSeconds: Int
         var title: String
-        var endTime: Date?
-        var isRunning: Bool
-        var level: Int
-        var overallProgress: Double
-        var hpPercent: Double
-        var hydrationPercent: Double
-        var moodPercent: Double
-        var staminaPercent: Double
-        var categorySymbolName: String
+        var endTime: Date
     }
 
     var sessionId: UUID
