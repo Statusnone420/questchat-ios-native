@@ -51,4 +51,15 @@ enum FocusLiveActivityManager {
             activity = nil
         }
     }
+
+    // 🔧 New helper – called on app/tab appear to clean up zombies
+    static func cleanupStaleActivities() {
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+
+        Task {
+            for existing in Activity<FocusSessionAttributes>.activities {
+                await existing.end(dismissalPolicy: .immediate)
+            }
+        }
+    }
 }

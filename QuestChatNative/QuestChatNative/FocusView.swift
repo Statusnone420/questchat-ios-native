@@ -80,13 +80,13 @@ struct FocusView: View {
                         potionsCard
                         compactStatusHeader
                         todayQuestBanner
-
+                        
                         if let selectedCategory = viewModel.selectedCategoryData {
                             heroCard(for: selectedCategory)
                         }
-
+                        
                         quickTimersList
-
+                        
                         reminderCard
                     }
                     .padding(.vertical, 24)
@@ -98,7 +98,7 @@ struct FocusView: View {
                 .toolbarBackground(Color.black, for: .navigationBar)
                 .toolbarColorScheme(.dark, for: .navigationBar)
             }
-
+            
             if let session = viewModel.lastCompletedSession {
                 sessionCompleteOverlay(summary: session)
                     .transition(
@@ -109,7 +109,7 @@ struct FocusView: View {
                     )
                     .zIndex(2)
             }
-
+            
             if let levelUp = statsStore.pendingLevelUp {
                 LevelUpModalView(level: levelUp) {
                     withAnimation(.easeInOut(duration: 0.25)) {
@@ -118,6 +118,9 @@ struct FocusView: View {
                 }
                 .zIndex(3)
             }
+        }
+        .onAppear {
+            viewModel.handleAppear()
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
         .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)

@@ -1643,7 +1643,11 @@ final class FocusViewModel: ObservableObject {
             break
         }
     }
-
+    func handleAppear() {
+        if #available(iOS 17.0, *) {
+            FocusLiveActivityManager.cleanupStaleActivities()
+        }
+    }
     private func handleSessionCompletionIfNeeded() {
         guard let session = currentSession else { return }
         if Date() >= session.endDate {
