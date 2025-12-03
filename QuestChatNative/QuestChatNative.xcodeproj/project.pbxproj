@@ -44,6 +44,7 @@
 		D8A2001E2EDE07B400A6A001 /* QuestChatNativeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01E2EDE07B400A6A01E /* QuestChatNativeApp.swift */; };
 		D8A2001F2EDE07B400A6A001 /* SettingsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01F2EDE07B400A6A01F /* SettingsViewModel.swift */; };
 		D8A200202EDE07B400A6A001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D8A1A0202EDE07B400A6A020 /* Assets.xcassets */; };
+		D8E9D6532EE1017A00EF0582 /* PlayerStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E9D6522EE1017A00EF0582 /* PlayerStateStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -109,6 +110,7 @@
 		D8A1A01E2EDE07B400A6A01E /* QuestChatNativeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestChatNativeApp.swift; sourceTree = "<group>"; };
 		D8A1A01F2EDE07B400A6A01F /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		D8A1A0202EDE07B400A6A020 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D8E9D6522EE1017A00EF0582 /* PlayerStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerStateStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -191,6 +193,7 @@
 		D881CF952EDD1BC200A8A09F /* QuestChatNative */ = {
 			isa = PBXGroup;
 			children = (
+				D8E9D6522EE1017A00EF0582 /* PlayerStateStore.swift */,
 				D87C18BB2EDFB72100438C3A /* FocusLiveActivityManager.swift */,
 				D8A1A0172EDE07B400A6A017 /* AboutHealthBarView.swift */,
 				D8A1A0092EDE07B400A6A009 /* AppCoordinator.swift */,
@@ -361,6 +364,7 @@
 				D8A200112EDE07B400A6A001 /* QuestChatStrings.swift in Sources */,
 				D8A200102EDE07B400A6A001 /* HealthTrackingStorageKeys.swift in Sources */,
 				D8A2000F2EDE07B400A6A001 /* StatsViewModel.swift in Sources */,
+				D8E9D6532EE1017A00EF0582 /* PlayerStateStore.swift in Sources */,
 				D8A2000E2EDE07B400A6A001 /* LevelUpModalView.swift in Sources */,
 				D8A2000D2EDE07B400A6A001 /* GameDataResetter.swift in Sources */,
 				D8A2000C2EDE07B400A6A001 /* HealthBarStorage.swift in Sources */,
