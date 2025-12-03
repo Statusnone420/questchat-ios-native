@@ -9,46 +9,50 @@ struct PlayerCardView: View {
     @AppStorage("playerDisplayName") private var playerDisplayName: String = QuestChatStrings.PlayerCard.defaultName
 
     var body: some View {
-        VStack(spacing: 20) {
-            VStack(spacing: 4) {
-                TextField(QuestChatStrings.PlayerCard.namePlaceholder, text: $playerDisplayName)
-                    .font(.title.bold())
-                    .multilineTextAlignment(.center)
-                    .textFieldStyle(.plain)
-                Text(store.playerTitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
-            .cornerRadius(14)
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 20) {
+                VStack(spacing: 4) {
+                    TextField(QuestChatStrings.PlayerCard.namePlaceholder, text: $playerDisplayName)
+                        .font(.title.bold())
+                        .multilineTextAlignment(.center)
+                        .textFieldStyle(.plain)
+                    Text(store.playerTitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
+                .cornerRadius(14)
 
-            playerHUDSection
+                playerHUDSection
 
-            VStack(alignment: .leading, spacing: 12) {
-                statRow(label: QuestChatStrings.PlayerCard.levelLabel, value: "\(store.level)", tint: .mint)
-                statRow(label: QuestChatStrings.PlayerCard.totalXPLabel, value: "\(store.xp)", tint: .cyan)
-                statRow(label: QuestChatStrings.PlayerCard.streakLabel, value: "\(store.currentStreakDays) days", tint: .orange)
-            }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
-            .cornerRadius(16)
+                VStack(alignment: .leading, spacing: 12) {
+                    statRow(label: QuestChatStrings.PlayerCard.levelLabel, value: "\(store.level)", tint: .mint)
+                    statRow(label: QuestChatStrings.PlayerCard.totalXPLabel, value: "\(store.xp)", tint: .cyan)
+                    statRow(label: QuestChatStrings.PlayerCard.streakLabel, value: "\(store.currentStreakDays) days", tint: .orange)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
+                .cornerRadius(16)
 
-            HStack {
-                Text(store.statusLine)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                HStack {
+                    Text(store.statusLine)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+
+                statusSection
+
                 Spacer()
             }
-
-            statusSection
-
-            Spacer()
+            .padding()
         }
-        .padding()
         .background(Color.black.ignoresSafeArea())
+        .scrollDismissesKeyboard(.interactively)
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     private func statRow(label: String, value: String, tint: Color) -> some View {
