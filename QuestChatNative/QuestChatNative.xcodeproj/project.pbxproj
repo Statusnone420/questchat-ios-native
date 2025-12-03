@@ -191,13 +191,13 @@
 		D881CF952EDD1BC200A8A09F /* QuestChatNative */ = {
 			isa = PBXGroup;
 			children = (
-				D87C18BB2EDFB72100438C3A /* FocusLiveActivityManager.swift */,
 				D8A1A0172EDE07B400A6A017 /* AboutHealthBarView.swift */,
 				D8A1A0092EDE07B400A6A009 /* AppCoordinator.swift */,
 				D8A1A0202EDE07B400A6A020 /* Assets.xcassets */,
 				D8A1A0152EDE07B400A6A015 /* ContentView.swift */,
 				D8A1A0062EDE07B400A6A006 /* DependencyContainer.swift */,
 				D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */,
+				D87C18BB2EDFB72100438C3A /* FocusLiveActivityManager.swift */,
 				D8A1A0122EDE07B400A6A012 /* FocusTimerLiveActivity.swift */,
 				D8A1A0032EDE07B400A6A003 /* FocusView.swift */,
 				D8A1A01C2EDE07B400A6A01C /* FocusViewModel.swift */,
