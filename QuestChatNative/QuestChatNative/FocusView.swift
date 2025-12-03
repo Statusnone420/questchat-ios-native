@@ -619,19 +619,21 @@ struct FocusView: View {
             ZStack {
                 Circle()
                     .stroke(Color.gray.opacity(0.35), lineWidth: 18)
+
                 Circle()
                     .trim(from: 0, to: viewModel.progress)
-                    .stroke(AngularGradient(colors: ringColors, center: .center), style: StrokeStyle(lineWidth: 18, lineCap: .round))
+                    .stroke(
+                        AngularGradient(colors: ringColors, center: .center),
+                        style: StrokeStyle(lineWidth: 18, lineCap: .round)
+                    )
                     .rotationEffect(.degrees(-90))
                     .scaleEffect(1 + (0.06 * warningFraction))
+                    // smooth progress animation
                     .animation(
                         .easeInOut(duration: 0.2),
                         value: viewModel.progress
                     )
-                    .animation(
-                        .easeInOut(duration: 0.6).repeatForever(autoreverses: true),
-                        value: warningFraction > 0
-                    )
+                    // smooth “warning bump” without looping forever
                     .animation(
                         .easeInOut(duration: 0.3),
                         value: warningFraction
@@ -639,10 +641,20 @@ struct FocusView: View {
                     .overlay {
                         Circle()
                             .stroke(Color.white.opacity(0.22), lineWidth: 6)
-                            .scaleEffect(viewModel.remainingSeconds <= 10 && viewModel.remainingSeconds > 0 ? 1.05 : 1)
-                            .opacity(viewModel.remainingSeconds <= 10 && viewModel.remainingSeconds > 0 ? 0.9 : 0)
+                            .scaleEffect(
+                                viewModel.remainingSeconds <= 10 && viewModel.remainingSeconds > 0
+                                ? 1.05
+                                : 1
+                            )
+                            .opacity(
+                                viewModel.remainingSeconds <= 10 && viewModel.remainingSeconds > 0
+                                ? 0.9
+                                : 0
+                            )
+                            // fade/scale in when entering/leaving last 10s,
+                            // but no repeatForever
                             .animation(
-                                .easeInOut(duration: 0.75).repeatForever(autoreverses: true),
+                                .easeInOut(duration: 0.3),
                                 value: viewModel.remainingSeconds <= 10 && viewModel.remainingSeconds > 0
                             )
                     }
