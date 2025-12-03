@@ -972,6 +972,7 @@ extension SessionStatsStore.LevelUpResult: Identifiable {
 }
 
 /// Manages the state for the Focus timer screen.
+@available(iOS 16.2, *)
 final class FocusViewModel: ObservableObject {
     struct SessionSummary {
         let mode: FocusTimerMode
@@ -1063,16 +1064,16 @@ final class FocusViewModel: ObservableObject {
     private let notificationCenter = UNUserNotificationCenter.current()
     private let userDefaults = UserDefaults.standard
 
-    @available(iOS 16.1, *)
+    @available(iOS 16.2, *)
     private var liveActivityManager: FocusTimerLiveActivityManager? {
         FocusTimerLiveActivityManager.shared
     }
 
+    @available(iOS 16.2, *)
+    @Published private var currentLegacyFocusActivity: Activity<FocusTimerAttributes>?
+
     @available(iOS 17.0, *)
     @Published private var currentFocusActivity: Activity<FocusSessionAttributes>?
-
-    @available(iOS 16.1, *)
-    @Published private var currentLegacyFocusActivity: Activity<FocusTimerAttributes>?
 
     private static let persistedSessionKey = "focus_current_session_v1"
     private var hasInitialized = false
@@ -1431,7 +1432,7 @@ final class FocusViewModel: ObservableObject {
                 }
             }
         }
-        if #available(iOS 16.1, *) {
+        if #available(iOS 16.2, *) {
             let sessionType = category.id.rawValue
             Task {
                 await endAllLegacyFocusActivities()
@@ -1475,7 +1476,7 @@ final class FocusViewModel: ObservableObject {
                 await endCurrentFocusActivity()
             }
         }
-        if #available(iOS 16.1, *) {
+        if #available(iOS 16.2, *) {
             Task {
                 await endCurrentLegacyActivity()
             }
@@ -1528,7 +1529,7 @@ final class FocusViewModel: ObservableObject {
         if #available(iOS 17.0, *) {
             currentFocusActivity = nil
         }
-        if #available(iOS 16.1, *) {
+        if #available(iOS 16.2, *) {
             currentLegacyFocusActivity = nil
         }
     }
@@ -1590,7 +1591,7 @@ final class FocusViewModel: ObservableObject {
                 await endCurrentFocusActivity(remainingSeconds: 0)
             }
         }
-        if #available(iOS 16.1, *) {
+        if #available(iOS 16.2, *) {
             Task {
                 await endCurrentLegacyActivity()
             }
@@ -1609,7 +1610,7 @@ final class FocusViewModel: ObservableObject {
         }
     }
 
-    @available(iOS 16.1, *)
+    @available(iOS 16.2, *)
     private func endAllLegacyFocusActivities() async {
         for activity in Activity<FocusTimerAttributes>.activities {
             await activity.end(dismissalPolicy: .immediate)
@@ -1640,7 +1641,7 @@ final class FocusViewModel: ObservableObject {
         }
     }
 
-    @available(iOS 16.1, *)
+    @available(iOS 16.2, *)
     private func endCurrentLegacyActivity() async {
         guard let activity = currentLegacyFocusActivity else { return }
         let state = activity.content.state
@@ -1933,4 +1934,5 @@ private extension FocusViewModel.HydrationNudgeLevel {
         }
     }
 }
+
 

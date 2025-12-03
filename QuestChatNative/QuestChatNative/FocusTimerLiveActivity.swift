@@ -14,7 +14,7 @@ struct FocusTimerAttributes: ActivityAttributes {
     var sessionType: String
 }
 
-@available(iOS 16.1, *)
+@available(iOS 16.2, *)
 final class FocusTimerLiveActivityManager {
 
     static let shared = FocusTimerLiveActivityManager()
