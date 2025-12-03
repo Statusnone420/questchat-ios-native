@@ -49,6 +49,7 @@ struct PlayerCardView: View {
         }
         .padding()
         .background(Color.black.ignoresSafeArea())
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     private func statRow(label: String, value: String, tint: Color) -> some View {
