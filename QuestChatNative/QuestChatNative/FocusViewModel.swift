@@ -1548,17 +1548,22 @@ final class FocusViewModel: ObservableObject {
         state = .idle
         remainingSeconds = 0
         print("[FocusTimer] Reset timer")
+
         if #available(iOS 17.0, *) {
             Task {
-                if let liveActivity {
-                    print("[FocusLiveActivity] Ending activity after reset")
-                    await liveActivity.end(nil, dismissalPolicy: .immediate)
+                // End ALL FocusSession live activities, just in case
+                for activity in Activity<FocusSessionAttributes>.activities {
+                    print("[FocusLiveActivity] Ending activity \(activity.id) on reset")
+                    await activity.end(nil, dismissalPolicy: .immediate)
                 }
-                self.liveActivity = nil
+                await MainActor.run {
+                    self.liveActivity = nil
+                }
             }
         } else if #available(iOS 16.1, *) {
-            liveActivityManager?.cancel()
+            liveActivityManager?.end()
         }
+
         clearLiveActivityState()
     }
 
@@ -1642,41 +1647,60 @@ final class FocusViewModel: ObservableObject {
     @available(iOS 17.0, *)
     func restoreLiveActivityIfNeeded() {
         Task {
+            // Grab the first active FocusSession Live Activity, if any
             guard let activity = Activity<FocusSessionAttributes>.activities.first else { return }
 
-            let state = activity.contentState
+            // Use `content` instead of deprecated `contentState`
+            let content = activity.content
+            let contentState = content.state
             let totalDuration = activity.attributes.totalSeconds
             let now = Date()
-            let isPaused = state.isPaused
-            let remaining: Int
+            let isPaused = contentState.isPaused
+            var remaining: Int
 
             if isPaused {
-                remaining = state.remainingSeconds
+                // Paused session: just restore remaining seconds and paused state
+                remaining = contentState.remainingSeconds
                 timerState = .paused
                 self.state = .paused
                 currentSession = nil
             } else {
-                remaining = max(Int(ceil(state.endDate.timeIntervalSince(now))), 0)
+                // Running session: compute remaining based on endDate
+                remaining = max(Int(ceil(contentState.endDate.timeIntervalSince(now))), 0)
+
                 if remaining > 0 {
+                    // Still in progress → recreate the session and resume UI timer
                     let session = FocusSession(
                         id: UUID(),
                         type: selectedMode,
                         duration: TimeInterval(totalDuration),
-                        startDate: state.startDate
+                        startDate: contentState.startDate
                     )
                     currentSession = session
                     timerState = .running
                     self.state = .running
                     startUITimer()
                 } else {
+                    // ⛔️ Timer already finished while the app was gone.
+                    // End the Live Activity so it doesn't stick around.
                     timerState = .idle
                     self.state = .idle
+                    remaining = 0
+
+                    await activity.end(nil, dismissalPolicy: .immediate)
+                    await MainActor.run {
+                        self.liveActivity = nil
+                    }
+                    print("[FocusLiveActivity] Ended stale activity \(activity.id)")
+                    return
                 }
             }
 
+            // Keep internal state in sync with whatever we restored
             activeSessionDuration = totalDuration
             pausedRemainingSeconds = isPaused ? remaining : pausedRemainingSeconds
             remainingSeconds = remaining
+
             await MainActor.run {
                 self.liveActivity = activity
             }
@@ -1750,9 +1774,9 @@ final class FocusViewModel: ObservableObject {
         sendImmediateHydrationReminder()
         if #available(iOS 17.0, *) {
             Task {
-                if let liveActivity {
-                    print("[FocusLiveActivity] Ending activity after finish")
-                    await liveActivity.end(nil, dismissalPolicy: .immediate)
+                for activity in Activity<FocusSessionAttributes>.activities {
+                    print("[FocusLiveActivity] Ending activity \(activity.id) after finish")
+                    await activity.end(nil, dismissalPolicy: .immediate)
                 }
                 await MainActor.run {
                     self.liveActivity = nil
