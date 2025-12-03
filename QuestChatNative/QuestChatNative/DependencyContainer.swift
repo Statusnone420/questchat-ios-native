@@ -9,7 +9,6 @@ final class DependencyContainer {
     private let statsStore = SessionStatsStore()
     private let healthBarStatsStore = HealthBarIRLStatsStore()
     private let hydrationSettingsStore = HydrationSettingsStore()
-    private let liveActivityManager = FocusLiveActivityManager()
     private lazy var gameDataResetter = GameDataResetter(
         healthStatsStore: healthBarStatsStore,
         xpStore: statsStore,
@@ -20,8 +19,7 @@ final class DependencyContainer {
         statsStore: statsStore,
         healthStatsStore: healthBarStatsStore,
         healthBarViewModel: healthBarViewModel,
-        hydrationSettingsStore: hydrationSettingsStore,
-        liveActivityManager: liveActivityManager
+        hydrationSettingsStore: hydrationSettingsStore
     )
     private lazy var questsViewModel = QuestsViewModel(statsStore: statsStore)
 

@@ -5,9 +5,7 @@ import ActivityKit
 struct FocusTimerAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
         var title: String
-        var endDate: Date?
-        var remainingSeconds: Int
-        var totalDurationSeconds: Int
+        var endDate: Date
         var isPaused: Bool
     }
 
@@ -24,15 +22,12 @@ final class FocusTimerLiveActivityManager {
 
     private init() {}
 
-    /// Starts or updates a Live Activity for the timer, keeping only one active at a time.
-    func startOrUpdate(
-        endDate: Date?,
-        sessionType: String,
-        title: String,
-        remainingSeconds: Int,
-        totalDurationSeconds: Int,
-        isPaused: Bool
-    ) {
+    /// Start a Live Activity for the timer.
+    /// - Parameters:
+    ///   - endDate: when the timer finishes
+    ///   - sessionType: an identifier like "deepFocus", "workSprint", etc.
+    ///   - title: user-facing title like "Deep focus"
+    func start(endDate: Date, sessionType: String, title: String) {
         let authInfo = ActivityAuthorizationInfo()
         print("🔍 LiveActivity auth – enabled:", authInfo.areActivitiesEnabled)
 
@@ -45,18 +40,11 @@ final class FocusTimerLiveActivityManager {
         let contentState = FocusTimerAttributes.ContentState(
             title: title,
             endDate: endDate,
-            remainingSeconds: remainingSeconds,
-            totalDurationSeconds: totalDurationSeconds,
-            isPaused: isPaused
+            isPaused: false
         )
 
-        if let activity {
-            Task { await activity.update(using: contentState) }
-            return
-        }
-
         do {
-            print("🚀 Requesting Live Activity – title:", title, "end:", String(describing: endDate))
+            print("🚀 Requesting Live Activity – title:", title, "end:", endDate)
             activity = try Activity.request(
                 attributes: attributes,
                 contentState: contentState,
