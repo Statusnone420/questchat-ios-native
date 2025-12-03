@@ -26,12 +26,34 @@ private func ringColor(forRemaining remaining: Int, total: Int) -> Color {
 }
 
 @available(iOS 17.0, *)
-private func timerMetrics(for context: ActivityViewContext<FocusSessionAttributes>, at date: Date) -> (remaining: Int, total: Int, progress: Double) {
+private struct TimerSnapshot {
+    let remainingSeconds: Int
+    let totalSeconds: Int
+    let progress: Double
+    let ringColor: Color
+}
+
+@available(iOS 17.0, *)
+private func timerSnapshot(for context: ActivityViewContext<FocusSessionAttributes>, at date: Date) -> TimerSnapshot {
     let total = max(context.state.totalSeconds, 1)
     let rawRemaining = context.state.endTime.timeIntervalSince(date)
     let remaining = max(Int(ceil(rawRemaining)), 0)
     let progress = min(1.0, max(0.0, 1.0 - (Double(remaining) / Double(total))))
-    return (remaining, total, progress)
+    let color = ringColor(forRemaining: remaining, total: total)
+    return TimerSnapshot(remainingSeconds: remaining, totalSeconds: total, progress: progress, ringColor: color)
+}
+
+@available(iOS 17.0, *)
+private struct TimelineDriven<Content: View>: View {
+    let context: ActivityViewContext<FocusSessionAttributes>
+    let content: (TimerSnapshot) -> Content
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { timeline in
+            let snapshot = timerSnapshot(for: context, at: timeline.date)
+            content(snapshot)
+        }
+    }
 }
 
 @available(iOS 17.0, *)
@@ -81,49 +103,45 @@ private struct CircularTimerRing: View {
 @available(iOS 17.0, *)
 struct FocusSessionLiveActivityView: View {
     let context: ActivityViewContext<FocusSessionAttributes>
+    let snapshot: TimerSnapshot
 
     var body: some View {
-        TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-            let metrics = timerMetrics(for: context, at: timeline.date)
-            let remaining = metrics.remaining
-            let progress = metrics.progress
-
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(timeLabel(for: remaining))
-                        .font(.system(size: 34, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                        .allowsTightening(true)
-                    Text("remaining")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(context.state.title)
-                        .font(.body)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    ProgressView(value: progress)
-                        .progressViewStyle(.linear)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("Ends")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                    Text(context.state.endTime, style: .time)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                }
-                .frame(minWidth: 72, alignment: .trailing)
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(timeLabel(for: snapshot.remainingSeconds))
+                    .font(.system(size: 34, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .allowsTightening(true)
+                Text("remaining")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
-            .padding()
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(context.state.title)
+                    .font(.body)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                ProgressView(value: snapshot.progress)
+                    .progressViewStyle(.linear)
+                    .tint(snapshot.ringColor)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("Ends")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                Text(context.state.endTime, style: .time)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+            }
+            .frame(minWidth: 72, alignment: .trailing)
         }
+        .padding()
     }
 }
 
@@ -133,16 +151,14 @@ struct FocusSessionLiveActivityView: View {
 struct FocusSessionLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: FocusSessionAttributes.self) { context in
-            FocusSessionLiveActivityView(context: context)
+            TimelineDriven(context: context) { snapshot in
+                FocusSessionLiveActivityView(context: context, snapshot: snapshot)
+            }
         } dynamicIsland: { context in
-            DynamicIsland {
-                // Expanded Regions
-                DynamicIslandExpandedRegion(.leading) {
-                    TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-                        let metrics = timerMetrics(for: context, at: timeline.date)
-                        let remaining = metrics.remaining
-                        let progress = metrics.progress
-                        let color = ringColor(forRemaining: remaining, total: metrics.total)
+            TimelineDriven(context: context) { snapshot in
+                DynamicIsland {
+                    // Expanded Regions
+                    DynamicIslandExpandedRegion(.leading) {
                         let symbol = symbolName(forTitle: context.state.title)
 
                         HStack(spacing: 6) {
@@ -150,11 +166,11 @@ struct FocusSessionLiveActivityWidget: Widget {
                                 .symbolRenderingMode(.hierarchical)
                                 .imageScale(.medium)
                                 .font(.subheadline)
-                                .foregroundStyle(color)
+                                .foregroundStyle(snapshot.ringColor)
                             CircularTimerRing(
-                                progress: progress,
-                                remainingSeconds: remaining,
-                                ringColor: color,
+                                progress: snapshot.progress,
+                                remainingSeconds: snapshot.remainingSeconds,
+                                ringColor: snapshot.ringColor,
                                 size: 32,
                                 lineWidth: 4,
                                 showText: true
@@ -162,72 +178,55 @@ struct FocusSessionLiveActivityWidget: Widget {
                             .padding(2)
                         }
                     }
-                }
 
-                DynamicIslandExpandedRegion(.center) {
-                    Text(context.state.title)
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity)
-                }
+                    DynamicIslandExpandedRegion(.center) {
+                        Text(context.state.title)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity)
+                    }
 
-                DynamicIslandExpandedRegion(.trailing) {
-                    Text(context.state.endTime, style: .time)
-                        .font(.subheadline)
-                }
+                    DynamicIslandExpandedRegion(.trailing) {
+                        Text(context.state.endTime, style: .time)
+                            .font(.subheadline)
+                    }
 
-                DynamicIslandExpandedRegion(.bottom) {
-                    TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-                        let metrics = timerMetrics(for: context, at: timeline.date)
-                        let remaining = metrics.remaining
-                        let progress = metrics.progress
-                        let color = ringColor(forRemaining: remaining, total: metrics.total)
-
-                        ProgressView(value: progress)
+                    DynamicIslandExpandedRegion(.bottom) {
+                        ProgressView(value: snapshot.progress)
                             .progressViewStyle(.linear)
-                            .tint(color)
+                            .tint(snapshot.ringColor)
                             .frame(height: 1)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .padding(.bottom, 8)
                     }
-                }
-            } compactLeading: {
-                TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-                    let metrics = timerMetrics(for: context, at: timeline.date)
-                    Text(timeLabel(for: metrics.remaining))
-                        .font(.caption2.weight(.semibold))
-                }
-            } compactTrailing: {
-                TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-                    let metrics = timerMetrics(for: context, at: timeline.date)
-                    let progress = metrics.progress
-                    let color = ringColor(forRemaining: metrics.remaining, total: metrics.total)
-
+                } compactLeading: {
+                    Text(timeLabel(for: snapshot.remainingSeconds))
+                        .font(.caption2.monospacedDigit().weight(.semibold))
+                } compactTrailing: {
                     CircularTimerRing(
-                        progress: progress,
-                        remainingSeconds: metrics.remaining,
-                        ringColor: color,
+                        progress: snapshot.progress,
+                        remainingSeconds: snapshot.remainingSeconds,
+                        ringColor: snapshot.ringColor,
                         size: 14,
                         lineWidth: 2.5,
                         showText: false
                     )
                     .padding(2)
-                }
-            } minimal: {
-                TimelineView(.periodic(from: Date(), by: 1)) { timeline in
-                    let metrics = timerMetrics(for: context, at: timeline.date)
-                    let progress = metrics.progress
-                    let color = ringColor(forRemaining: metrics.remaining, total: metrics.total)
+                } minimal: {
+                    ZStack {
+                        CircularTimerRing(
+                            progress: snapshot.progress,
+                            remainingSeconds: snapshot.remainingSeconds,
+                            ringColor: snapshot.ringColor,
+                            size: 18,
+                            lineWidth: 2.5,
+                            showText: false
+                        )
 
-                    CircularTimerRing(
-                        progress: progress,
-                        remainingSeconds: metrics.remaining,
-                        ringColor: color,
-                        size: 16,
-                        lineWidth: 2.5,
-                        showText: false
-                    )
+                        Text(timeLabel(for: snapshot.remainingSeconds))
+                            .font(.caption2.monospacedDigit().weight(.semibold))
+                    }
                     .padding(2)
                 }
             }
