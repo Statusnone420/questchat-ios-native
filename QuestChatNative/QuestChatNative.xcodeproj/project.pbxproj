@@ -10,6 +10,7 @@
 		D87C18822EDFA74B00438C3A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D87C182B2EDF9B6F00438C3A /* WidgetKit.framework */; };
 		D87C18832EDFA74B00438C3A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D87C182D2EDF9B6F00438C3A /* SwiftUI.framework */; };
 		D87C18942EDFA74C00438C3A /* QuestChatLiveActivityExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D87C18812EDFA74B00438C3A /* QuestChatLiveActivityExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D87C18BC2EDFB72100438C3A /* FocusLiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D87C18BB2EDFB72100438C3A /* FocusLiveActivityManager.swift */; };
 		D899A6D22EDF6D6500F90F46 /* PlayerStatusBarsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D899A6D12EDF6D6500F90F46 /* PlayerStatusBarsView.swift */; };
 		D8A200012EDE07B400A6A001 /* RPGStatBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */; };
 		D8A200022EDE07B400A6A001 /* HealthBarModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0022EDE07B400A6A002 /* HealthBarModels.swift */; };
@@ -73,6 +74,7 @@
 		D87C182B2EDF9B6F00438C3A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		D87C182D2EDF9B6F00438C3A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		D87C18812EDFA74B00438C3A /* QuestChatLiveActivityExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QuestChatLiveActivityExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D87C18BB2EDFB72100438C3A /* FocusLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusLiveActivityManager.swift; sourceTree = "<group>"; };
 		D881CF932EDD1BC200A8A09F /* QuestChatNative.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuestChatNative.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D899A6D12EDF6D6500F90F46 /* PlayerStatusBarsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerStatusBarsView.swift; sourceTree = "<group>"; };
 		D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPGStatBar.swift; sourceTree = "<group>"; };
@@ -117,12 +119,20 @@
 			);
 			target = D87C18802EDFA74B00438C3A /* QuestChatLiveActivityExtension */;
 		};
+		D87C18BE2EDFB8C100438C3A /* Exceptions for "QuestChatLiveActivity" folder in "QuestChatNative" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				FocusSessionAttributes.swift,
+			);
+			target = D881CF922EDD1BC200A8A09F /* QuestChatNative */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D87C18842EDFA74B00438C3A /* QuestChatLiveActivity */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				D87C18BE2EDFB8C100438C3A /* Exceptions for "QuestChatLiveActivity" folder in "QuestChatNative" target */,
 				D87C18972EDFA74C00438C3A /* Exceptions for "QuestChatLiveActivity" folder in "QuestChatLiveActivityExtension" target */,
 			);
 			path = QuestChatLiveActivity;
@@ -181,7 +191,7 @@
 		D881CF952EDD1BC200A8A09F /* QuestChatNative */ = {
 			isa = PBXGroup;
 			children = (
-				D899A6D12EDF6D6500F90F46 /* PlayerStatusBarsView.swift */,
+				D87C18BB2EDFB72100438C3A /* FocusLiveActivityManager.swift */,
 				D8A1A0172EDE07B400A6A017 /* AboutHealthBarView.swift */,
 				D8A1A0092EDE07B400A6A009 /* AppCoordinator.swift */,
 				D8A1A0202EDE07B400A6A020 /* Assets.xcassets */,
@@ -204,6 +214,7 @@
 				D8A1A0072EDE07B400A6A007 /* MoreView.swift */,
 				D8A1A0052EDE07B400A6A005 /* MoreViewModel.swift */,
 				D8A1A0132EDE07B400A6A013 /* PlayerCardView.swift */,
+				D899A6D12EDF6D6500F90F46 /* PlayerStatusBarsView.swift */,
 				D8A1A01E2EDE07B400A6A01E /* QuestChatNativeApp.swift */,
 				D8A1A0112EDE07B400A6A011 /* QuestChatStrings.swift */,
 				D8A1A01D2EDE07B400A6A01D /* QuestsView.swift */,
@@ -364,6 +375,7 @@
 				D8A200032EDE07B400A6A001 /* FocusView.swift in Sources */,
 				D8A200022EDE07B400A6A001 /* HealthBarModels.swift in Sources */,
 				D8A200012EDE07B400A6A001 /* RPGStatBar.swift in Sources */,
+				D87C18BC2EDFB72100438C3A /* FocusLiveActivityManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
