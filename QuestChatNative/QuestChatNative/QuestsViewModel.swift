@@ -38,9 +38,20 @@ final class QuestsViewModel: ObservableObject {
     private let userDefaults: UserDefaults
     private let calendar: Calendar
     private let dayReference: Date
+    private let eventDrivenQuestIDs: Set<String> = [
+        "daily-checkin",
+        "plan-focus-session",
+        "finish-focus-session",
+        "healthbar-checkin",
+        "chore-blitz",
+    ]
 
     private var completionKey: String {
         Self.dateKey(for: dayReference, calendar: calendar)
+    }
+
+    private var questLogOpenedKey: String {
+        "quests-log-opened-\(completionKey)"
     }
 
     private var rerollKey: String {
@@ -89,6 +100,10 @@ final class QuestsViewModel: ObservableObject {
         if let focusArea = statsStore.dailyConfig?.focusArea, !statsStore.shouldShowDailySetup {
             markCoreQuests(for: focusArea)
         }
+
+        statsStore.questEventHandler = { [weak self] event in
+            self?.handleQuestEvent(event)
+        }
     }
 
     var completedQuestsCount: Int {
@@ -126,6 +141,7 @@ final class QuestsViewModel: ObservableObject {
     var canRerollToday: Bool { !hasUsedRerollToday }
 
     func toggleQuest(_ quest: Quest) {
+        guard !eventDrivenQuestIDs.contains(quest.id) else { return }
         guard let index = dailyQuests.firstIndex(where: { $0.id == quest.id }) else { return }
 
         let wasCompleted = dailyQuests[index].isCompleted
@@ -137,6 +153,34 @@ final class QuestsViewModel: ObservableObject {
 
         persistCompletions()
         checkQuestChestRewardIfNeeded()
+    }
+
+    func handleQuestEvent(_ event: QuestEvent) {
+        switch event {
+        case .questsTabOpened:
+            completeQuestIfNeeded(id: "daily-checkin")
+        case .focusSessionStarted(let durationMinutes):
+            guard durationMinutes >= 15 else { return }
+            completeQuestIfNeeded(id: "plan-focus-session")
+        case .focusSessionCompleted(let durationMinutes):
+            guard durationMinutes >= 25 else { return }
+            completeQuestIfNeeded(id: "finish-focus-session")
+        case .choresTimerCompleted(let durationMinutes):
+            guard durationMinutes >= 10 else { return }
+            completeQuestIfNeeded(id: "chore-blitz")
+        case .hpCheckinCompleted:
+            completeQuestIfNeeded(id: "healthbar-checkin")
+        }
+    }
+
+    func handleQuestLogOpenedIfNeeded() {
+        guard !userDefaults.bool(forKey: questLogOpenedKey) else { return }
+        userDefaults.set(true, forKey: questLogOpenedKey)
+        handleQuestEvent(.questsTabOpened)
+    }
+
+    func isEventDrivenQuest(_ quest: Quest) -> Bool {
+        eventDrivenQuestIDs.contains(quest.id)
     }
 
     func toggleWeeklyQuest(_ quest: Quest) {
@@ -218,6 +262,7 @@ private extension QuestsViewModel {
         Quest(id: "daily-checkin", title: "Load today’s quest log", detail: "Open the quest log and decide what actually matters.", xpReward: 10, tier: .core, isCompleted: false),
         Quest(id: "plan-focus-session", title: "Plan one focus session", detail: "Pick a timer and commit to at least one run today.", xpReward: 35, tier: .core, isCompleted: false),
         Quest(id: "healthbar-checkin", title: "HealthBar check-in", detail: "Update your mood, gut, and sleep before you go heads-down.", xpReward: 35, tier: .core, isCompleted: false),
+        Quest(id: "chore-blitz", title: "Chore blitz", detail: "Complete a chores sprint to clear a small dungeon.", xpReward: 35, tier: .core, isCompleted: false),
         Quest(id: "finish-focus-session", title: "Finish one focus session", detail: "Complete any focus timer, even a short one.", xpReward: 35, tier: .habit, isCompleted: false),
         Quest(id: "focus-25-min", title: "Hit 25 focus minutes today", detail: "Accumulate at least 25 minutes of focus time.", xpReward: 60, tier: .bonus, isCompleted: false),
         Quest(id: "hydrate-checkpoint", title: "Hydrate checkpoint", detail: "Drink a real glass of water before a session starts.", xpReward: 20, tier: .habit, isCompleted: false),
@@ -239,10 +284,10 @@ private extension QuestsViewModel {
     ]
 
     static let coreQuestIDs: [FocusArea: [String]] = [
-        .work: ["daily-checkin", "plan-focus-session", "healthbar-checkin"],
-        .home: ["daily-checkin", "plan-focus-session", "healthbar-checkin"],
-        .health: ["daily-checkin", "plan-focus-session", "healthbar-checkin"],
-        .chill: ["daily-checkin", "plan-focus-session", "healthbar-checkin"]
+        .work: ["daily-checkin", "plan-focus-session", "healthbar-checkin", "finish-focus-session", "chore-blitz"],
+        .home: ["daily-checkin", "plan-focus-session", "healthbar-checkin", "finish-focus-session", "chore-blitz"],
+        .health: ["daily-checkin", "plan-focus-session", "healthbar-checkin", "finish-focus-session", "chore-blitz"],
+        .chill: ["daily-checkin", "plan-focus-session", "healthbar-checkin", "finish-focus-session", "chore-blitz"]
     ]
 
     static func seedQuests(with completedIDs: Set<String>) -> [Quest] {
@@ -275,6 +320,17 @@ private extension QuestsViewModel {
     func completedQuestIDs(for date: Date, calendar: Calendar, userDefaults: UserDefaults) -> Set<String> {
         let key = Self.dateKey(for: date, calendar: calendar)
         return Set(userDefaults.stringArray(forKey: key) ?? [])
+    }
+
+    func completeQuestIfNeeded(id: String) {
+        guard let index = dailyQuests.firstIndex(where: { $0.id == id }) else { return }
+        guard !dailyQuests[index].isCompleted else { return }
+
+        dailyQuests[index].isCompleted = true
+        statsStore.registerQuestCompleted(id: dailyQuests[index].id, xp: dailyQuests[index].xpReward)
+
+        persistCompletions()
+        checkQuestChestRewardIfNeeded()
     }
 
     func persistCompletions() {

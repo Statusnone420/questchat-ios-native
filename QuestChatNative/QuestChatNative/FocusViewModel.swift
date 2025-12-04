@@ -300,6 +300,7 @@ final class SessionStatsStore: ObservableObject {
 
     private let playerStateStore: PlayerStateStore
     private var playerCancellables = Set<AnyCancellable>()
+    var questEventHandler: ((QuestEvent) -> Void)?
 
     var level: Int { progression.level }
 
@@ -1011,6 +1012,8 @@ final class FocusViewModel: ObservableObject {
     @AppStorage("hydrateNudgesEnabled") private var hydrateNudgesEnabled: Bool = true
     private let notificationCenter = UNUserNotificationCenter.current()
     private let userDefaults = UserDefaults.standard
+    private var activeSessionCategory: TimerCategory.Kind?
+    private var hpCheckinQuestSentDate: Date?
 
     @available(iOS 16.1, *)
     private var liveActivityManager: FocusTimerLiveActivityManager? {
@@ -1042,6 +1045,7 @@ final class FocusViewModel: ObservableObject {
         self.healthBarViewModel = healthBarViewModel
         self.hydrationSettingsStore = hydrationSettingsStore
         self.currentHP = healthStatsStore.currentHP
+        hpCheckinQuestSentDate = userDefaults.object(forKey: HealthTrackingStorageKeys.hpCheckinQuestDate) as? Date
         // Defer syncing player HP until after initialization completes to avoid using self too early.
         let initialHP = healthStatsStore.currentHP
 
@@ -1364,16 +1368,22 @@ final class FocusViewModel: ObservableObject {
             startDate: Date()
         )
 
+        let category = selectedCategoryData ?? TimerCategory(id: selectedCategory, durationSeconds: currentDuration)
+
         pausedRemainingSeconds = nil
         currentSession = session
+        activeSessionCategory = category.id
         timerState = .running
         state = .running
         print("[FocusTimer] Start timer for \(totalDuration)s")
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         scheduleCompletionNotification()
         startUITimer()
-        let category = selectedCategoryData ?? TimerCategory(id: selectedCategory, durationSeconds: currentDuration)
         let title = category.id.title
+        if session.type == .focus {
+            let durationMinutes = totalDuration / 60
+            statsStore.questEventHandler?(.focusSessionStarted(durationMinutes: durationMinutes))
+        }
         if #available(iOS 17.0, *) {
             Task {
                 for activity in Activity<FocusSessionAttributes>.activities {
@@ -1459,6 +1469,7 @@ final class FocusViewModel: ObservableObject {
             startDate: Date()
         )
         currentSession = session
+        activeSessionCategory = selectedCategory
         timerState = .running
         state = .running
         print("[FocusTimer] Resumed for \(duration)s")
@@ -1495,6 +1506,7 @@ final class FocusViewModel: ObservableObject {
         timerState = .idle
         state = .idle
         remainingSeconds = 0
+        activeSessionCategory = nil
         print("[FocusTimer] Reset timer")
 
         if #available(iOS 17.0, *) {
@@ -1698,6 +1710,13 @@ final class FocusViewModel: ObservableObject {
         let xpBefore = statsStore.totalXP
         let recordedDuration = Int(currentSession?.duration ?? TimeInterval(activeSessionDuration ?? currentDuration))
         _ = statsStore.recordSession(mode: selectedMode, duration: recordedDuration)
+        if currentSession?.type == .focus {
+            let durationMinutes = recordedDuration / 60
+            statsStore.questEventHandler?(.focusSessionCompleted(durationMinutes: durationMinutes))
+            if activeSessionCategory == .choresSprint {
+                statsStore.questEventHandler?(.choresTimerCompleted(durationMinutes: durationMinutes))
+            }
+        }
         let streakLevelUp = statsStore.registerActiveToday()
         let totalXPGained = statsStore.totalXP - xpBefore
         if streakLevelUp != nil {
@@ -1735,6 +1754,7 @@ final class FocusViewModel: ObservableObject {
         clearLiveActivityState()
         remainingSeconds = 0
         onSessionComplete?()
+        activeSessionCategory = nil
     }
 
     private func resetForModeChange() {
@@ -1924,6 +1944,7 @@ final class FocusViewModel: ObservableObject {
                 self?.healthStatsStore.update(from: inputs)
                 self?.syncPlayerHP()
                 self?.evaluateHealthXPBonuses()
+                self?.checkHPCheckinQuestEvent()
             }
             .store(in: &cancellables)
     }
@@ -1954,6 +1975,7 @@ final class FocusViewModel: ObservableObject {
         waterGoalXPGrantedToday = isDate(userDefaults.object(forKey: HealthTrackingStorageKeys.waterGoalAwardDate) as? Date, inSameDayAs: today)
         healthComboXPGrantedToday = isDate(userDefaults.object(forKey: HealthTrackingStorageKeys.healthComboAwardDate) as? Date, inSameDayAs: today)
         hasLoggedSleepQualityToday = isDate(userDefaults.object(forKey: HealthTrackingStorageKeys.sleepQualityLogged) as? Date, inSameDayAs: today)
+        hpCheckinQuestSentDate = userDefaults.object(forKey: HealthTrackingStorageKeys.hpCheckinQuestDate) as? Date
         updateWaterIntakeTotals()
     }
 
@@ -1963,6 +1985,7 @@ final class FocusViewModel: ObservableObject {
         userDefaults.set(today, forKey: HealthTrackingStorageKeys.sleepQualityDate)
         userDefaults.set(today, forKey: HealthTrackingStorageKeys.sleepQualityLogged)
         hasLoggedSleepQualityToday = true
+        checkHPCheckinQuestEvent()
     }
 
     private func loadSleepQuality() {
@@ -1999,6 +2022,24 @@ final class FocusViewModel: ObservableObject {
             healthComboXPGrantedToday = true
             userDefaults.set(Calendar.current.startOfDay(for: today), forKey: HealthTrackingStorageKeys.healthComboAwardDate)
         }
+    }
+
+    private func checkHPCheckinQuestEvent() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        if let hpCheckinQuestSentDate,
+           calendar.isDate(hpCheckinQuestSentDate, inSameDayAs: today) {
+            return
+        }
+
+        let hasGutStatus = gutStatus != .none
+        let hasMoodStatus = moodStatus != .none
+
+        guard hasGutStatus, hasMoodStatus, hasLoggedSleepQualityToday else { return }
+
+        hpCheckinQuestSentDate = today
+        userDefaults.set(today, forKey: HealthTrackingStorageKeys.hpCheckinQuestDate)
+        statsStore.questEventHandler?(.hpCheckinCompleted)
     }
 
     private func updateWaterIntakeTotals() {

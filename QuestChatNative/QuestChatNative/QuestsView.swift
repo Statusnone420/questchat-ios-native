@@ -49,15 +49,17 @@ private extension QuestsView {
             if selectedScope == .daily {
                 Section {
                     ForEach(viewModel.dailyQuests) { quest in
+                        let isEventDriven = viewModel.isEventDrivenQuest(quest)
                         QuestCardView(
                             quest: quest,
                             tierColor: tierColor(for: quest.tier),
                             isBouncing: bouncingQuestIDs.contains(quest.id),
                             isShowingXPBoost: showingXPBoostIDs.contains(quest.id),
-                            onTap: {
+                            onTap: isEventDriven ? nil : {
                                 viewModel.toggleQuest(quest)
                             }
                         )
+                        .disabled(isEventDriven)
                         .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
                         .listRowSeparator(.hidden)
                         .onChange(of: quest.isCompleted) { isCompleted in
@@ -127,6 +129,9 @@ private extension QuestsView {
             if selectedScope == .daily && viewModel.hasQuestChestReady {
                 questChestOverlay()
             }
+        }
+        .onAppear {
+            viewModel.handleQuestLogOpenedIfNeeded()
         }
         .confirmationDialog(QuestChatStrings.QuestsView.rerollDialogTitle, isPresented: $showingRerollPicker, titleVisibility: .visible) {
             let incompleteQuests = viewModel.incompleteQuests
@@ -331,10 +336,12 @@ private struct QuestCardView: View {
     let tierColor: Color
     let isBouncing: Bool
     let isShowingXPBoost: Bool
-    let onTap: () -> Void
+    let onTap: (() -> Void)?
 
     var body: some View {
-        Button(action: onTap) {
+        Button(action: {
+            onTap?()
+        }) {
             ZStack(alignment: .topTrailing) {
                 HStack(alignment: .top, spacing: 12) {
                     icon

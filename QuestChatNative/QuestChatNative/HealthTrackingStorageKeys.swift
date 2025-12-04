@@ -7,4 +7,5 @@ enum HealthTrackingStorageKeys {
 
     static let waterGoalAwardDate = "waterGoalAwardDate"
     static let healthComboAwardDate = "healthComboAwardDate"
+    static let hpCheckinQuestDate = "hpCheckinQuestDate"
 }
