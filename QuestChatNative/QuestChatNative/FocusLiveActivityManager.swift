@@ -68,7 +68,7 @@ enum FocusLiveActivityManager {
         )
 
         Task {
-            await activity.update(contentState)
+            await activity.update(using: contentState)
         }
     }
 

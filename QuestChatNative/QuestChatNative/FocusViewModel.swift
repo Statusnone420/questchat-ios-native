@@ -1645,7 +1645,7 @@ final class FocusViewModel: ObservableObject {
 
         Task {
             guard let liveActivity else { return }
-            await liveActivity.update(contentState)
+            await liveActivity.update(using: contentState)
             print("[FocusLiveActivity] Updated: paused=\(isPaused) remaining=\(remaining)")
         }
     }
