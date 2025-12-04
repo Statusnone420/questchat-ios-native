@@ -20,7 +20,7 @@ struct StatsView: View {
     }
     private var levelProgress: Double {
         if store.level >= 100 { return 1 }
-        let total = Double(store.xpForNextLevel)
+        let total = Double(store.xpTotalThisLevel)
         guard total > 0 else { return 0 }
         return Double(store.xpIntoCurrentLevel) / total
     }
@@ -29,7 +29,7 @@ struct StatsView: View {
         if store.level >= 100 {
             return "QuestChat Master"
         }
-        return QuestChatStrings.StatsView.levelProgress(current: store.xpIntoCurrentLevel, total: store.xpForNextLevel)
+        return QuestChatStrings.StatsView.levelProgress(current: store.xpIntoCurrentLevel, total: store.xpTotalThisLevel)
     }
 
     private var momentumStatusText: String {
