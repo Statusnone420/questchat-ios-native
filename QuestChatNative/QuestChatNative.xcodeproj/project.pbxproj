@@ -209,11 +209,11 @@
 		D881CF952EDD1BC200A8A09F /* QuestChatNative */ = {
 			isa = PBXGroup;
 			children = (
-				D8ABE41C2EE2410C00813C61 /* ConfettiView.swift */,
 				D8A1A0172EDE07B400A6A017 /* AboutHealthBarView.swift */,
 				D8ABE41A2EE23E2400813C61 /* AchievementUnlockOverlayView.swift */,
 				D8A1A0092EDE07B400A6A009 /* AppCoordinator.swift */,
 				D8A1A0202EDE07B400A6A020 /* Assets.xcassets */,
+				D8ABE41C2EE2410C00813C61 /* ConfettiView.swift */,
 				D8A1A0152EDE07B400A6A015 /* ContentView.swift */,
 				D8A1A0062EDE07B400A6A006 /* DependencyContainer.swift */,
 				D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */,

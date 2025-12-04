@@ -11,7 +11,7 @@ struct AchievementUnlockOverlayView: View {
     
     var body: some View {
         ZStack {
-            Color.black.opacity(0.85)
+            Color.black.opacity(0.75)
                 .ignoresSafeArea()
                 .blur(radius: 2)
             
