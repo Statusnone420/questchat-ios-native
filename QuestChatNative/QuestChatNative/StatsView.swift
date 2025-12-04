@@ -411,16 +411,12 @@ struct StatsView: View {
 }
 
 #Preview {
-    let store = SessionStatsStore(playerStateStore: DependencyContainer.shared.playerStateStore)
-    let healthStats = HealthBarIRLStatsStore()
-    let hydrationSettingsStore = HydrationSettingsStore()
-    let healthBarViewModel = HealthBarViewModel()
-    let focusViewModel = DependencyContainer.shared.makeFocusViewModel()
+    let container = DependencyContainer.shared
     StatsView(
-        store: store,
-        viewModel: StatsViewModel(healthStore: healthStats, hydrationSettingsStore: hydrationSettingsStore),
-        questsViewModel: QuestsViewModel(statsStore: store),
-        healthBarViewModel: healthBarViewModel,
-        focusViewModel: focusViewModel
+        store: container.sessionStatsStore,
+        viewModel: container.statsViewModel,
+        questsViewModel: container.questsViewModel,
+        healthBarViewModel: container.healthBarViewModel,
+        focusViewModel: container.focusViewModel
     )
 }

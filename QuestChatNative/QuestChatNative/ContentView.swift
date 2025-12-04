@@ -6,21 +6,24 @@ enum MainTab: Hashable {
 
 struct ContentView: View {
     @State private var selectedTab: MainTab = .focus
-    @StateObject private var statsStore = DependencyContainer.shared.makeStatsStore()
-    @StateObject private var healthStatsViewModel = DependencyContainer.shared.makeHealthStatsViewModel()
-    @StateObject private var healthBarViewModel = DependencyContainer.shared.makeHealthBarViewModel()
-    @StateObject private var focusViewModel = DependencyContainer.shared.makeFocusViewModel()
-    @StateObject private var questsViewModel = DependencyContainer.shared.makeQuestsViewModel()
-    @StateObject private var moreViewModel = DependencyContainer.shared.makeMoreViewModel()
-    private let appCoordinator = AppCoordinator()
+    @StateObject private var statsStore = DependencyContainer.shared.sessionStatsStore
+    @StateObject private var healthStatsViewModel = DependencyContainer.shared.statsViewModel
+    @StateObject private var healthBarViewModel = DependencyContainer.shared.healthBarViewModel
+    @StateObject private var focusViewModel = DependencyContainer.shared.focusViewModel
+    @StateObject private var questsViewModel = DependencyContainer.shared.questsViewModel
+    @StateObject private var moreViewModel = DependencyContainer.shared.moreViewModel
 
     var body: some View {
         ZStack {
             TabView(selection: $selectedTab) {
-                appCoordinator.makeFocusView(selectedTab: $selectedTab)
-                    .environmentObject(questsViewModel)
-                    .tabItem { Label("Focus", systemImage: "timer") }
-                    .tag(MainTab.focus)
+                FocusView(
+                    viewModel: focusViewModel,
+                    healthBarViewModel: healthBarViewModel,
+                    selectedTab: $selectedTab
+                )
+                .environmentObject(questsViewModel)
+                .tabItem { Label("Focus", systemImage: "timer") }
+                .tag(MainTab.focus)
 
                 QuestsView(viewModel: questsViewModel)
                     .tabItem { Label("Quests", systemImage: "list.bullet.rectangle") }

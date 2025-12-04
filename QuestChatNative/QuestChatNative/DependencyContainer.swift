@@ -1,70 +1,48 @@
 import Foundation
 
-/// A simple container responsible for building view models.
-/// This can later be expanded to manage shared services and dependencies.
 final class DependencyContainer {
     static let shared = DependencyContainer()
+
     let playerStateStore: PlayerStateStore
+    let sessionStatsStore: SessionStatsStore
+    let healthStatsStore: HealthBarIRLStatsStore
+    let hydrationSettingsStore: HydrationSettingsStore
+
+    let focusViewModel: FocusViewModel
+    let healthBarViewModel: HealthBarViewModel
+    let questsViewModel: QuestsViewModel
+    let statsViewModel: StatsViewModel
+    let moreViewModel: MoreViewModel
+    let settingsViewModel: SettingsViewModel
 
     private init() {
+        // Core stores
         playerStateStore = PlayerStateStore()
-    }
+        sessionStatsStore = SessionStatsStore(playerStateStore: playerStateStore)
+        healthStatsStore = HealthBarIRLStatsStore()
+        hydrationSettingsStore = HydrationSettingsStore()
 
-    private lazy var statsStore = SessionStatsStore(playerStateStore: playerStateStore)
-    private let healthBarStatsStore = HealthBarIRLStatsStore()
-    private let hydrationSettingsStore = HydrationSettingsStore()
-    private lazy var gameDataResetter = GameDataResetter(
-        healthStatsStore: healthBarStatsStore,
-        xpStore: statsStore,
-        sessionStatsStore: statsStore
-    )
-    private lazy var healthBarViewModel = HealthBarViewModel(statsStore: healthBarStatsStore)
-    private lazy var focusViewModel = FocusViewModel(
-        statsStore: statsStore,
-        playerStateStore: playerStateStore,
-        healthStatsStore: healthBarStatsStore,
-        healthBarViewModel: healthBarViewModel,
-        hydrationSettingsStore: hydrationSettingsStore
-    )
-    private lazy var questsViewModel = QuestsViewModel(statsStore: statsStore)
-
-    func makeFocusViewModel() -> FocusViewModel {
-        focusViewModel
-    }
-
-    func makeHealthBarViewModel() -> HealthBarViewModel {
-        healthBarViewModel
-    }
-
-    func makeStatsStore() -> SessionStatsStore {
-        statsStore
-    }
-
-    func makeHealthBarStatsStore() -> HealthBarIRLStatsStore {
-        healthBarStatsStore
-    }
-
-    func makeHealthStatsViewModel() -> StatsViewModel {
-        StatsViewModel(
-            healthStore: healthBarStatsStore,
+        // View models that depend on stores
+        healthBarViewModel = HealthBarViewModel()
+        focusViewModel = FocusViewModel(
+            statsStore: sessionStatsStore,
+            playerStateStore: playerStateStore,
+            healthStatsStore: healthStatsStore,
+            healthBarViewModel: healthBarViewModel,
             hydrationSettingsStore: hydrationSettingsStore
         )
-    }
+        questsViewModel = QuestsViewModel(statsStore: sessionStatsStore)
+        statsViewModel = StatsViewModel(
+            healthStore: healthStatsStore,
+            hydrationSettingsStore: hydrationSettingsStore
+        )
+        moreViewModel = MoreViewModel(hydrationSettingsStore: hydrationSettingsStore)
 
-    func makeQuestsViewModel() -> QuestsViewModel {
-        questsViewModel
-    }
-
-    func makeHydrationSettingsStore() -> HydrationSettingsStore {
-        hydrationSettingsStore
-    }
-
-    func makeMoreViewModel() -> MoreViewModel {
-        MoreViewModel(hydrationSettingsStore: hydrationSettingsStore)
-    }
-
-    func makeSettingsViewModel() -> SettingsViewModel {
-        SettingsViewModel(resetter: gameDataResetter)
+        let resetter = GameDataResetter(
+            healthStatsStore: healthStatsStore,
+            xpStore: sessionStatsStore,
+            sessionStatsStore: sessionStatsStore
+        )
+        settingsViewModel = SettingsViewModel(resetter: resetter)
     }
 }
-

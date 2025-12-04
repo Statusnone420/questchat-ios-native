@@ -1012,19 +1012,13 @@ private struct DailySetupSheet: View {
 }
 
 #Preview {
-    let playerStateStore = PlayerStateStore()
-    let store = SessionStatsStore(playerStateStore: playerStateStore)
-    let healthStats = HealthBarIRLStatsStore()
+    let container = DependencyContainer.shared
+    let focusVM = container.focusViewModel
     let healthBarVM = HealthBarViewModel()
     FocusView(
-        viewModel: FocusViewModel(
-            statsStore: store,
-            playerStateStore: playerStateStore,
-            healthStatsStore: healthStats,
-            healthBarViewModel: healthBarVM
-        ),
+        viewModel: focusVM,
         healthBarViewModel: healthBarVM,
         selectedTab: .constant(.focus)
     )
-    .environmentObject(QuestsViewModel(statsStore: store))
+    .environmentObject(QuestsViewModel(statsStore: container.sessionStatsStore))
 }

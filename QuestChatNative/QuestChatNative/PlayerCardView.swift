@@ -120,15 +120,11 @@ struct PlayerCardView: View {
 }
 
 #Preview {
-    let store = SessionStatsStore(playerStateStore: DependencyContainer.shared.playerStateStore)
-    let statsViewModel = StatsViewModel(
-        healthStore: HealthBarIRLStatsStore(),
-        hydrationSettingsStore: HydrationSettingsStore()
-    )
+    let container = DependencyContainer.shared
     PlayerCardView(
-        store: store,
-        statsViewModel: statsViewModel,
-        healthBarViewModel: HealthBarViewModel(),
-        focusViewModel: DependencyContainer.shared.makeFocusViewModel()
+        store: container.sessionStatsStore,
+        statsViewModel: container.statsViewModel,
+        healthBarViewModel: container.healthBarViewModel,
+        focusViewModel: container.focusViewModel
     )
 }

@@ -28,7 +28,7 @@ struct MoreView: View {
                 }
             }
             .sheet(isPresented: $isShowingSettings) {
-                SettingsView(viewModel: DependencyContainer.shared.makeSettingsViewModel())
+                SettingsView(viewModel: DependencyContainer.shared.settingsViewModel)
             }
         }
     }
@@ -149,5 +149,5 @@ struct LegacyMoreContentView: View {
 }
 
 #Preview {
-    MoreView(viewModel: MoreViewModel(hydrationSettingsStore: HydrationSettingsStore()))
+    MoreView(viewModel: DependencyContainer.shared.moreViewModel)
 }

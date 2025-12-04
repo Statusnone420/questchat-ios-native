@@ -2,7 +2,7 @@ import SwiftUI
 
 struct QuestsView: View {
     @ObservedObject var viewModel: QuestsViewModel
-    @ObservedObject private var statsStore = DependencyContainer.shared.makeStatsStore()
+    @ObservedObject private var statsStore = DependencyContainer.shared.sessionStatsStore
     @State private var bouncingQuestIDs: Set<String> = []
     @State private var showingXPBoostIDs: Set<String> = []
     @State private var showingRerollPicker = false
@@ -353,6 +353,5 @@ private struct QuestCardView: View {
 }
 
 #Preview {
-    QuestsView(viewModel: QuestsViewModel(statsStore: SessionStatsStore(playerStateStore: DependencyContainer.shared.playerStateStore)))
+    QuestsView(viewModel: DependencyContainer.shared.questsViewModel)
 }
-
