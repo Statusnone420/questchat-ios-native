@@ -35,44 +35,15 @@ private func ringColor(forRemaining remaining: Int, total: Int) -> Color {
 }
 
 @available(iOS 17.0, *)
-private struct TimerVisualState {
-    let progress: Double
-    let remaining: TimeInterval
-    let isPaused: Bool
-    let color: Color
+private func progressMetrics(for context: ActivityViewContext<FocusSessionAttributes>, now: Date) -> (total: TimeInterval, remaining: TimeInterval, remainingSeconds: Int, progress: Double) {
+    let total = max(context.state.endDate.timeIntervalSince(context.state.startDate), 1)
+    let remaining = context.state.isPaused
+        ? max(Double(context.state.remainingSeconds), 0)
+        : max(context.state.endDate.timeIntervalSince(now), 0)
+    let remainingSeconds = Int(ceil(remaining))
+    let progress = min(max(1 - (remaining / total), 0), 1)
 
-    static func from(context: ActivityViewContext<FocusSessionAttributes>, now: Date) -> TimerVisualState {
-        let state = context.state
-        let start = state.startDate
-        let end = state.endDate
-        let total = end.timeIntervalSince(start)
-
-        let isPaused = state.isPaused
-
-        let remaining: TimeInterval
-        let progress: Double
-
-        if isPaused {
-            remaining = max(Double(state.remainingSeconds), 0)
-            progress = total > 0 ? min(max(1 - (remaining / total), 0), 1) : 1
-        } else {
-            let r = max(end.timeIntervalSince(now), 0)
-            remaining = r
-            progress = total > 0 ? min(max(1 - (r / total), 0), 1) : 1
-        }
-
-        let color = ringColor(
-            forRemaining: Int(ceil(remaining)),
-            total: Int(max(total, 1))
-        )
-
-        return TimerVisualState(
-            progress: progress,
-            remaining: remaining,
-            isPaused: isPaused,
-            color: color
-        )
-    }
+    return (total, remaining, remainingSeconds, progress)
 }
 
 @available(iOS 17.0, *)
@@ -89,13 +60,24 @@ private func symbolName(forTitle title: String) -> String {
 
 @available(iOS 17.0, *)
 private struct CircularTimerRing: View {
-    let progress: Double
+    let startDate: Date
+    let endDate: Date
+    let isPaused: Bool
     let remainingSeconds: Int
     let ringColor: Color
     var size: CGFloat = 56
     var lineWidth: CGFloat = 8
     var showText: Bool = true
     var displayEndDate: Date? = nil
+
+    var progress: Double {
+        let total = max(endDate.timeIntervalSince(startDate), 1)
+        if isPaused {
+            return 1 - (Double(max(remainingSeconds, 0)) / total)
+        }
+        let remaining = max(endDate.timeIntervalSinceNow, 0)
+        return 1 - (remaining / total)
+    }
 
     var clampedProgress: CGFloat { CGFloat(min(max(progress, 0), 1)) }
 
@@ -131,62 +113,68 @@ struct FocusSessionLiveActivityView: View {
     let context: ActivityViewContext<FocusSessionAttributes>
 
     var body: some View {
-        TimelineView(.periodic(from: context.state.startDate, by: 1)) { timeline in
-            let visual = TimerVisualState.from(context: context, now: timeline.date)
-            let timerRange = context.state.startDate...context.state.endDate
+        TimelineView(.animation(minimumInterval: 1)) { timeline in
+            Group {
+                let timerRange = context.state.startDate...context.state.endDate
+                let (_, _, remainingSeconds, progress) = progressMetrics(for: context, now: timeline.date)
 
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    if visual.isPaused {
-                        Text(formattedTime(Int(ceil(visual.remaining))))
-                            .font(.system(size: 34, weight: .bold, design: .monospaced))
-                            .monospacedDigit()
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                            .allowsTightening(true)
-                    } else {
-                        Text(timerInterval: timerRange, countsDown: true)
-                            .font(.system(size: 34, weight: .bold, design: .monospaced))
-                            .monospacedDigit()
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                            .allowsTightening(true)
+                HStack(alignment: .center, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if context.state.isPaused {
+                            Text(formattedTime(remainingSeconds))
+                                .font(.system(size: 34, weight: .bold, design: .monospaced))
+                                .monospacedDigit()
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.6)
+                                .allowsTightening(true)
+                        } else {
+                            Text(timerInterval: timerRange, countsDown: true)
+                                .font(.system(size: 34, weight: .bold, design: .monospaced))
+                                .monospacedDigit()
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.6)
+                                .allowsTightening(true)
+                        }
+                        Text("min left")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
-                    Text("min left")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(context.state.title)
+                            .font(.body)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        if context.state.isPaused {
+                            ProgressView(value: progress)
+                                .progressViewStyle(.linear)
+                        } else {
+                            ProgressView(timerInterval: timerRange)
+                                .progressViewStyle(.linear)
+                        }
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("Ends")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                        Text(context.state.endDate, style: .time)
+                            .font(.caption2)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .allowsTightening(true)
+                            .frame(maxWidth: 80, alignment: .trailing)
+                            .foregroundColor(.primary)
+                    }
+                    .frame(minWidth: 72, alignment: .trailing)
                 }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(context.state.title)
-                        .font(.body)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    ProgressView(value: visual.progress)
-                        .progressViewStyle(.linear)
-                        .tint(visual.color)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("Ends")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                    Text(context.state.endDate, style: .time)
-                        .font(.caption2)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .allowsTightening(true)
-                        .frame(maxWidth: 80, alignment: .trailing)
-                        .foregroundColor(.primary)
-                }
-                .frame(minWidth: 72, alignment: .trailing)
+                .padding()
             }
-            .padding()
         }
     }
 }
@@ -202,27 +190,31 @@ struct FocusSessionLiveActivityWidget: Widget {
             DynamicIsland {
                 // Expanded Regions
                 DynamicIslandExpandedRegion(.leading) {
-                    TimelineView(.periodic(from: context.state.startDate, by: 1)) { timeline in
-                        let visual = TimerVisualState.from(context: context, now: timeline.date)
-                        let remainingInt = Int(ceil(visual.remaining))
-                        let symbol = symbolName(forTitle: context.state.title)
+                    TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                        Group {
+                            let (_, _, remainingInt, progress) = progressMetrics(for: context, now: timeline.date)
+                            let color = ringColor(forRemaining: remainingInt, total: context.attributes.totalSeconds)
+                            let symbol = symbolName(forTitle: context.state.title)
 
-                        HStack(spacing: 6) {
-                            Image(systemName: symbol)
-                                .symbolRenderingMode(.hierarchical)
-                                .imageScale(.medium)
-                                .font(.subheadline)
-                                .foregroundStyle(visual.color)
-                            CircularTimerRing(
-                                progress: visual.progress,
-                                remainingSeconds: remainingInt,
-                                ringColor: visual.color,
-                                size: 32,
-                                lineWidth: 4,
-                                showText: true,
-                                displayEndDate: visual.isPaused ? nil : context.state.endDate
-                            )
-                            .padding(2)
+                            HStack(spacing: 6) {
+                                Image(systemName: symbol)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .imageScale(.medium)
+                                    .font(.subheadline)
+                                    .foregroundStyle(color)
+                                CircularTimerRing(
+                                    startDate: context.state.startDate,
+                                    endDate: context.state.endDate,
+                                    isPaused: context.state.isPaused,
+                                    remainingSeconds: remainingInt,
+                                    ringColor: color,
+                                    size: 32,
+                                    lineWidth: 4,
+                                    showText: true,
+                                    displayEndDate: context.state.isPaused ? nil : context.state.endDate
+                                )
+                                .padding(2)
+                            }
                         }
                     }
                 }
@@ -244,72 +236,87 @@ struct FocusSessionLiveActivityWidget: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
-                    TimelineView(.periodic(from: context.state.startDate, by: 1)) { timeline in
-                        let visual = TimerVisualState.from(context: context, now: timeline.date)
+                    TimelineView(.animation(minimumInterval: 1)) { timeline in
+                        let timerRange = context.state.startDate...context.state.endDate
+                        let (total, _, remainingInt, progress) = progressMetrics(for: context, now: timeline.date)
+                        let color = ringColor(forRemaining: remainingInt, total: Int(total))
 
-                        ProgressView(value: visual.progress)
-                            .progressViewStyle(.linear)
-                            .tint(visual.color)
-                            .frame(height: 1)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .padding(.bottom, 8)
+                        if context.state.isPaused {
+                            ProgressView(value: progress)
+                                .progressViewStyle(.linear)
+                                .tint(color)
+                                .frame(height: 1)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .padding(.bottom, 8)
+                        } else {
+                            ProgressView(timerInterval: timerRange)
+                                .progressViewStyle(.linear)
+                                .tint(color)
+                                .frame(height: 1)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .padding(.bottom, 8)
+                        }
                     }
                 }
             } compactLeading: {
-                TimelineView(.periodic(from: context.state.startDate, by: 1)) { timeline in
-                    let visual = TimerVisualState.from(context: context, now: timeline.date)
-                    let timerRange = context.state.startDate...context.state.endDate
+                let timerRange = context.state.startDate...context.state.endDate
 
-                    if visual.isPaused {
-                        Text(formattedTime(Int(ceil(visual.remaining))))
-                            .font(.caption2.weight(.semibold))
-                            .monospacedDigit()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                            .fixedSize(horizontal: true, vertical: false)
-                    } else {
-                        Text(timerInterval: timerRange, countsDown: true)
-                            .font(.caption2.weight(.semibold))
-                            .monospacedDigit()
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
-                            .fixedSize(horizontal: true, vertical: false)
-                    }
+                if context.state.isPaused {
+                    Text(formattedTime(context.state.remainingSeconds))
+                        .font(.caption2.weight(.semibold))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .frame(maxWidth: 54, alignment: .leading)
+                } else {
+                    Text(timerInterval: timerRange, countsDown: true)
+                        .font(.caption2.weight(.semibold))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .frame(maxWidth: 54, alignment: .leading)
                 }
             } compactTrailing: {
-                TimelineView(.periodic(from: context.state.startDate, by: 1)) { timeline in
-                    let visual = TimerVisualState.from(context: context, now: timeline.date)
-                    let remainingInt = Int(ceil(visual.remaining))
+                TimelineView(.animation(minimumInterval: 1)) { timeline in
+                    let (_, _, remainingInt, progress) = progressMetrics(for: context, now: timeline.date)
+                    let color = ringColor(forRemaining: remainingInt, total: context.attributes.totalSeconds)
 
                     CircularTimerRing(
-                        progress: visual.progress,
+                        startDate: context.state.startDate,
+                        endDate: context.state.endDate,
+                        isPaused: context.state.isPaused,
                         remainingSeconds: remainingInt,
-                        ringColor: visual.color,
+                        ringColor: color,
                         size: 14,
                         lineWidth: 2.5,
                         showText: false,
-                        displayEndDate: visual.isPaused ? nil : context.state.endDate
+                        displayEndDate: context.state.isPaused ? nil : context.state.endDate
                     )
                     .padding(2)
-                    .animation(.linear(duration: 0.2), value: visual.progress)
+                    .animation(.linear(duration: 0.2), value: progress)
                 }
             } minimal: {
-                TimelineView(.periodic(from: context.state.startDate, by: 1)) { timeline in
-                    let visual = TimerVisualState.from(context: context, now: timeline.date)
-                    let remainingInt = Int(ceil(visual.remaining))
+                TimelineView(.animation(minimumInterval: 1)) { timeline in
+                    let (_, _, remainingInt, progress) = progressMetrics(for: context, now: timeline.date)
+                    let color = ringColor(forRemaining: remainingInt, total: context.attributes.totalSeconds)
 
                     CircularTimerRing(
-                        progress: visual.progress,
+                        startDate: context.state.startDate,
+                        endDate: context.state.endDate,
+                        isPaused: context.state.isPaused,
                         remainingSeconds: remainingInt,
-                        ringColor: visual.color,
+                        ringColor: color,
                         size: 16,
                         lineWidth: 2.5,
                         showText: false,
-                        displayEndDate: visual.isPaused ? nil : context.state.endDate
+                        displayEndDate: context.state.isPaused ? nil : context.state.endDate
                     )
                     .padding(2)
-                    .animation(.linear(duration: 0.2), value: visual.progress)
+                    .animation(.linear(duration: 0.2), value: progress)
                 }
             }
         }
