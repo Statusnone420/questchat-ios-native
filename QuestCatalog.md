@@ -119,6 +119,10 @@ These are `daily_habit` quests pulled based on user-selected habits. The app can
 
 ---
 
+**Deprecated daily quest**
+
+- `digital-cobweb` — Retired from rotation until a dedicated event source exists.
+
 ## Weekly Quests (8)
 
 These are `weekly` type quests that sit in a separate “Weekly quests” section with longer-term goals.

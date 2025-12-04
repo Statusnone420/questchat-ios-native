@@ -44,6 +44,12 @@ final class QuestsViewModel: ObservableObject {
         "finish-focus-session",
         "healthbar-checkin",
         "chore-blitz",
+        "hydrate-checkpoint",
+        "hydration-goal",
+    ]
+
+    private let eventDrivenWeeklyQuestIDs: Set<String> = [
+        "weekly-hydration-hero",
     ]
 
     private var completionKey: String {
@@ -81,6 +87,10 @@ final class QuestsViewModel: ObservableObject {
         "\(currentWeekKey)-active"
     }
 
+    private var hydrationGoalDaysKey: String {
+        "\(currentWeekKey)-hydration-days"
+    }
+
     init(
         statsStore: SessionStatsStore = SessionStatsStore(playerStateStore: DependencyContainer.shared.playerStateStore),
         userDefaults: UserDefaults = .standard,
@@ -96,6 +106,7 @@ final class QuestsViewModel: ObservableObject {
         checkQuestChestRewardIfNeeded()
 
         seedWeeklyQuestsIfNeeded()
+        completeWeeklyHydrationQuestIfNeeded()
 
         if let focusArea = statsStore.dailyConfig?.focusArea, !statsStore.shouldShowDailySetup {
             markCoreQuests(for: focusArea)
@@ -188,6 +199,12 @@ final class QuestsViewModel: ObservableObject {
             completeQuestIfNeeded(id: "chore-blitz")
         case .hpCheckinCompleted:
             completeQuestIfNeeded(id: "healthbar-checkin")
+        case .hydrationIntakeLogged(let totalOuncesToday):
+            guard totalOuncesToday > 0 else { return }
+            completeQuestIfNeeded(id: "hydrate-checkpoint")
+        case .hydrationGoalReached:
+            completeQuestIfNeeded(id: "hydration-goal")
+            recordHydrationGoalDayIfNeeded()
         }
     }
 
@@ -201,7 +218,12 @@ final class QuestsViewModel: ObservableObject {
         eventDrivenQuestIDs.contains(quest.id)
     }
 
+    func isWeeklyEventDrivenQuest(_ quest: Quest) -> Bool {
+        eventDrivenWeeklyQuestIDs.contains(quest.id)
+    }
+
     func toggleWeeklyQuest(_ quest: Quest) {
+        guard !isWeeklyEventDrivenQuest(quest) else { return }
         guard let index = weeklyQuests.firstIndex(where: { $0.id == quest.id }) else { return }
 
         let wasCompleted = weeklyQuests[index].isCompleted
@@ -222,7 +244,7 @@ final class QuestsViewModel: ObservableObject {
 
         let currentIDs = Set(dailyQuests.map { $0.id })
         let completedToday = completedQuestIDs(for: dayReference, calendar: calendar, userDefaults: userDefaults)
-        let availableReplacementQuests = Self.questPool.filter { candidate in
+        let availableReplacementQuests = Self.activeQuestPool.filter { candidate in
             candidate.id != quest.id &&
                 !currentIDs.contains(candidate.id) &&
                 !completedToday.contains(candidate.id) &&
@@ -276,6 +298,15 @@ private extension QuestsViewModel {
 
     static let desiredWeeklyQuestCount = 3
 
+    static let deprecatedQuestIDs: Set<String> = [
+        // TODO: Retired until a digital cleanup event source exists.
+        "digital-cobweb",
+    ]
+
+    static var activeQuestPool: [Quest] {
+        questPool.filter { !deprecatedQuestIDs.contains($0.id) }
+    }
+
     static let questPool: [Quest] = [
         Quest(id: "daily-checkin", title: "Load today’s quest log", detail: "Open the quest log and decide what actually matters.", xpReward: 10, tier: .core, isCompleted: false),
         Quest(id: "plan-focus-session", title: "Plan one focus session", detail: "Pick a timer and commit to at least one run today.", xpReward: 35, tier: .core, isCompleted: false),
@@ -287,6 +318,7 @@ private extension QuestsViewModel {
         Quest(id: "hydration-goal", title: "Hit your hydration goal today", detail: "Stay on top of water throughout the day.", xpReward: 60, tier: .bonus, isCompleted: false),
         Quest(id: "irl-patch", title: "IRL patch update", detail: "Stretch for 2 minutes and do a posture check.", xpReward: 20, tier: .habit, isCompleted: false),
         Quest(id: "tidy-spot", title: "Tidy one small area", detail: "Reset your desk, sink, or a small zone.", xpReward: 20, tier: .habit, isCompleted: false),
+        // TODO: Retired until we have a proper digital cleanup event trigger.
         Quest(id: "digital-cobweb", title: "Clear one digital cobweb", detail: "Archive an inbox, clear notifications, or file a document.", xpReward: 20, tier: .habit, isCompleted: false),
         Quest(id: "step-outside", title: "Step outside or change rooms", detail: "Move your body and reset your head for a few minutes.", xpReward: 20, tier: .habit, isCompleted: false),
         Quest(id: "quick-self-care", title: "Do one quick self-care check", detail: "Breathe, sip water, or take a bathroom break.", xpReward: 20, tier: .habit, isCompleted: false)
@@ -309,7 +341,7 @@ private extension QuestsViewModel {
     ]
 
     static func seedQuests(with completedIDs: Set<String>) -> [Quest] {
-        let poolByID = Dictionary(uniqueKeysWithValues: questPool.map { ($0.id, $0) })
+        let poolByID = Dictionary(uniqueKeysWithValues: activeQuestPool.map { ($0.id, $0) })
 
         var quests: [Quest] = requiredQuestIDs.compactMap { poolByID[$0] }
 
@@ -320,7 +352,7 @@ private extension QuestsViewModel {
         }
 
         let excludedIDs = Set(quests.map { $0.id })
-        let remainingPool = questPool.filter { !excludedIDs.contains($0.id) }
+        let remainingPool = activeQuestPool.filter { !excludedIDs.contains($0.id) }
         let remainingSlots = max(desiredDailyQuestCount - quests.count, 0)
 
         quests.append(contentsOf: remainingPool.shuffled().prefix(remainingSlots))
@@ -349,6 +381,29 @@ private extension QuestsViewModel {
 
         persistCompletions()
         checkQuestChestRewardIfNeeded()
+    }
+
+    func recordHydrationGoalDayIfNeeded() {
+        let todayKey = Self.dateKey(for: dayReference, calendar: calendar)
+        var days = Set(userDefaults.stringArray(forKey: hydrationGoalDaysKey) ?? [])
+        guard !days.contains(todayKey) else { return }
+
+        days.insert(todayKey)
+        userDefaults.set(Array(days), forKey: hydrationGoalDaysKey)
+        completeWeeklyHydrationQuestIfNeeded(goalDaysCompleted: days.count)
+    }
+
+    func completeWeeklyHydrationQuestIfNeeded(goalDaysCompleted: Int? = nil) {
+        guard let index = weeklyQuests.firstIndex(where: { $0.id == "weekly-hydration-hero" }) else { return }
+        guard !weeklyQuests[index].isCompleted else { return }
+
+        let completedDays = goalDaysCompleted ?? Set(userDefaults.stringArray(forKey: hydrationGoalDaysKey) ?? []).count
+        guard completedDays >= 4 else { return }
+
+        weeklyQuests[index].isCompleted = true
+        statsStore.registerQuestCompleted(id: weeklyQuests[index].id, xp: weeklyQuests[index].xpReward)
+
+        persistWeeklyCompletions()
     }
 
     func persistCompletions() {

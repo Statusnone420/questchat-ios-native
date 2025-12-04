@@ -100,15 +100,17 @@ private extension QuestsView {
                     }
 
                     ForEach(viewModel.weeklyQuests) { quest in
+                        let isEventDriven = viewModel.isWeeklyEventDrivenQuest(quest)
                         QuestCardView(
                             quest: quest,
                             tierColor: tierColor(for: quest.tier),
                             isBouncing: bouncingQuestIDs.contains(quest.id),
                             isShowingXPBoost: showingXPBoostIDs.contains(quest.id),
-                            onTap: {
+                            onTap: isEventDriven ? nil : {
                                 viewModel.toggleWeeklyQuest(quest)
                             }
                         )
+                        .allowsHitTesting(!isEventDriven)
                         .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
                         .listRowSeparator(.hidden)
                         .onChange(of: quest.isCompleted) { isCompleted in

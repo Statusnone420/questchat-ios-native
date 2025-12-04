@@ -1319,6 +1319,7 @@ final class FocusViewModel: ObservableObject {
         healthStatsStore.update(from: healthBarViewModel.inputs)
         syncPlayerHP()
         evaluateHealthXPBonuses()
+        statsStore.questEventHandler?(.hydrationIntakeLogged(totalOuncesToday: totalWaterOuncesToday))
     }
 
     func logComfortBeverageTapped() {
@@ -2012,6 +2013,7 @@ final class FocusViewModel: ObservableObject {
         refreshDailyHealthBonusState(today: today)
 
         if didHitWaterGoalToday && !waterGoalXPGrantedToday {
+            statsStore.questEventHandler?(.hydrationGoalReached)
             statsStore.grantXP(10, reason: .waterGoal)
             waterGoalXPGrantedToday = true
             userDefaults.set(Calendar.current.startOfDay(for: today), forKey: HealthTrackingStorageKeys.waterGoalAwardDate)
