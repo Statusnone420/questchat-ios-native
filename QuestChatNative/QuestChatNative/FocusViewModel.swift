@@ -1115,7 +1115,6 @@ final class FocusViewModel: ObservableObject {
     var xpNeededForNextLevel: Int { statsStore.xpNeededToLevelUp(from: statsStore.level) }
     var playerLevel: Int { statsStore.level }
     var playerTotalXP: Int { statsStore.totalXP }
-    var xpTotalThisLevel: Int { statsStore.xpTotalThisLevel }
     var xpIntoCurrentLevel: Int { statsStore.xpIntoCurrentLevel }
     var levelProgressFraction: Double {
         let needed = max(1, xpNeededForNextLevel == Int.max ? 1 : xpNeededForNextLevel)
@@ -1413,7 +1412,7 @@ final class FocusViewModel: ObservableObject {
                     pausedRemainingSeconds: totalDuration,
                     hpProgress: hpProgress,
                     playerName: playerDisplayName,
-                    level: playerLevel,
+                    level: level,
                     xpProgress: liveActivityXPProgress
                 )
 
@@ -1472,7 +1471,7 @@ final class FocusViewModel: ObservableObject {
                 initialDuration: initialDuration,
                 hpProgress: hpProgress,
                 playerName: playerDisplayName,
-                playerLevel: playerLevel,
+                level: level,
                 xpProgress: liveActivityXPProgress
             )
         }
@@ -1517,7 +1516,7 @@ final class FocusViewModel: ObservableObject {
                 initialDuration: activeSessionDuration ?? remainingSeconds,
                 hpProgress: hpProgress,
                 playerName: playerDisplayName,
-                playerLevel: playerLevel,
+                level: level,
                 xpProgress: liveActivityXPProgress
             )
         } else if #available(iOS 16.1, *) {
@@ -1626,7 +1625,7 @@ final class FocusViewModel: ObservableObject {
         initialDuration: Int,
         hpProgress: Double,
         playerName: String,
-        playerLevel: Int,
+        level: Int,
         xpProgress: Double
     ) {
         let contentState = FocusSessionAttributes.ContentState(
@@ -1639,13 +1638,13 @@ final class FocusViewModel: ObservableObject {
             pausedRemainingSeconds: remaining,
             hpProgress: hpProgress,
             playerName: playerName,
-            level: playerLevel,
+            level: level,
             xpProgress: xpProgress
         )
 
         Task {
             guard let liveActivity else { return }
-            await liveActivity.update(contentState)
+            await liveActivity.update(using: contentState)
             print("[FocusLiveActivity] Updated: paused=\(isPaused) remaining=\(remaining)")
         }
     }
@@ -1737,7 +1736,7 @@ final class FocusViewModel: ObservableObject {
                                 initialDuration: self.activeSessionDuration ?? remaining,
                                 hpProgress: self.hpProgress,
                                 playerName: self.playerDisplayName,
-                                playerLevel: self.playerLevel,
+                                level: self.level,
                                 xpProgress: self.liveActivityXPProgress
                             )
                         }
