@@ -231,16 +231,27 @@ struct FocusSessionLiveActivityWidget: Widget {
 
                 DynamicIslandExpandedRegion(.bottom) {
                     TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                        let timerRange = context.state.startDate...context.state.endDate
                         let (total, _, remainingInt, progress) = progressMetrics(for: context, now: timeline.date)
                         let color = ringColor(forRemaining: remainingInt, total: Int(total))
 
-                        ProgressView(value: progress)
-                            .progressViewStyle(.linear)
-                            .tint(color)
-                            .frame(height: 1)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .padding(.bottom, 8)
+                        if context.state.isPaused {
+                            ProgressView(value: progress)
+                                .progressViewStyle(.linear)
+                                .tint(color)
+                                .frame(height: 1)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .padding(.bottom, 8)
+                        } else {
+                            ProgressView(timerInterval: timerRange)
+                                .progressViewStyle(.linear)
+                                .tint(color)
+                                .frame(height: 1)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .padding(.bottom, 8)
+                        }
                     }
                 }
             } compactLeading: {
@@ -252,12 +263,14 @@ struct FocusSessionLiveActivityWidget: Widget {
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
+                        .fixedSize(horizontal: true, vertical: false)
                 } else {
                     Text(timerInterval: timerRange, countsDown: true)
                         .font(.caption2.weight(.semibold))
                         .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
             } compactTrailing: {
                 TimelineView(.periodic(from: .now, by: 1)) { timeline in
