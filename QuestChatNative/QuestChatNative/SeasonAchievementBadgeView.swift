@@ -36,9 +36,9 @@ struct SeasonAchievementBadgeView: View {
 
     private var iconView: some View {
         if iconName.contains(".") == false && iconName.unicodeScalars.count == 1 {
-            Text(iconName)
+            AnyView(Text(iconName))
         } else {
-            Image(systemName: iconName)
+            AnyView(Image(systemName: iconName))
         }
     }
 
