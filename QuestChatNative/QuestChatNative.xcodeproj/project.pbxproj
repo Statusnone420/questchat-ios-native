@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D80A60BD2EE1397D003C5262 /* QuestEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80A60BC2EE1397D003C5262 /* QuestEngine.swift */; };
 		D87C18822EDFA74B00438C3A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D87C182B2EDF9B6F00438C3A /* WidgetKit.framework */; };
 		D87C18832EDFA74B00438C3A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D87C182D2EDF9B6F00438C3A /* SwiftUI.framework */; };
 		D87C18942EDFA74C00438C3A /* QuestChatLiveActivityExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D87C18812EDFA74B00438C3A /* QuestChatLiveActivityExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -72,6 +73,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D80A60BC2EE1397D003C5262 /* QuestEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestEngine.swift; sourceTree = "<group>"; };
 		D87C182B2EDF9B6F00438C3A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		D87C182D2EDF9B6F00438C3A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		D87C18812EDFA74B00438C3A /* QuestChatLiveActivityExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QuestChatLiveActivityExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -193,6 +195,7 @@
 		D881CF952EDD1BC200A8A09F /* QuestChatNative */ = {
 			isa = PBXGroup;
 			children = (
+				D80A60BC2EE1397D003C5262 /* QuestEngine.swift */,
 				D8A1A0172EDE07B400A6A017 /* AboutHealthBarView.swift */,
 				D8A1A0092EDE07B400A6A009 /* AppCoordinator.swift */,
 				D8A1A0202EDE07B400A6A020 /* Assets.xcassets */,
@@ -369,6 +372,7 @@
 				D8A2000D2EDE07B400A6A001 /* GameDataResetter.swift in Sources */,
 				D8A2000C2EDE07B400A6A001 /* HealthBarStorage.swift in Sources */,
 				D8A2000B2EDE07B400A6A001 /* SettingsView.swift in Sources */,
+				D80A60BD2EE1397D003C5262 /* QuestEngine.swift in Sources */,
 				D8A2000A2EDE07B400A6A001 /* HealthBarViewModel.swift in Sources */,
 				D8A200092EDE07B400A6A001 /* AppCoordinator.swift in Sources */,
 				D8A200082EDE07B400A6A001 /* QuestsViewModel.swift in Sources */,
