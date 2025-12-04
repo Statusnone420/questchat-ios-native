@@ -19,6 +19,7 @@ final class StatsViewModel: ObservableObject {
 
     @Published private(set) var last7Days: [HealthDaySummary] = []
     @Published var seasonAchievements: [SeasonAchievementItemViewModel] = []
+    @Published var unlockedAchievementToShow: SeasonAchievementItemViewModel?
 
     private let healthStore: HealthBarIRLStatsStore
     private let hydrationSettingsStore: HydrationSettingsStore
@@ -126,6 +127,11 @@ final class StatsViewModel: ObservableObject {
                 isUnlocked: progress.isUnlocked
             )
         }
+    }
+
+    func simulateAchievementUnlock() {
+        guard let firstLocked = seasonAchievements.first(where: { !$0.isUnlocked }) else { return }
+        unlockedAchievementToShow = firstLocked
     }
 
     private var todaySummary: HealthDaySummary? {
