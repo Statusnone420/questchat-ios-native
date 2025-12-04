@@ -286,7 +286,6 @@ final class SessionStatsStore: ObservableObject {
     @Published private(set) var focusSeconds: Int
     @Published private(set) var selfCareSeconds: Int
     @Published private(set) var sessionsCompleted: Int
-    @Published private(set) var playerProgress: PlayerProgress
     @Published private(set) var momentum: Double
     @Published private(set) var sessionHistory: [SessionRecord]
     @Published private(set) var totalFocusSecondsToday: Int
@@ -302,18 +301,18 @@ final class SessionStatsStore: ObservableObject {
     private let playerStateStore: PlayerStateStore
     private var playerCancellables = Set<AnyCancellable>()
 
-    var level: Int { playerProgress.level }
+    var level: Int { progression.level }
 
-    var totalXP: Int { playerProgress.totalXP }
+    var totalXP: Int { progression.totalXP }
 
-    var xpIntoCurrentLevel: Int { playerProgress.xpIntoCurrentLevel }
+    var xpIntoCurrentLevel: Int { progression.xpInCurrentLevel }
 
     var xpForNextLevel: Int {
         let needed = xpNeededToLevelUp(from: level)
         return needed == Int.max ? 0 : max(0, needed - xpIntoCurrentLevel)
     }
 
-    var xp: Int { playerProgress.totalXP }
+    var xp: Int { progression.totalXP }
 
     var playerTitle: String {
         switch level {
@@ -388,16 +387,9 @@ final class SessionStatsStore: ObservableObject {
                 lastActiveDate: nil
             )
         }
-        let initialXP = max(initialProgression.totalXP, playerStateStore.xp)
-        let initialPlayerProgress = PlayerProgress(totalXP: initialXP)
-        progression = ProgressionState(
-            level: initialPlayerProgress.level,
-            xpInCurrentLevel: initialPlayerProgress.xpIntoCurrentLevel,
-            totalXP: initialPlayerProgress.totalXP,
-            streakDays: initialProgression.streakDays,
-            lastActiveDate: initialProgression.lastActiveDate
-        )
-        playerProgress = initialPlayerProgress
+        let initialTotalXP = initialProgression.totalXP > 0 ? initialProgression.totalXP : playerStateStore.xp
+        progression = recalculatedProgression(totalXP: initialTotalXP, streakDays: initialProgression.streakDays, lastActiveDate: initialProgression.lastActiveDate)
+        syncPlayerStateProgress()
 
         lastSessionDate = userDefaults.object(forKey: Keys.lastSessionDate) as? Date
         let storedLastMomentumUpdate = userDefaults.object(forKey: Keys.lastMomentumUpdate) as? Date
@@ -458,7 +450,7 @@ final class SessionStatsStore: ObservableObject {
         refreshMomentumIfNeeded()
 
         let now = Date()
-        let xpBefore = playerProgress.totalXP
+        let xpBefore = progression.totalXP
 
         switch mode {
         case .focus:
@@ -478,7 +470,7 @@ final class SessionStatsStore: ObservableObject {
         lastMomentumUpdate = now
         persist()
         evaluateWeeklyGoalBonus()
-        return playerProgress.totalXP - xpBefore
+        return progression.totalXP - xpBefore
     }
 
     func refreshDailyFocusTotal() {
@@ -568,15 +560,19 @@ final class SessionStatsStore: ObservableObject {
         guard amount > 0 else { return nil }
         let previousLevel = level
 
-        playerProgress.addXP(amount)
-        progression.totalXP = playerProgress.totalXP
-        progression.level = playerProgress.level
-        progression.xpInCurrentLevel = playerProgress.xpIntoCurrentLevel
+        let newTotal = progression.totalXP + amount
+        progression = recalculatedProgression(totalXP: newTotal, streakDays: progression.streakDays, lastActiveDate: progression.lastActiveDate)
 
         if level > previousLevel {
-            lastLevelUp = LevelUpResult(oldLevel: previousLevel, newLevel: level)
+            let result = LevelUpResult(oldLevel: previousLevel, newLevel: level)
+            lastLevelUp = result
+            pendingLevelUp = level
+        } else {
+            lastLevelUp = nil
+            pendingLevelUp = nil
         }
         lastKnownLevel = level
+        syncPlayerStateProgress()
         persist()
         return lastLevelUp
     }
@@ -614,7 +610,7 @@ final class SessionStatsStore: ObservableObject {
 
     @discardableResult
     func registerStreakBonus() -> LevelUpResult? {
-        grantXP(100, reason: .streakBonus)
+        grantXP(20, reason: .streakBonus)
     }
 
     func registerActiveToday(date: Date = Date()) -> LevelUpResult? {
@@ -646,8 +642,7 @@ final class SessionStatsStore: ObservableObject {
         focusSeconds = 0
         selfCareSeconds = 0
         sessionsCompleted = 0
-        playerProgress = PlayerProgress(totalXP: 0)
-        progression = ProgressionState(level: 0, xpInCurrentLevel: 0, totalXP: 0, streakDays: 0, lastActiveDate: nil)
+        progression = ProgressionState(level: 1, xpInCurrentLevel: 0, totalXP: 0, streakDays: 0, lastActiveDate: nil)
         totalFocusSecondsToday = 0
         userDefaults.set(Calendar.current.startOfDay(for: Date()), forKey: Keys.totalFocusDate)
         lastKnownLevel = level
@@ -667,22 +662,38 @@ final class SessionStatsStore: ObservableObject {
     }
 
     func xpNeededToLevelUp(from level: Int) -> Int {
-        guard level < 100 else { return Int.max }
         return 100
     }
 
     private func reduceTotalXP(by amount: Int) {
-        let newTotal = max(0, playerProgress.totalXP - amount)
+        let newTotal = max(0, progression.totalXP - amount)
 
-        playerProgress = PlayerProgress(totalXP: newTotal)
-        progression.totalXP = playerProgress.totalXP
-        progression.level = playerProgress.level
-        progression.xpInCurrentLevel = playerProgress.xpIntoCurrentLevel
-        lastKnownLevel = playerProgress.level
+        progression = recalculatedProgression(totalXP: newTotal, streakDays: progression.streakDays, lastActiveDate: progression.lastActiveDate)
+        lastKnownLevel = progression.level
         pendingLevelUp = nil
         lastLevelUp = nil
+        syncPlayerStateProgress()
         saveProgression()
         persist()
+    }
+
+    private func recalculatedProgression(totalXP: Int, streakDays: Int, lastActiveDate: Date?) -> ProgressionState {
+        let normalizedTotal = max(0, totalXP)
+        let computedLevel = (normalizedTotal / 100) + 1
+        let xpIntoLevel = normalizedTotal % 100
+        return ProgressionState(
+            level: computedLevel,
+            xpInCurrentLevel: xpIntoLevel,
+            totalXP: normalizedTotal,
+            streakDays: streakDays,
+            lastActiveDate: lastActiveDate
+        )
+    }
+
+    private func syncPlayerStateProgress() {
+        playerStateStore.xp = progression.totalXP
+        playerStateStore.level = progression.level
+        playerStateStore.pendingLevelUp = pendingLevelUp
     }
 
     private func saveProgression() {
