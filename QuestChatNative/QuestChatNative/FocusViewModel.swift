@@ -358,6 +358,20 @@ final class SessionStatsStore: ObservableObject {
         totalFocusSecondsToday / 60
     }
 
+    var focusSessionsToday: Int {
+        todaySessions
+            .filter { $0.modeRawValue == FocusTimerMode.focus.rawValue }
+            .count
+    }
+
+    var totalFocusMinutesThisWeek: Int {
+        focusSecondsThisWeek / 60
+    }
+
+    var totalFocusSessionsThisWeek: Int {
+        focusSessionsThisWeek
+    }
+
     init(userDefaults: UserDefaults = .standard, playerStateStore: PlayerStateStore) {
         self.userDefaults = userDefaults
         self.playerStateStore = playerStateStore
@@ -474,7 +488,17 @@ final class SessionStatsStore: ObservableObject {
         lastMomentumUpdate = now
         persist()
         evaluateWeeklyGoalBonus()
+
+        if mode == .focus {
+            questEventHandler?(.focusMinutesUpdated(totalMinutesToday: totalFocusSecondsToday / 60))
+            questEventHandler?(.focusSessionsUpdated(totalSessionsToday: focusSessionsToday))
+        }
         return progression.totalXP - xpBefore
+    }
+
+    func emitQuestProgressSnapshot() {
+        questEventHandler?(.focusMinutesUpdated(totalMinutesToday: totalFocusSecondsToday / 60))
+        questEventHandler?(.focusSessionsUpdated(totalSessionsToday: focusSessionsToday))
     }
 
     func refreshDailyFocusTotal() {
@@ -883,6 +907,25 @@ final class SessionStatsStore: ObservableObject {
         return sessionHistory
             .filter { calendar.isDate($0.date, inSameDayAs: targetDay) }
             .reduce(0) { $0 + $1.durationSeconds }
+    }
+
+    private var focusSecondsThisWeek: Int {
+        sessionHistory
+            .filter { $0.modeRawValue == FocusTimerMode.focus.rawValue && isDate($0.date, inSameWeekAs: Date()) }
+            .reduce(0) { $0 + $1.durationSeconds }
+    }
+
+    private var focusSessionsThisWeek: Int {
+        sessionHistory
+            .filter { $0.modeRawValue == FocusTimerMode.focus.rawValue && isDate($0.date, inSameWeekAs: Date()) }
+            .count
+    }
+
+    private func isDate(_ date: Date, inSameWeekAs reference: Date) -> Bool {
+        let calendar = Calendar.current
+        let targetComponents = calendar.dateComponents([.weekOfYear, .yearForWeekOfYear], from: reference)
+        let dateComponents = calendar.dateComponents([.weekOfYear, .yearForWeekOfYear], from: date)
+        return targetComponents.weekOfYear == dateComponents.weekOfYear && targetComponents.yearForWeekOfYear == dateComponents.yearForWeekOfYear
     }
 
     private func evaluateWeeklyGoalBonus() {
