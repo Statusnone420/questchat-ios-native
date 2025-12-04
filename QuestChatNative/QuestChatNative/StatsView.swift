@@ -77,44 +77,70 @@ struct StatsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView (.vertical, showsIndicators: false) {
-                VStack(spacing: 18) {
-                    TodaySummaryView(
-                        completedQuests: questsViewModel.completedQuestsCount,
-                        totalQuests: questsViewModel.totalQuestsCount,
-                        focusMinutes: focusMinutesToday,
-                        selfCareMinutes: selfCareMinutesToday,
-                        dailyFocusTarget: dailyGoalMinutes,
-                        currentStreakDays: store.currentStreakDays
-                    )
+            ZStack {
+                ScrollView (.vertical, showsIndicators: false) {
+                    VStack(spacing: 18) {
+                        TodaySummaryView(
+                            completedQuests: questsViewModel.completedQuestsCount,
+                            totalQuests: questsViewModel.totalQuestsCount,
+                            focusMinutes: focusMinutesToday,
+                            selfCareMinutes: selfCareMinutesToday,
+                            dailyFocusTarget: dailyGoalMinutes,
+                            currentStreakDays: store.currentStreakDays
+                        )
 
-                    dailyGoalCard
-                    weeklyPathCard
-                    achievementsSection
-                    healthBarWeeklySummary
+                        dailyGoalCard
+                        weeklyPathCard
+                        achievementsSection
+                        healthBarWeeklySummary
 
-                    header
-                    summaryTiles
-                    sessionBreakdown
-                    sessionHistorySection
+                        header
+                        summaryTiles
+                        sessionBreakdown
+                        sessionHistorySection
+
+#if DEBUG
+                        Section {
+                            Button("Simulate Achievement Unlock") {
+                                viewModel.simulateAchievementUnlock()
+                            }
+                        }
+#endif
+                    }
+                    .padding(20)
                 }
-                .padding(20)
+                .background(Color.black.ignoresSafeArea())
+                .navigationTitle(QuestChatStrings.StatsView.navigationTitle)
+                .toolbarBackground(Color.black, for: .navigationBar)
+                .toolbarColorScheme(.dark, for: .navigationBar)
+                .sheet(isPresented: $showPlayerCard) {
+                    PlayerCardView(
+                        store: store,
+                        statsViewModel: viewModel,
+                        healthBarViewModel: healthBarViewModel,
+                        focusViewModel: focusViewModel
+                    )
+                }
+                .onAppear {
+                    store.refreshMomentumIfNeeded()
+                }
+
+                if let unlocked = viewModel.unlockedAchievementToShow {
+                    AchievementUnlockOverlayView(
+                        achievement: unlocked,
+                        xpReward: 500,
+                        onEquipTitle: {
+                            viewModel.unlockedAchievementToShow = nil
+                        },
+                        onDismiss: {
+                            viewModel.unlockedAchievementToShow = nil
+                        }
+                    )
+                    .transition(.opacity.combined(with: .scale))
+                    .zIndex(10)
+                }
             }
-            .background(Color.black.ignoresSafeArea())
-            .navigationTitle(QuestChatStrings.StatsView.navigationTitle)
-            .toolbarBackground(Color.black, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .sheet(isPresented: $showPlayerCard) {
-                PlayerCardView(
-                    store: store,
-                    statsViewModel: viewModel,
-                    healthBarViewModel: healthBarViewModel,
-                    focusViewModel: focusViewModel
-                )
-            }
-            .onAppear {
-                store.refreshMomentumIfNeeded()
-            }
+            .animation(.easeInOut, value: viewModel.unlockedAchievementToShow != nil)
         }
     }
 
