@@ -116,11 +116,16 @@ final class QuestsViewModel: ObservableObject {
     func reroll(quest: Quest) {
         guard !hasUsedRerollToday else { return }
         guard !quest.isCompleted else { return }
+        guard !Self.nonRerollableQuestIDs.contains(quest.id) else { return }
         guard let index = dailyQuests.firstIndex(where: { $0.id == quest.id }) else { return }
 
         let currentIDs = Set(dailyQuests.map { $0.id })
+        let completedToday = completedQuestIDs(for: dayReference, calendar: calendar, userDefaults: userDefaults)
         let availableReplacementQuests = Self.questPool.filter { candidate in
-            candidate.id != quest.id && !currentIDs.contains(candidate.id)
+            candidate.id != quest.id &&
+                !currentIDs.contains(candidate.id) &&
+                !completedToday.contains(candidate.id) &&
+                !Self.nonRerollableQuestIDs.contains(candidate.id)
         }
 
         guard let newQuest = availableReplacementQuests.randomElement() else { return }
@@ -131,7 +136,8 @@ final class QuestsViewModel: ObservableObject {
             detail: newQuest.detail,
             xpReward: newQuest.xpReward,
             tier: newQuest.tier,
-            isCompleted: false
+            isCompleted: false,
+            isCoreToday: false
         )
 
         hasUsedRerollToday = true
@@ -165,28 +171,51 @@ final class QuestsViewModel: ObservableObject {
 private extension QuestsViewModel {
     static let questChestBonusXP = 50
 
+    static let desiredDailyQuestCount = 5
+
     static let questPool: [Quest] = [
-        Quest(id: "daily-checkin", title: QuestChatStrings.QuestsPool.dailyCheckInTitle, detail: QuestChatStrings.QuestsPool.dailyCheckInDescription, xpReward: 25, tier: .core, isCompleted: false),
-        Quest(id: "hydrate", title: QuestChatStrings.QuestsPool.hydrateTitle, detail: QuestChatStrings.QuestsPool.hydrateDescription, xpReward: 15, tier: .habit, isCompleted: false),
-        Quest(id: "stretch", title: QuestChatStrings.QuestsPool.stretchTitle, detail: QuestChatStrings.QuestsPool.stretchDescription, xpReward: 15, tier: .habit, isCompleted: false),
-        Quest(id: "plan", title: QuestChatStrings.QuestsPool.planTitle, detail: QuestChatStrings.QuestsPool.planDescription, xpReward: 30, tier: .core, isCompleted: false),
-        Quest(id: "deep-focus", title: QuestChatStrings.QuestsPool.deepFocusTitle, detail: QuestChatStrings.QuestsPool.deepFocusDescription, xpReward: 35, tier: .bonus, isCompleted: false),
-        Quest(id: "gratitude", title: QuestChatStrings.QuestsPool.gratitudeTitle, detail: QuestChatStrings.QuestsPool.gratitudeDescription, xpReward: 20, tier: .bonus, isCompleted: false)
+        Quest(id: "daily-checkin", title: "Load today’s quest log", detail: "Open the quest log and decide what actually matters.", xpReward: 10, tier: .core, isCompleted: false),
+        Quest(id: "plan-focus-session", title: "Plan one focus session", detail: "Pick a timer and commit to at least one run today.", xpReward: 35, tier: .core, isCompleted: false),
+        Quest(id: "healthbar-checkin", title: "HealthBar check-in", detail: "Update your mood, gut, and sleep before you go heads-down.", xpReward: 35, tier: .core, isCompleted: false),
+        Quest(id: "finish-focus-session", title: "Finish one focus session", detail: "Complete any focus timer, even a short one.", xpReward: 35, tier: .habit, isCompleted: false),
+        Quest(id: "focus-25-min", title: "Hit 25 focus minutes today", detail: "Accumulate at least 25 minutes of focus time.", xpReward: 60, tier: .bonus, isCompleted: false),
+        Quest(id: "hydrate-checkpoint", title: "Hydrate checkpoint", detail: "Drink a real glass of water before a session starts.", xpReward: 20, tier: .habit, isCompleted: false),
+        Quest(id: "hydration-goal", title: "Hit your hydration goal today", detail: "Stay on top of water throughout the day.", xpReward: 60, tier: .bonus, isCompleted: false),
+        Quest(id: "irl-patch", title: "IRL patch update", detail: "Stretch for 2 minutes and do a posture check.", xpReward: 20, tier: .habit, isCompleted: false),
+        Quest(id: "tidy-spot", title: "Tidy one small area", detail: "Reset your desk, sink, or a small zone.", xpReward: 20, tier: .habit, isCompleted: false),
+        Quest(id: "digital-cobweb", title: "Clear one digital cobweb", detail: "Archive an inbox, clear notifications, or file a document.", xpReward: 20, tier: .habit, isCompleted: false),
+        Quest(id: "step-outside", title: "Step outside or change rooms", detail: "Move your body and reset your head for a few minutes.", xpReward: 20, tier: .habit, isCompleted: false),
+        Quest(id: "quick-self-care", title: "Do one quick self-care check", detail: "Breathe, sip water, or take a bathroom break.", xpReward: 20, tier: .habit, isCompleted: false)
     ]
 
     static let coreQuestIDs: [FocusArea: [String]] = [
-        .work: ["daily-checkin", "plan", "hydrate"],
-        .home: ["daily-checkin", "stretch", "hydrate"],
-        .health: ["stretch", "hydrate", "plan"],
-        .chill: ["daily-checkin", "stretch", "plan"]
+        .work: ["daily-checkin", "plan-focus-session", "healthbar-checkin"],
+        .home: ["daily-checkin", "plan-focus-session", "healthbar-checkin"],
+        .health: ["daily-checkin", "plan-focus-session", "healthbar-checkin"],
+        .chill: ["daily-checkin", "plan-focus-session", "healthbar-checkin"]
     ]
 
     static func seedQuests(with completedIDs: Set<String>) -> [Quest] {
-        var quests = Array(questPool.prefix(4))
+        let poolByID = Dictionary(uniqueKeysWithValues: questPool.map { ($0.id, $0) })
+
+        var quests: [Quest] = requiredQuestIDs.compactMap { poolByID[$0] }
+
+        for preferredID in preferredQuestIDs where quests.count < desiredDailyQuestCount {
+            if !quests.contains(where: { $0.id == preferredID }), let quest = poolByID[preferredID] {
+                quests.append(quest)
+            }
+        }
+
+        let excludedIDs = Set(quests.map { $0.id })
+        let remainingPool = questPool.filter { !excludedIDs.contains($0.id) }
+        let remainingSlots = max(desiredDailyQuestCount - quests.count, 0)
+
+        quests.append(contentsOf: remainingPool.shuffled().prefix(remainingSlots))
 
         quests = quests.map { quest in
             var updated = quest
             updated.isCompleted = completedIDs.contains(quest.id)
+            updated.isCoreToday = Self.requiredQuestIDs.contains(quest.id)
             return updated
         }
 
@@ -220,4 +249,8 @@ private extension QuestsViewModel {
         let day = components.day ?? 0
         return String(format: "quests-%04d-%02d-%02d", year, month, day)
     }
+
+    static let requiredQuestIDs: [String] = ["daily-checkin"]
+    static let preferredQuestIDs: [String] = ["plan-focus-session", "healthbar-checkin"]
+    static let nonRerollableQuestIDs: Set<String> = Set(requiredQuestIDs + preferredQuestIDs)
 }
