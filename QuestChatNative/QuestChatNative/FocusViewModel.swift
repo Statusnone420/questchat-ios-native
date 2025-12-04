@@ -1102,6 +1102,7 @@ final class FocusViewModel: ObservableObject {
         self.healthBarViewModel = healthBarViewModel
         self.hydrationSettingsStore = hydrationSettingsStore
         self.currentHP = healthStatsStore.currentHP
+        syncPlayerHP(with: healthStatsStore.currentHP)
 
         let seeded = FocusViewModel.seededCategories()
         let loadedCategories: [TimerCategory] = seeded.map { base in
@@ -1130,7 +1131,10 @@ final class FocusViewModel: ObservableObject {
 
         healthStatsStore.$currentHP
             .receive(on: RunLoop.main)
-            .sink { [weak self] in self?.currentHP = $0 }
+            .sink { [weak self] hp in
+                self?.currentHP = hp
+                self?.syncPlayerHP(with: hp)
+            }
             .store(in: &cancellables)
 
         if let healthBarViewModel {
@@ -1370,6 +1374,7 @@ final class FocusViewModel: ObservableObject {
 
         updateWaterIntakeTotals()
         healthStatsStore.update(from: healthBarViewModel.inputs)
+        syncPlayerHP()
         evaluateHealthXPBonuses()
     }
 
@@ -1381,6 +1386,7 @@ final class FocusViewModel: ObservableObject {
 
         totalComfortOuncesToday += hydrationSettingsStore.ouncesPerComfortTap
         healthStatsStore.update(from: healthBarViewModel.inputs)
+        syncPlayerHP()
     }
 
     func logStaminaPotionTapped() {
@@ -1978,9 +1984,16 @@ final class FocusViewModel: ObservableObject {
             .sink { [weak self] inputs in
                 self?.updateWaterIntakeTotals()
                 self?.healthStatsStore.update(from: inputs)
+                self?.syncPlayerHP()
                 self?.evaluateHealthXPBonuses()
             }
             .store(in: &cancellables)
+    }
+
+    private func syncPlayerHP(with hp: Int? = nil) {
+        let currentHP = hp ?? healthStatsStore.currentHP
+        playerStateStore.currentHP = currentHP
+        playerStateStore.maxHP = healthStatsStore.maxHP
     }
 
     private var waterGoalToday: Int { hydrationSettingsStore.dailyWaterGoalOunces }
