@@ -110,12 +110,30 @@ final class QuestsViewModel: ObservableObject {
         dailyQuests.filter { $0.isCompleted }.count
     }
 
+    var sortedDailyQuests: [Quest] {
+        dailyQuests
+            .enumerated()
+            .sorted { lhs, rhs in
+                if lhs.element.isCompleted != rhs.element.isCompleted {
+                    return lhs.element.isCompleted == false
+                }
+
+                return lhs.offset < rhs.offset
+            }
+            .map(\.element)
+    }
+
     var totalQuestsCount: Int {
         dailyQuests.count
     }
 
     var totalDailyXP: Int {
         dailyQuests.reduce(0) { $0 + $1.xpReward }
+    }
+
+    var allCoreDailyQuestsCompleted: Bool {
+        let coreQuests = dailyQuests.filter { $0.isCoreToday }
+        return !coreQuests.isEmpty && coreQuests.allSatisfy { $0.isCompleted }
     }
 
     var weeklyCompletedCount: Int {

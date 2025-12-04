@@ -48,7 +48,7 @@ private extension QuestsView {
 
             if selectedScope == .daily {
                 Section {
-                    ForEach(viewModel.dailyQuests) { quest in
+                    ForEach(viewModel.sortedDailyQuests) { quest in
                         let isEventDriven = viewModel.isEventDrivenQuest(quest)
                         QuestCardView(
                             quest: quest,
@@ -124,6 +124,7 @@ private extension QuestsView {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .scrollIndicators(.hidden)
         .background(Color.black.ignoresSafeArea())
         .overlay(alignment: .center) {
             if selectedScope == .daily && viewModel.hasQuestChestReady {
@@ -186,7 +187,7 @@ private extension QuestsView {
                     }
                     .buttonStyle(.plain)
                 } else if !viewModel.allQuestsComplete {
-                    Text(QuestChatStrings.QuestsView.chestProgress(viewModel.remainingQuestsUntilChest))
+                    Text(viewModel.allCoreDailyQuestsCompleted ? "Core quests complete – finish habits for extra XP." : QuestChatStrings.QuestsView.chestProgress(viewModel.remainingQuestsUntilChest))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else {
@@ -354,7 +355,13 @@ private struct QuestCardView: View {
                         HStack(alignment: .center) {
                             tierPill
                             Spacer()
-                            xpPill
+                            VStack(alignment: .trailing, spacing: 4) {
+                                xpPill
+
+                                if quest.isCompleted {
+                                    completedPill
+                                }
+                            }
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
@@ -432,6 +439,16 @@ private struct QuestCardView: View {
             .background(Color.mint.opacity(0.18))
             .foregroundStyle(.mint)
             .clipShape(Capsule())
+            .opacity(contentOpacity)
+    }
+
+    private var completedPill: some View {
+        Text("Completed")
+            .font(.caption2)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(Color.secondary.opacity(0.25)))
+            .foregroundStyle(.secondary)
             .opacity(contentOpacity)
     }
 
