@@ -27,6 +27,7 @@ final class StatsViewModel: ObservableObject {
     private let weekdayFormatter: DateFormatter
     private let userDefaults: UserDefaults
     private let calendar = Calendar.current
+    private var cancellables = Set<AnyCancellable>()
 
     init(
         healthStore: HealthBarIRLStatsStore,
@@ -69,6 +70,14 @@ final class StatsViewModel: ObservableObject {
         seasonAchievementsStore.$progressById
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.rebuildSeasonAchievements() }
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: .seasonAchievementUnlocked, object: seasonAchievementsStore)
+            .compactMap { $0.userInfo?["achievementId"] as? String }
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] achievementId in
+                self?.handleSeasonAchievementUnlocked(id: achievementId)
+            }
             .store(in: &cancellables)
     }
 
@@ -134,6 +143,11 @@ final class StatsViewModel: ObservableObject {
         unlockedAchievementToShow = firstLocked
     }
 
+    private func handleSeasonAchievementUnlocked(id: String) {
+        guard let item = seasonAchievements.first(where: { $0.id == id }) else { return }
+        unlockedAchievementToShow = item
+    }
+
     private var todaySummary: HealthDaySummary? {
         let today = calendar.startOfDay(for: Date())
         return healthStore.days.first { calendar.isDate($0.date, inSameDayAs: today) }
@@ -152,5 +166,4 @@ final class StatsViewModel: ObservableObject {
         min(max(value, 0), 1)
     }
 
-    private var cancellables = Set<AnyCancellable>()
 }

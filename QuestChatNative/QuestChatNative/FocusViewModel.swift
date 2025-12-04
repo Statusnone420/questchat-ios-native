@@ -1046,6 +1046,7 @@ final class FocusViewModel: ObservableObject {
     let playerStateStore: PlayerStateStore
     let healthStatsStore: HealthBarIRLStatsStore
     let hydrationSettingsStore: HydrationSettingsStore
+    let seasonAchievementsStore: SeasonAchievementsStore
     private var cancellables = Set<AnyCancellable>()
     private var healthBarViewModel: HealthBarViewModel?
 
@@ -1080,6 +1081,7 @@ final class FocusViewModel: ObservableObject {
         healthStatsStore: HealthBarIRLStatsStore = HealthBarIRLStatsStore(),
         healthBarViewModel: HealthBarViewModel? = nil,
         hydrationSettingsStore: HydrationSettingsStore = HydrationSettingsStore(),
+        seasonAchievementsStore: SeasonAchievementsStore = DependencyContainer.shared.seasonAchievementsStore,
         initialMode: FocusTimerMode = .focus
     ) {
         // Assign non-dependent stored properties first
@@ -1088,6 +1090,7 @@ final class FocusViewModel: ObservableObject {
         self.healthStatsStore = healthStatsStore
         self.healthBarViewModel = healthBarViewModel
         self.hydrationSettingsStore = hydrationSettingsStore
+        self.seasonAchievementsStore = seasonAchievementsStore
         self.currentHP = healthStatsStore.currentHP
         hpCheckinQuestSentDate = userDefaults.object(forKey: HealthTrackingStorageKeys.hpCheckinQuestDate) as? Date
         // Defer syncing player HP until after initialization completes to avoid using self too early.
@@ -2069,6 +2072,7 @@ final class FocusViewModel: ObservableObject {
             userDefaults.set(startOfDay, forKey: HealthTrackingStorageKeys.hydrationGoalQuestDate)
             statsStore.questEventHandler?(.hydrationGoalReached)
             statsStore.questEventHandler?(.hydrationGoalDayCompleted)
+            seasonAchievementsStore.applyProgress(for: .hydrationDaysReached)
         }
 
         if healthComboIsComplete && !healthComboXPGrantedToday {
