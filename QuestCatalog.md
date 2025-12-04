@@ -2,6 +2,10 @@
 
 This document defines the XP economy, quest catalog, and generation rules for QuestChat.
 
+- Copy rules:
+  - Any quest with a numeric requirement (minutes, sessions, days, cups, HP%) **must** state the exact requirement in its subtitle.
+  - Avoid jargon like “sprint” – use “session”, “timer”, “day”, etc.
+
 ---
 
 ## XP Economy
@@ -35,7 +39,7 @@ All quest XP values below use these tiers.
 - `focus` – focus timers, deep work, productivity
 - `hydration` – water intake
 - `hp_core` – mood, gut, sleep, HP bar
-- `chores_work` – chores, cleaning, errands, work sprints
+- `chores_work` – chores, cleaning, errands, work sessions
 - `meta` – app usage: quests tab, stats tab, planning, reviews
 
 **Completion Events (conceptual)**
@@ -65,15 +69,15 @@ These are the main pool of **daily_core** quests. The generator will always incl
 | ID                         | Type        | Category   | Difficulty | XP  | Title                     | Subtitle                                                        | Completion Condition (concept)                                                                 |
 |----------------------------|------------|-----------|-----------|-----|---------------------------|------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
 | LOAD_QUEST_LOG             | daily_core | meta      | Tiny      | 10  | Load today’s quest log    | Open the Quests tab to see what’s on deck.                      | First time the Quests tab is opened on a given day.                                            |
-| PLAN_FOCUS_SESSION         | daily_core | focus     | Medium    | 35  | Plan one focus session    | Pick a timer and commit to at least one run today.             | Start any focus timer with duration ≥ 15 minutes.                                              |
-| COMPLETE_FOCUS_SESSION     | daily_core | focus     | Big       | 60  | Finish a focus session    | See one focus run all the way to zero.                          | Complete any focus timer with duration ≥ 25 minutes.                                           |
+| PLAN_FOCUS_SESSION         | daily_core | focus     | Medium    | 35  | Plan one focus session    | Start a focus timer that runs for at least 15 minutes today.             | Start any focus timer with duration ≥ 15 minutes.              |
+| COMPLETE_FOCUS_SESSION     | daily_core | focus     | Big       | 60  | Finish a focus session    | Finish a focus timer that lasts 25 minutes or longer.                          | Complete any focus timer with duration ≥ 25 minutes.               |
 | HEALTHBAR_CHECKIN          | daily_core | hp_core   | Medium    | 35  | HealthBar check-in        | Update mood, gut, and sleep for today.                          | Mood, gut, and sleep all set at least once today.                                              |
-| HYDRATE_CHECKPOINT_16OZ    | daily_core | hydration | Small     | 20  | Hydrate checkpoint        | Drink a real glass of water before you start.                   | `hydration_total_today_oz >= 16`.                                                              |
-| HYDRATE_CHECKPOINT_48OZ    | daily_core | hydration | Medium    | 35  | Middle of the map         | Get at least halfway to your daily water goal.                 | `hydration_total_today_oz >= 48`.                                                              |
+| HYDRATE_CHECKPOINT_16OZ    | daily_core | hydration | Small     | 20  | Hydrate checkpoint        | Drink at least 16 oz of water before you start.                   | `hydration_total_today_oz >= 16`.               |
+| HYDRATE_CHECKPOINT_48OZ    | daily_core | hydration | Medium    | 35  | Middle of the map         | Reach 48 oz to get halfway to your daily water goal.                 | `hydration_total_today_oz >= 48`.              |
 | IRL_PATCH_UPDATE           | daily_core | hp_core   | Small     | 20  | IRL patch update          | Stretch for 2 minutes and un-gremlin your spine.               | Complete any “Stretch” / “Movement” quick timer ≥ 2 minutes.                                   |
-| CHORE_BLITZ                | daily_core | chores_work| Medium   | 35  | Chore blitz               | Clear a small IRL dungeon.                                      | Complete any “Chores” category timer with duration ≥ 10 minutes.                               |
-| STATS_REVIEW               | daily_core | meta      | Tiny      | 10  | Check your stats          | Take a quick peek at today’s progress.                          | Open the Stats tab at least once after 7pm local time.                                         |
-| WINDDOWN_ROUTINE           | daily_core | hp_core   | Small     | 20  | Wind-down routine         | Give Future You a calmer morning.                               | After 8pm, either update sleep slider OR complete any non-work timer ≥ 10 minutes.             |
+| CHORE_BLITZ                | daily_core | chores_work| Medium   | 35  | Chore blitz               | Run a “Chores” timer for at least 10 minutes.                                      | Complete any “Chores” category timer with duration ≥ 10 minutes.               |
+| STATS_REVIEW               | daily_core | meta      | Tiny      | 10  | Check your stats          | Open the Stats tab after 7pm to check today’s progress.                          | Open the Stats tab at least once after 7pm local time.               |
+| WINDDOWN_ROUTINE           | daily_core | hp_core   | Small     | 20  | Wind-down routine         | After 8pm, update sleep or finish any non-work timer for 10+ minutes.                               | After 8pm, either update sleep slider OR complete any non-work timer ≥ 10 minutes.             |
 
 ---
 
@@ -85,19 +89,19 @@ These are `daily_habit` quests pulled based on user-selected habits. The app can
 
 | ID                         | Type        | Category   | Difficulty | XP  | Title                      | Subtitle                                          | Completion Condition                                                          |
 |----------------------------|------------|-----------|-----------|-----|----------------------------|--------------------------------------------------|-------------------------------------------------------------------------------|
-| HYDRATE_NOW_GLASS          | daily_habit| hydration | Tiny      | 10  | Potion sip                | Drink one real glass right now.                  | Log ≥ 8 oz of water after the quest is generated (same calendar day).        |
-| HYDRATE_32OZ               | daily_habit| hydration | Small     | 20  | Halfway to full flask     | Hit at least 32 oz today.                        | `hydration_total_today_oz >= 32`.                                            |
-| HYDRATE_64OZ               | daily_habit| hydration | Medium    | 35  | Full flask kind of day    | Hit 64 oz of water today.                        | `hydration_total_today_oz >= 64`.                                            |
+| HYDRATE_NOW_GLASS          | daily_habit| hydration | Tiny      | 10  | Potion sip                | Drink at least 8 oz of water right now.                  | Log ≥ 8 oz of water after the quest is generated (same calendar day).        |
+| HYDRATE_32OZ               | daily_habit| hydration | Small     | 20  | Halfway to full flask     | Log 32 oz of water today.                        | `hydration_total_today_oz >= 32`.                                            |
+| HYDRATE_64OZ               | daily_habit| hydration | Medium    | 35  | Full flask kind of day    | Log 64 oz of water today.                        | `hydration_total_today_oz >= 64`.                                            |
 | HYDRATE_MULTI_CHECKPOINT   | daily_habit| hydration | Medium    | 35  | Split the potions         | Log water at 3 or more separate times today.     | `hydration_log_events_today >= 3`.                                           |
 
 ### Focus Habit Quests
 
 | ID                         | Type        | Category | Difficulty | XP  | Title                         | Subtitle                                             | Completion Condition                                                                 |
 |----------------------------|------------|---------|-----------|-----|-------------------------------|-----------------------------------------------------|--------------------------------------------------------------------------------------|
-| FOCUS_TWO_SESSIONS         | daily_habit| focus   | Medium    | 35  | Double focus                  | Complete two focus sessions today.                  | `focus_session_completed(duration >= 15m)` count ≥ 2.                                |
-| FOCUS_DEEP_SESSION         | daily_habit| focus   | Big       | 60  | Deep dungeon dive             | One long, uninterrupted focus session.              | Complete one focus session with duration ≥ 45 minutes.                               |
-| FOCUS_NO_DROP_SESSION      | daily_habit| focus   | Small     | 20  | No flinches                   | Start and finish a session without pausing.         | Complete a focus session ≥ 15 minutes with zero pauses / cancels.                    |
-| FOCUS_MORNING_SESSION      | daily_habit| focus   | Small     | 20  | Morning initiative            | Win the morning with a focus run.                   | Complete any focus session ≥ 15 minutes that ends before 11am.                       |
+| FOCUS_TWO_SESSIONS         | daily_habit| focus   | Medium    | 35  | Double focus                  | Complete two 15+ minute focus sessions today.                  | `focus_session_completed(duration >= 15m)` count ≥ 2.                                |
+| FOCUS_DEEP_SESSION         | daily_habit| focus   | Big       | 60  | Deep dungeon dive             | Finish one uninterrupted focus session of at least 45 minutes.              | Complete one focus session with duration ≥ 45 minutes.                               |
+| FOCUS_NO_DROP_SESSION      | daily_habit| focus   | Small     | 20  | No flinches                   | Complete a 15+ minute session without pausing.         | Complete a focus session ≥ 15 minutes with zero pauses / cancels.                    |
+| FOCUS_MORNING_SESSION      | daily_habit| focus   | Small     | 20  | Morning initiative            | End a 15+ minute focus session before 11am.                   | Complete any focus session ≥ 15 minutes that ends before 11am.                       |
 
 ### HP Core Habit Quests
 
@@ -112,10 +116,10 @@ These are `daily_habit` quests pulled based on user-selected habits. The app can
 
 | ID                         | Type        | Category    | Difficulty | XP  | Title                         | Subtitle                                             | Completion Condition                                                                |
 |----------------------------|------------|------------|-----------|-----|-------------------------------|-----------------------------------------------------|-------------------------------------------------------------------------------------|
-| CHORE_THREE_SMALL          | daily_habit| chores_work| Medium    | 35  | Three tiny wins               | Knock out three small chores.                       | Complete 3 “Chores” timers with duration ≥ 5 minutes each.                          |
-| WORK_SPRINT_25             | daily_habit| chores_work| Big       | 60  | Work sprint                   | Do a focused 25-minute work burst.                  | Complete a “Work” timer with duration ≥ 25 minutes.                                  |
-| WORK_EARLY_BLOCK           | daily_habit| chores_work| Small     | 20  | Early shift                   | Get one work thing done before noon.                | Complete a “Work” timer ≥ 15 minutes that ends before 12pm.                          |
-| CHORE_ROOM_RESET           | daily_habit| chores_work| Small     | 20  | Room reset                    | Do a cleaning pass somewhere that matters.          | Complete any “Chores” timer ≥ 10 minutes whose label includes “clean” or “tidy” if available. |
+| CHORE_THREE_SMALL          | daily_habit| chores_work| Medium    | 35  | Three tiny wins               | Complete three Chores timers of at least 5 minutes each.                       | Complete 3 “Chores” timers with duration ≥ 5 minutes each.                          |
+| WORK_SPRINT_25             | daily_habit| chores_work| Big       | 60  | Work session                   | Finish a Work timer of at least 25 minutes.                  | Complete a “Work” timer with duration ≥ 25 minutes.                                  |
+| WORK_EARLY_BLOCK           | daily_habit| chores_work| Small     | 20  | Early shift                   | Finish a 15+ minute Work timer before noon.                | Complete a “Work” timer ≥ 15 minutes that ends before 12pm.                          |
+| CHORE_ROOM_RESET           | daily_habit| chores_work| Small     | 20  | Room reset                    | Complete a 10+ minute Chores timer that includes “clean” or “tidy” in the label.          | Complete any “Chores” timer ≥ 10 minutes whose label includes “clean” or “tidy” if available. |
 
 - Retired quest: `digital-cobweb` ("Clear one digital cobweb") is disabled until an automated event source is available.
 
@@ -127,10 +131,10 @@ These are `weekly` type quests that sit in a separate “Weekly quests” sectio
 
 | ID                         | Category    | Difficulty | XP  | Title                             | Subtitle                                                    | Completion Condition                                                                                 |
 |----------------------------|------------|-----------|-----|-----------------------------------|------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
-| WEEK_FOCUS_10_SESSIONS     | focus      | Medium    | 120 | Weekly focus grind                | Complete 10 focus sessions this week.                      | Count of `focus_session_completed(duration >= 15m)` ≥ 10.                                            |
+| WEEK_FOCUS_10_SESSIONS     | focus      | Medium    | 120 | Weekly focus grind                | Complete 10 focus sessions of 15+ minutes this week.                      | Count of `focus_session_completed(duration >= 15m)` ≥ 10.            |
 | WEEK_FOCUS_3_DEEP          | focus      | Big       | 150 | Deep work trilogy                 | Finish three 45+ minute focus sessions.                    | Count of `focus_session_completed(duration >= 45m)` ≥ 3.                                             |
 | WEEK_HYDRATE_4_DAYS_64OZ   | hydration  | Medium    | 120 | Hydration hero                    | Hit 64 oz of water on 4 different days.                    | On 4 days this week, `hydration_total_today_oz >= 64`.                                              |
-| WEEK_CHORE_5_TIMERS        | chores_work| Medium    | 120 | Dungeon janitor                   | Run 5 “Chores” timers across the week.                     | Count of “Chores” timers (duration ≥ 10m) ≥ 5.                                                       |
+| WEEK_CHORE_5_TIMERS        | chores_work| Medium    | 120 | Dungeon janitor                   | Run 5 Chores timers of 10+ minutes across the week.                     | Count of “Chores” timers (duration ≥ 10m) ≥ 5.            |
 | WEEK_HP_5_CHECKINS         | hp_core    | Medium    | 120 | Keep an eye on the bar            | Full HP check-in on 5 days.                                | On 5 days this week, mood + gut + sleep all updated.                                                |
 | WEEK_DAILY_CORE_4_DAYS     | meta       | Big       | 150 | Four solid days                   | Clear your core dailies on 4 days this week.               | On 4 days this week, all `counts_for_daily_chest` quests completed.                                 |
 | WEEK_SELFCARE_3_DAYS       | hp_core    | Medium    | 120 | Pamper the protagonist            | Do self-care timers on 3 different days.                   | On 3 days, complete at least one timer with category “Self-care” / appropriate flag.                |

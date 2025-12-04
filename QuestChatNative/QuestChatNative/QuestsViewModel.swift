@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 
+/// Represents a quest shown in the UI. If a quest has a numeric requirement (minutes, sessions, days, cups, HP%), keep the subtitle explicit about the exact number and avoid jargon like “sprint”.
 struct Quest: Identifiable, Equatable {
     enum Tier: String, CaseIterable {
         case core
@@ -341,12 +342,12 @@ private extension QuestsViewModel {
 
     static let questPool: [Quest] = [
         Quest(id: "daily-checkin", title: "Load today’s quest log", detail: "Open the quest log and decide what actually matters.", xpReward: 10, tier: .core, isCompleted: false),
-        Quest(id: "plan-focus-session", title: "Plan one focus session", detail: "Pick a timer and commit to at least one run today.", xpReward: 35, tier: .core, isCompleted: false),
+        Quest(id: "plan-focus-session", title: "Plan one focus session", detail: "Start a focus timer that runs for at least 15 minutes today.", xpReward: 35, tier: .core, isCompleted: false),
         Quest(id: "healthbar-checkin", title: "HealthBar check-in", detail: "Update your mood, gut, and sleep before you go heads-down.", xpReward: 35, tier: .core, isCompleted: false),
-        Quest(id: "chore-blitz", title: "Chore blitz", detail: "Complete a chores sprint to clear a small dungeon.", xpReward: 35, tier: .core, isCompleted: false),
-        Quest(id: "finish-focus-session", title: "Finish one focus session", detail: "Complete any focus timer, even a short one.", xpReward: 35, tier: .habit, isCompleted: false),
+        Quest(id: "chore-blitz", title: "Chore blitz", detail: "Run a Chores timer for at least 10 minutes to clear a small dungeon.", xpReward: 35, tier: .core, isCompleted: false),
+        Quest(id: "finish-focus-session", title: "Finish one focus session", detail: "Complete a focus timer that lasts 25 minutes or longer.", xpReward: 35, tier: .habit, isCompleted: false),
         Quest(id: "focus-25-min", title: "Hit 25 focus minutes today", detail: "Accumulate at least 25 minutes of focus time.", xpReward: 60, tier: .bonus, isCompleted: false),
-        Quest(id: "hydrate-checkpoint", title: "Hydrate checkpoint", detail: "Drink a real glass of water before a session starts.", xpReward: 20, tier: .habit, isCompleted: false),
+        Quest(id: "hydrate-checkpoint", title: "Hydrate checkpoint", detail: "Drink at least 16 oz of water before a session starts.", xpReward: 20, tier: .habit, isCompleted: false),
         Quest(id: "hydration-goal", title: "Hit your hydration goal today", detail: "Stay on top of water throughout the day.", xpReward: 60, tier: .bonus, isCompleted: false),
         Quest(id: "irl-patch", title: "IRL patch update", detail: "Stretch for 2 minutes and do a posture check.", xpReward: 20, tier: .habit, isCompleted: false),
         Quest(id: "tidy-spot", title: "Tidy one small area", detail: "Reset your desk, sink, or a small zone.", xpReward: 20, tier: .habit, isCompleted: false),
