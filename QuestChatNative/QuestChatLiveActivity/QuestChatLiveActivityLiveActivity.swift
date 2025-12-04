@@ -190,7 +190,7 @@ struct FocusSessionLiveActivityWidget: Widget {
             DynamicIsland {
                 // Expanded Regions
                 DynamicIslandExpandedRegion(.leading) {
-                    TimelineView(.animation(minimumInterval: 1)) { timeline in
+                    TimelineView(.periodic(from: .now, by: 1)) { timeline in
                         Group {
                             let (_, _, remainingInt, progress) = progressMetrics(for: context, now: timeline.date)
                             let color = ringColor(forRemaining: remainingInt, total: context.attributes.totalSeconds)
