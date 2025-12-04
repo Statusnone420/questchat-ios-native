@@ -5,23 +5,29 @@ struct AchievementUnlockOverlayView: View {
     let xpReward: Int
     let onEquipTitle: () -> Void
     let onDismiss: () -> Void
-
+    
     @State private var animateIn = false
     @State private var showConfetti = false
-
+    
     var body: some View {
         ZStack {
-            Color.black.opacity(0.6)
+            Color.black.opacity(0.85)
                 .ignoresSafeArea()
-                .blur(radius: 8)
-
+                .blur(radius: 2)
+            
+            if showConfetti {
+                ConfettiView()
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+            }
+            
             VStack(spacing: 24) {
                 Text("Season Achievement Unlocked")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .opacity(animateIn ? 1 : 0)
                     .animation(.easeOut(duration: 0.25), value: animateIn)
-
+                
                 SeasonAchievementBadgeView(
                     title: achievement.title,
                     iconName: achievement.iconName,
@@ -31,17 +37,18 @@ struct AchievementUnlockOverlayView: View {
                 .scaleEffect(animateIn ? 1.0 : 0.2)
                 .opacity(animateIn ? 1.0 : 0.0)
                 .animation(.spring(response: 0.5, dampingFraction: 0.7), value: animateIn)
-
+                
                 VStack(spacing: 8) {
                     Text(achievement.title)
                         .font(.title2.bold())
                         .multilineTextAlignment(.center)
-
+                    
                     Text(achievement.subtitle)
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.white.opacity(0.9))
                         .multilineTextAlignment(.center)
-
+                        .padding(.top, 2)
+                    
                     Text("+\(xpReward) XP • New title unlocked")
                         .font(.subheadline)
                         .foregroundStyle(.green)
@@ -49,19 +56,19 @@ struct AchievementUnlockOverlayView: View {
                 .padding(.horizontal, 24)
                 .opacity(animateIn ? 1 : 0)
                 .animation(.easeOut(duration: 0.35).delay(0.1), value: animateIn)
-
+                
                 Spacer(minLength: 8)
-
+                
                 VStack(spacing: 12) {
                     Button(action: onEquipTitle) {
                         Text("Equip Title")
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(RoundedRectangle(cornerRadius: 16).fill(.accent))
+                            .background(RoundedRectangle(cornerRadius: 16).fill(.tint))
                             .foregroundColor(.white)
                     }
-
+                    
                     Button(action: onDismiss) {
                         Text("Maybe Later")
                             .font(.subheadline)
@@ -81,8 +88,17 @@ struct AchievementUnlockOverlayView: View {
         }
         .onAppear {
             animateIn = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                showConfetti = true
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    showConfetti = true
+                }
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                withAnimation(.easeOut(duration: 0.5)) {
+                    showConfetti = false
+                }
             }
         }
     }
