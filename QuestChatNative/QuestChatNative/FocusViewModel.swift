@@ -290,8 +290,6 @@ final class SessionStatsStore: ObservableObject {
     @Published private(set) var momentum: Double
     @Published private(set) var sessionHistory: [SessionRecord]
     @Published private(set) var totalFocusSecondsToday: Int
-    @Published private(set) var todayCategorySessionCounts: [TimerCategory.Kind: Int]
-    @Published private(set) var categoryComboBonusAwardedToday: Set<TimerCategory.Kind>
     @Published var pendingLevelUp: Int?
     @Published private(set) var dailyConfig: DailyConfig?
     @Published var shouldShowDailySetup: Bool = false
@@ -300,6 +298,9 @@ final class SessionStatsStore: ObservableObject {
     @Published var lastLevelUp: LevelUpResult?
 
     private(set) var lastKnownLevel: Int
+
+    private let playerStateStore: PlayerStateStore
+    private var playerCancellables = Set<AnyCancellable>()
 
     var level: Int { progression.level }
 
@@ -351,13 +352,14 @@ final class SessionStatsStore: ObservableObject {
         totalFocusSecondsToday / 60
     }
 
-    init(userDefaults: UserDefaults = .standard) {
+    init(userDefaults: UserDefaults = .standard, playerStateStore: PlayerStateStore) {
         self.userDefaults = userDefaults
+        self.playerStateStore = playerStateStore
         focusSeconds = userDefaults.integer(forKey: Keys.focusSeconds)
         selfCareSeconds = userDefaults.integer(forKey: Keys.selfCareSeconds)
         sessionsCompleted = userDefaults.integer(forKey: Keys.sessionsCompleted)
 
-        let storedXP = userDefaults.integer(forKey: Keys.xp)
+        let storedXP = playerStateStore.xp
 
         if
             let data = userDefaults.data(forKey: Keys.sessionHistory),
@@ -366,26 +368,6 @@ final class SessionStatsStore: ObservableObject {
             sessionHistory = decoded
         } else {
             sessionHistory = []
-        }
-
-        if let data = userDefaults.data(forKey: Keys.categorySessionCounts),
-           let decoded = try? JSONDecoder().decode([String: Int].self, from: data)
-        {
-            todayCategorySessionCounts = decoded.reduce(into: [:]) { partialResult, pair in
-                if let id = TimerCategory.Kind(rawValue: pair.key) {
-                    partialResult[id] = pair.value
-                }
-            }
-        } else {
-            todayCategorySessionCounts = [:]
-        }
-
-        if let data = userDefaults.data(forKey: Keys.categoryComboBonusesAwarded),
-           let decoded = try? JSONDecoder().decode([String].self, from: data)
-        {
-            categoryComboBonusAwardedToday = Set(decoded.compactMap { TimerCategory.Kind(rawValue: $0) })
-        } else {
-            categoryComboBonusAwardedToday = []
         }
 
         let storedMomentum = userDefaults.double(forKey: Keys.momentum)
@@ -397,8 +379,8 @@ final class SessionStatsStore: ObservableObject {
             initialProgression = loadedProgression
         } else {
             initialProgression = ProgressionState(
-                level: 1,
-                xpInCurrentLevel: 0,
+                level: playerStateStore.level,
+                xpInCurrentLevel: storedXP - max(0, (playerStateStore.level - 1) * 1000),
                 totalXP: storedXP,
                 streakDays: 0,
                 lastActiveDate: nil
@@ -440,8 +422,6 @@ final class SessionStatsStore: ObservableObject {
 
         lastWeeklyGoalBonusAwardedDate = userDefaults.object(forKey: Keys.lastWeeklyGoalBonusAwardedDate) as? Date
 
-        refreshDailyCategoryCountsIfNeeded(today: today)
-
         // Now that all stored properties are initialized, persist any needed resets.
         if needsDateReset {
             userDefaults.set(today, forKey: Keys.totalFocusDate)
@@ -459,6 +439,14 @@ final class SessionStatsStore: ObservableObject {
         refreshDailySetupIfNeeded()
         refreshMomentumIfNeeded()
         evaluateWeeklyGoalBonus()
+
+        playerStateStore.$xp
+            .combineLatest(playerStateStore.$level, playerStateStore.$pendingLevelUp)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] xp, level, pending in
+                self?.syncFromPlayerState(xp: xp, level: level, pendingLevelUp: pending)
+            }
+            .store(in: &playerCancellables)
     }
 
     @discardableResult
@@ -481,51 +469,14 @@ final class SessionStatsStore: ObservableObject {
         sessionsCompleted += 1
         recordSessionHistory(mode: mode, duration: duration)
 
-        let baseXP = minutes * 2
         let _ = registerCompletedSession(minutes: minutes)
 
-        if momentum >= 1.0 {
-            let bonusXP = Int((Double(baseXP) * momentumBonusMultiplier).rounded())
-            if bonusXP > 0 {
-                grantBonusXP(bonusXP)
-            }
-            momentum = 0
-        }
-
-        momentum = min(1.0, momentum + momentumIncrement)
+        momentum = 0
         lastSessionDate = now
         lastMomentumUpdate = now
         persist()
         evaluateWeeklyGoalBonus()
         return progression.totalXP - xpBefore
-    }
-
-    @discardableResult
-    func recordCategorySession(categoryID: TimerCategory.Kind, now: Date = Date()) -> Int {
-        refreshDailyCategoryCountsIfNeeded(today: Calendar.current.startOfDay(for: now))
-
-        let today = Calendar.current.startOfDay(for: now)
-        let newCount = (todayCategorySessionCounts[categoryID] ?? 0) + 1
-        todayCategorySessionCounts[categoryID] = newCount
-        persistCategorySessionCounts(for: today)
-
-        if newCount >= 3, !categoryComboBonusAwardedToday.contains(categoryID) {
-            categoryComboBonusAwardedToday.insert(categoryID)
-            grantBonusXP(20)
-            persistCategoryComboBonuses(for: today)
-        }
-
-        return newCount
-    }
-
-    func comboCount(for categoryID: TimerCategory.Kind) -> Int {
-        refreshDailyCategoryCountsIfNeeded()
-        return todayCategorySessionCounts[categoryID] ?? 0
-    }
-
-    func hasEarnedComboBonus(for categoryID: TimerCategory.Kind) -> Bool {
-        refreshDailyCategoryCountsIfNeeded()
-        return categoryComboBonusAwardedToday.contains(categoryID)
     }
 
     func refreshDailyFocusTotal() {
@@ -574,6 +525,19 @@ final class SessionStatsStore: ObservableObject {
         reduceTotalXP(by: removedXP)
     }
 
+    private func syncFromPlayerState(xp: Int, level: Int, pendingLevelUp: Int?) {
+        let previousLevel = progression.level
+        self.xp = xp
+        progression.totalXP = xp
+        progression.level = level
+        progression.xpInCurrentLevel = xp - max(0, (level - 1) * 1000)
+        if let pending = pendingLevelUp, pending > previousLevel {
+            self.pendingLevelUp = pending
+        }
+        lastKnownLevel = progression.level
+        saveProgression()
+    }
+
     func refreshDailySetupIfNeeded() {
         let today = Calendar.current.startOfDay(for: Date())
         let isValid = Self.isConfigValidForToday(dailyConfig, today: today)
@@ -613,33 +577,25 @@ final class SessionStatsStore: ObservableObject {
     @discardableResult
     func grantXP(_ amount: Int, reason: XPReason) -> LevelUpResult? {
         guard amount > 0 else { return nil }
+        let previousLevel = playerStateStore.level
 
-        progression.totalXP += amount
-        xp = progression.totalXP
-
-        guard progression.level < 100 else {
-            saveProgression()
-            return nil
+        switch reason {
+        case .focusSession(let minutes):
+            playerStateStore.grantSessionXP(minutes: minutes, type: .focus)
+        case .questCompleted(_, let xp):
+            playerStateStore.grantQuestXP(amount: xp)
+        case .streakBonus:
+            playerStateStore.grantStreakXP()
+        case .waterGoal:
+            playerStateStore.grantHealthXPForWaterGoal()
+        case .healthCombo:
+            playerStateStore.grantHealthTrifectaIfEligible()
         }
 
-        progression.xpInCurrentLevel += amount
-        var oldLevel = progression.level
-
-        while progression.level < 100 && progression.xpInCurrentLevel >= xpNeededToLevelUp(from: progression.level) {
-            progression.xpInCurrentLevel -= xpNeededToLevelUp(from: progression.level)
-            progression.level += 1
+        syncFromPlayerState(xp: playerStateStore.xp, level: playerStateStore.level, pendingLevelUp: playerStateStore.pendingLevelUp)
+        if playerStateStore.level > previousLevel {
+            lastLevelUp = LevelUpResult(oldLevel: previousLevel, newLevel: playerStateStore.level)
         }
-
-        let levelChanged = progression.level != oldLevel
-        if levelChanged {
-            let result = LevelUpResult(oldLevel: oldLevel, newLevel: progression.level)
-            lastLevelUp = result
-            pendingLevelUp = result.newLevel
-            oldLevel = progression.level
-        }
-
-        lastKnownLevel = progression.level
-        saveProgression()
         persist()
         return lastLevelUp
     }
@@ -647,7 +603,7 @@ final class SessionStatsStore: ObservableObject {
     @discardableResult
     func registerCompletedSession(minutes: Int) -> LevelUpResult? {
         guard minutes > 0 else { return nil }
-        return grantXP(minutes * 2, reason: .focusSession(minutes: minutes))
+        return grantXP(minutes, reason: .focusSession(minutes: minutes))
     }
 
     @discardableResult
@@ -658,7 +614,7 @@ final class SessionStatsStore: ObservableObject {
 
     @discardableResult
     func registerStreakBonus() -> LevelUpResult? {
-        grantXP(10, reason: .streakBonus)
+        grantXP(100, reason: .streakBonus)
     }
 
     func registerActiveToday(date: Date = Date()) -> LevelUpResult? {
@@ -686,10 +642,6 @@ final class SessionStatsStore: ObservableObject {
         return nil
     }
 
-    func grantBonusXP(_ amount: Int) {
-        _ = grantXP(amount, reason: .questCompleted(id: "bonus", xp: amount))
-    }
-
     func resetAll() {
         focusSeconds = 0
         selfCareSeconds = 0
@@ -701,8 +653,6 @@ final class SessionStatsStore: ObservableObject {
         lastKnownLevel = progression.level
         pendingLevelUp = nil
         sessionHistory = []
-        todayCategorySessionCounts = [:]
-        categoryComboBonusAwardedToday = []
         momentum = 0
         lastSessionDate = nil
         lastMomentumUpdate = nil
@@ -718,7 +668,7 @@ final class SessionStatsStore: ObservableObject {
 
     func xpNeededToLevelUp(from level: Int) -> Int {
         guard level < 100 else { return Int.max }
-        return 40 + 4 * max(0, level - 1)
+        return 1000
     }
 
     private func reduceTotalXP(by amount: Int) {
@@ -818,9 +768,6 @@ final class SessionStatsStore: ObservableObject {
         static let lastSessionDate = "lastSessionDate"
         static let lastMomentumUpdate = "lastMomentumUpdate"
         static let lastWeeklyGoalBonusAwardedDate = "lastWeeklyGoalBonusAwardedDate"
-        static let categorySessionCounts = "categorySessionCounts"
-        static let categorySessionCountsDate = "categorySessionCountsDate"
-        static let categoryComboBonusesAwarded = "categoryComboBonusesAwarded"
     }
 
     private var todaySessions: [SessionRecord] {
@@ -832,7 +779,6 @@ final class SessionStatsStore: ObservableObject {
     }
 
     private func persist() {
-        refreshDailyCategoryCountsIfNeeded()
         saveProgression()
         userDefaults.set(focusSeconds, forKey: Keys.focusSeconds)
         userDefaults.set(selfCareSeconds, forKey: Keys.selfCareSeconds)
@@ -845,32 +791,12 @@ final class SessionStatsStore: ObservableObject {
         persistMomentum()
         persistDailyConfig(dailyConfig)
         persistSessionHistory()
-        persistCategorySessionCounts()
-        persistCategoryComboBonuses()
     }
 
     private func persistSessionHistory() {
         if let data = try? JSONEncoder().encode(sessionHistory) {
             userDefaults.set(data, forKey: Keys.sessionHistory)
         }
-    }
-
-    private func persistCategorySessionCounts(for date: Date = Calendar.current.startOfDay(for: Date())) {
-        let encoded = todayCategorySessionCounts.reduce(into: [String: Int]()) { partialResult, pair in
-            partialResult[pair.key.rawValue] = pair.value
-        }
-        if let data = try? JSONEncoder().encode(encoded) {
-            userDefaults.set(data, forKey: Keys.categorySessionCounts)
-        }
-        userDefaults.set(date, forKey: Keys.categorySessionCountsDate)
-    }
-
-    private func persistCategoryComboBonuses(for date: Date = Calendar.current.startOfDay(for: Date())) {
-        let encoded = categoryComboBonusAwardedToday.map { $0.rawValue }
-        if let data = try? JSONEncoder().encode(encoded) {
-            userDefaults.set(data, forKey: Keys.categoryComboBonusesAwarded)
-        }
-        userDefaults.set(date, forKey: Keys.categorySessionCountsDate)
     }
 
     private func refreshDailyTotalsIfNeeded() {
@@ -884,7 +810,6 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(today, forKey: Keys.totalFocusDate)
         userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
         refreshDailySetupIfNeeded()
-        refreshDailyCategoryCountsIfNeeded(today: today)
     }
 
     private func persistDailyConfig(_ config: DailyConfig?) {
@@ -933,16 +858,6 @@ final class SessionStatsStore: ObservableObject {
             .reduce(0) { $0 + $1.durationSeconds }
     }
 
-    private func refreshDailyCategoryCountsIfNeeded(today: Date = Calendar.current.startOfDay(for: Date())) {
-        let storedDate = userDefaults.object(forKey: Keys.categorySessionCountsDate) as? Date
-        guard !Calendar.current.isDate(storedDate ?? .distantPast, inSameDayAs: today) else { return }
-
-        todayCategorySessionCounts = [:]
-        categoryComboBonusAwardedToday = []
-        persistCategorySessionCounts(for: today)
-        persistCategoryComboBonuses(for: today)
-    }
-
     private func evaluateWeeklyGoalBonus() {
         let progress = weeklyGoalProgress
         guard let mostRecentDay = progress.last, mostRecentDay.isToday else { return }
@@ -954,7 +869,6 @@ final class SessionStatsStore: ObservableObject {
         }
 
         lastWeeklyGoalBonusAwardedDate = mostRecentDay.date
-        grantBonusXP(120)
         persistWeeklyGoalBonus()
     }
 
@@ -1176,14 +1090,6 @@ final class FocusViewModel: ObservableObject {
 
     var selectedCategoryData: TimerCategory? {
         categories.first { $0.id == selectedCategory }
-    }
-
-    var comboCountForSelectedCategory: Int {
-        statsStore.comboCount(for: selectedCategory)
-    }
-
-    var hasEarnedComboForSelectedCategory: Bool {
-        statsStore.hasEarnedComboBonus(for: selectedCategory)
     }
 
     private var gutStatus: GutStatus {
@@ -1763,7 +1669,6 @@ final class FocusViewModel: ObservableObject {
         let xpBefore = statsStore.progression.totalXP
         let recordedDuration = Int(currentSession?.duration ?? TimeInterval(activeSessionDuration ?? currentDuration))
         _ = statsStore.recordSession(mode: selectedMode, duration: recordedDuration)
-        _ = statsStore.recordCategorySession(categoryID: selectedCategory)
         let streakLevelUp = statsStore.registerActiveToday()
         let totalXPGained = statsStore.progression.totalXP - xpBefore
         if streakLevelUp != nil {

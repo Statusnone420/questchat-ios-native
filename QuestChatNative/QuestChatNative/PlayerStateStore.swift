@@ -13,6 +13,17 @@ final class PlayerStateStore: ObservableObject {
     @Published var sleepQuality: Int
     @Published var activeDebuffs: [String]
     @Published var activeBuffs: [String]
+    @Published var pendingLevelUp: Int?
+
+    private let userDefaults: UserDefaults
+    private let calendar = Calendar.current
+
+    // Daily flags
+    private var waterGoalXPGrantedToday: Bool
+    private var sleepXPGrantedToday: Bool
+    private var gutXPGrantedToday: Bool
+    private var trifectaGrantedToday: Bool
+    private var lastBuffResetDate: Date?
 
     init(
         currentHP: Int = 100,
@@ -24,18 +35,32 @@ final class PlayerStateStore: ObservableObject {
         gutStatus: Int = 0,
         sleepQuality: Int = 3,
         activeDebuffs: [String] = [],
-        activeBuffs: [String] = []
+        activeBuffs: [String] = [],
+        userDefaults: UserDefaults = .standard
     ) {
+        self.userDefaults = userDefaults
         self.currentHP = currentHP
         self.maxHP = maxHP
-        self.xp = xp
-        self.level = level
         self.hydration = hydration
         self.mood = mood
         self.gutStatus = gutStatus
         self.sleepQuality = sleepQuality
         self.activeDebuffs = activeDebuffs
         self.activeBuffs = activeBuffs
+
+        let storedXP = userDefaults.integer(forKey: Keys.xp)
+        let storedLevel = userDefaults.integer(forKey: Keys.level)
+        self.xp = storedXP > 0 ? storedXP : xp
+        self.level = storedLevel > 0 ? storedLevel : level
+        self.pendingLevelUp = nil
+
+        self.waterGoalXPGrantedToday = userDefaults.bool(forKey: Keys.waterGoalXPGrantedToday)
+        self.sleepXPGrantedToday = userDefaults.bool(forKey: Keys.sleepXPGrantedToday)
+        self.gutXPGrantedToday = userDefaults.bool(forKey: Keys.gutXPGrantedToday)
+        self.trifectaGrantedToday = userDefaults.bool(forKey: Keys.trifectaGrantedToday)
+        self.lastBuffResetDate = userDefaults.object(forKey: Keys.lastBuffResetDate) as? Date
+
+        refreshDailyStateIfNeeded()
     }
 
     var hpPercentage: Double {
@@ -44,49 +69,156 @@ final class PlayerStateStore: ObservableObject {
         return min(max(percentage, 0), 1)
     }
 }
-// MARK: - XP - Level - Quest Rules
-/*
-Core idea:
-- You are never punished. There are no debuffs and no negative XP.
-- You always earn base XP for doing stuff.
-- Buffs make all XP explode, so taking care of yourself feels like "cheating" the system.
 
-Base XP:
-- Every completed focus or self-care sprint grants base XP:
-  baseXP = minutes * 10
-  (e.g. 25 min = 250 XP, 50 min = 500 XP)
+// MARK: - XP & Level rules (v3 - buff only)
+extension PlayerStateStore {
+    enum SessionType {
+        case focus
+        case selfCare
+    }
 
-Buffs (no debuffs, ever):
-- Buffs are daily status effects that only increase XP:
-  • Hydrated     → water goal reached.
-  • Rested       → sleep logged as OK/good/great.
-  • Gut Happy    → gut logged as OK/good.
-  • Ray of Sunshine → mood logged as good/great.
-- Each active buff adds +20% XP to ALL XP earned for the rest of that day:
-  xpMultiplier = 1.0 + 0.2 * activeBuffCount
-  (0 buffs = 1.0x, 1 = 1.2x, 2 = 1.4x, 3 = 1.6x, 4 = 1.8x)
-- If you are tired, dehydrated, or feel awful, you still get base XP.
-  You just don't get buff multipliers. There are never XP penalties.
+    func grantSessionXP(minutes: Int, type: SessionType) {
+        guard minutes > 0 else { return }
+        applyDailyStateRefresh()
+        let baseXP = minutes * 10
+        addXPWithMultiplier(baseXP)
+    }
 
-Health log XP + daily trifecta:
-- First time per day you:
-  • Hit water goal      → +250 XP and gain Hydrated buff.
-  • Log decent sleep    → +250 XP and gain Rested buff.
-  • Log decent gut      → +250 XP and gain Gut Happy buff.
-  • Log positive mood   → gain Ray of Sunshine buff (no flat XP, just multiplier).
-- If Hydrated + Rested + Gut Happy are all active in the same day:
-  • One-time +500 XP "Health Trifecta" bonus for that day.
+    func grantHealthXPForWaterGoal() {
+        applyDailyStateRefresh()
+        guard !waterGoalXPGrantedToday else { return }
+        activateBuff(.hydrated)
+        addXPWithMultiplier(250)
+        waterGoalXPGrantedToday = true
+        userDefaults.set(true, forKey: Keys.waterGoalXPGrantedToday)
+        grantHealthTrifectaIfEligible()
+    }
 
-Streak XP:
-- Each day you keep your streak alive (did at least one tracked action) → +100 XP.
+    func grantHealthXPForSleep() {
+        applyDailyStateRefresh()
+        guard !sleepXPGrantedToday else { return }
+        activateBuff(.rested)
+        addXPWithMultiplier(250)
+        sleepXPGrantedToday = true
+        userDefaults.set(true, forKey: Keys.sleepXPGrantedToday)
+        grantHealthTrifectaIfEligible()
+    }
 
-Quests:
-- Normal quest completion      → +300 XP.
-- Big quest / quest chest      → +750 XP.
+    func grantHealthXPForGut() {
+        applyDailyStateRefresh()
+        guard !gutXPGrantedToday else { return }
+        activateBuff(.gutHappy)
+        addXPWithMultiplier(250)
+        gutXPGrantedToday = true
+        userDefaults.set(true, forKey: Keys.gutXPGrantedToday)
+        grantHealthTrifectaIfEligible()
+    }
 
-Level curve:
-- Total XP required for level N is:
-  requiredXPForLevelN = N * 1000
-- Level-up occurs whenever totalXP crosses the next 1000 XP boundary.
-- Level increases by 1 (capped at 100), and a "pending level up" flag can be set for UI.
-*/
+    func applyMoodBuffIfPositive() {
+        applyDailyStateRefresh()
+        activateBuff(.rayOfSunshine)
+        grantHealthTrifectaIfEligible()
+    }
+
+    func grantHealthTrifectaIfEligible() {
+        applyDailyStateRefresh()
+        guard !trifectaGrantedToday else { return }
+        let requiredBuffs: Set<Buff> = [.hydrated, .rested, .gutHappy]
+        let activeSet = Set(activeBuffs.compactMap { Buff(rawValue: $0) })
+        guard requiredBuffs.isSubset(of: activeSet) else { return }
+        addXPWithMultiplier(500)
+        trifectaGrantedToday = true
+        userDefaults.set(true, forKey: Keys.trifectaGrantedToday)
+    }
+
+    func grantStreakXP() {
+        applyDailyStateRefresh()
+        addXPWithMultiplier(100)
+    }
+
+    func grantQuestXP(amount: Int) {
+        applyDailyStateRefresh()
+        guard amount > 0 else { return }
+        addXPWithMultiplier(amount)
+    }
+
+    func resetXP() {
+        xp = 0
+        level = 1
+        pendingLevelUp = nil
+        persistProgress()
+    }
+}
+
+// MARK: - Private helpers
+private extension PlayerStateStore {
+    enum Buff: String {
+        case hydrated = "Hydrated"
+        case rested = "Rested"
+        case gutHappy = "Gut Happy"
+        case rayOfSunshine = "Ray of Sunshine"
+    }
+
+    enum Keys {
+        static let xp = "player_total_xp"
+        static let level = "player_level"
+        static let waterGoalXPGrantedToday = "water_goal_xp_granted_today"
+        static let sleepXPGrantedToday = "sleep_xp_granted_today"
+        static let gutXPGrantedToday = "gut_xp_granted_today"
+        static let trifectaGrantedToday = "trifecta_xp_granted_today"
+        static let lastBuffResetDate = "last_buff_reset_date"
+        static let activeBuffs = "player_active_buffs"
+    }
+
+    func addXPWithMultiplier(_ baseXP: Int) {
+        let multiplier = 1.0 + 0.2 * Double(activeBuffs.count)
+        let adjusted = Int((Double(baseXP) * multiplier).rounded())
+        let previousLevel = level
+        xp += adjusted
+        level = min(100, (xp / 1000) + 1)
+        persistProgress()
+
+        if level > previousLevel {
+            pendingLevelUp = level
+        }
+    }
+
+    func activateBuff(_ buff: Buff) {
+        if !activeBuffs.contains(buff.rawValue) {
+            activeBuffs.append(buff.rawValue)
+            userDefaults.set(activeBuffs, forKey: Keys.activeBuffs)
+        }
+    }
+
+    func applyDailyStateRefresh() {
+        refreshDailyStateIfNeeded()
+    }
+
+    func refreshDailyStateIfNeeded() {
+        let today = calendar.startOfDay(for: Date())
+        if let lastReset = lastBuffResetDate, calendar.isDate(lastReset, inSameDayAs: today) {
+            return
+        }
+
+        lastBuffResetDate = today
+        userDefaults.set(today, forKey: Keys.lastBuffResetDate)
+
+        waterGoalXPGrantedToday = false
+        sleepXPGrantedToday = false
+        gutXPGrantedToday = false
+        trifectaGrantedToday = false
+
+        userDefaults.set(false, forKey: Keys.waterGoalXPGrantedToday)
+        userDefaults.set(false, forKey: Keys.sleepXPGrantedToday)
+        userDefaults.set(false, forKey: Keys.gutXPGrantedToday)
+        userDefaults.set(false, forKey: Keys.trifectaGrantedToday)
+
+        activeBuffs = []
+        userDefaults.set(activeBuffs, forKey: Keys.activeBuffs)
+    }
+
+    func persistProgress() {
+        userDefaults.set(xp, forKey: Keys.xp)
+        userDefaults.set(level, forKey: Keys.level)
+    }
+}
