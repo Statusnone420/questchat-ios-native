@@ -1059,6 +1059,7 @@ final class FocusViewModel: ObservableObject {
 
     @Published private(set) var notificationAuthorized: Bool = false
     let statsStore: SessionStatsStore
+    let playerStateStore: PlayerStateStore
     let healthStatsStore: HealthBarIRLStatsStore
     let hydrationSettingsStore: HydrationSettingsStore
     private var cancellables = Set<AnyCancellable>()
@@ -1088,6 +1089,7 @@ final class FocusViewModel: ObservableObject {
 
     init(
         statsStore: SessionStatsStore = SessionStatsStore(),
+        playerStateStore: PlayerStateStore = PlayerStateStore(),
         healthStatsStore: HealthBarIRLStatsStore = HealthBarIRLStatsStore(),
         healthBarViewModel: HealthBarViewModel? = nil,
         hydrationSettingsStore: HydrationSettingsStore = HydrationSettingsStore(),
@@ -1095,6 +1097,7 @@ final class FocusViewModel: ObservableObject {
     ) {
         // Assign non-dependent stored properties first
         self.statsStore = statsStore
+        self.playerStateStore = playerStateStore
         self.healthStatsStore = healthStatsStore
         self.healthBarViewModel = healthBarViewModel
         self.hydrationSettingsStore = hydrationSettingsStore
