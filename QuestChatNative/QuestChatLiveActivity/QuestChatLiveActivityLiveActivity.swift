@@ -260,35 +260,43 @@ struct FocusSessionLiveActivityWidget: Widget {
                         .minimumScaleFactor(0.6)
                 }
             } compactTrailing: {
-                let color = ringColor(forRemaining: context.state.remainingSeconds, total: context.attributes.totalSeconds)
+                TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                    let (_, _, remainingInt, progress) = progressMetrics(for: context, now: timeline.date)
+                    let color = ringColor(forRemaining: remainingInt, total: context.attributes.totalSeconds)
 
-                CircularTimerRing(
-                    startDate: context.state.startDate,
-                    endDate: context.state.endDate,
-                    isPaused: context.state.isPaused,
-                    remainingSeconds: context.state.remainingSeconds,
-                    ringColor: color,
-                    size: 14,
-                    lineWidth: 2.5,
-                    showText: false,
-                    displayEndDate: context.state.isPaused ? nil : context.state.endDate
-                )
-                .padding(2)
+                    CircularTimerRing(
+                        startDate: context.state.startDate,
+                        endDate: context.state.endDate,
+                        isPaused: context.state.isPaused,
+                        remainingSeconds: remainingInt,
+                        ringColor: color,
+                        size: 14,
+                        lineWidth: 2.5,
+                        showText: false,
+                        displayEndDate: context.state.isPaused ? nil : context.state.endDate
+                    )
+                    .padding(2)
+                    .animation(.linear(duration: 0.2), value: progress)
+                }
             } minimal: {
-                let color = ringColor(forRemaining: context.state.remainingSeconds, total: context.attributes.totalSeconds)
+                TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                    let (_, _, remainingInt, progress) = progressMetrics(for: context, now: timeline.date)
+                    let color = ringColor(forRemaining: remainingInt, total: context.attributes.totalSeconds)
 
-                CircularTimerRing(
-                    startDate: context.state.startDate,
-                    endDate: context.state.endDate,
-                    isPaused: context.state.isPaused,
-                    remainingSeconds: context.state.remainingSeconds,
-                    ringColor: color,
-                    size: 16,
-                    lineWidth: 2.5,
-                    showText: false,
-                    displayEndDate: context.state.isPaused ? nil : context.state.endDate
-                )
-                .padding(2)
+                    CircularTimerRing(
+                        startDate: context.state.startDate,
+                        endDate: context.state.endDate,
+                        isPaused: context.state.isPaused,
+                        remainingSeconds: remainingInt,
+                        ringColor: color,
+                        size: 16,
+                        lineWidth: 2.5,
+                        showText: false,
+                        displayEndDate: context.state.isPaused ? nil : context.state.endDate
+                    )
+                    .padding(2)
+                    .animation(.linear(duration: 0.2), value: progress)
+                }
             }
         }
     }
