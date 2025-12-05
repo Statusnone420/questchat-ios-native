@@ -293,48 +293,56 @@ struct FocusSessionLiveActivityWidget: Widget {
                             .imageScale(.medium)
                             .font(.subheadline)
                             .foregroundStyle(color)
-                        
 
-                        if #available(iOSApplicationExtension 17.0, *), !context.state.isPaused {
+                        if #available(iOSApplicationExtension 17.0, *) {
                             let range = context.state.startDate...context.state.endDate
 
-                            ZStack {
-                                // Animated ring
-                                ProgressView(timerInterval: range, countsDown: true) {
-                                    EmptyView()
-                                } currentValueLabel: {
-                                    EmptyView()
-                                }
-                                .progressViewStyle(.circular)
-                                .tint(color)
+                            if context.state.isPaused {
+                                // Frozen ring + time when paused
+                                ZStack {
+                                    ProgressView(value: progress(for: context))
+                                        .progressViewStyle(.circular)
+                                        .tint(color)
 
-                                // Time text inside the ring
-                                Text(
-                                    timerInterval: range,
-                                    pauseTime: nil,
-                                    countsDown: true,
-                                    showsHours: false   // or true if want to show hours
-                                )
-                                .font(.system(size: 11, weight: .medium))
-                                .monospacedDigit()
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.9)
-                                .frame(width: 36, alignment: .center)
-                                .offset(x: 2.8)
+                                    Text(formattedTime(remaining))
+                                        .font(.system(size: 11, weight: .medium))
+                                        .monospacedDigit()
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.9)
+                                        .frame(width: 36, alignment: .center)
+                                        .offset(x: 2.8)
+                                }
+                                .frame(width: 40, height: 40)
+                                .padding(2)
+                            } else {
+                                // Animated countdown while running
+                                ZStack {
+                                    ProgressView(timerInterval: range, countsDown: true) {
+                                        EmptyView()
+                                    } currentValueLabel: {
+                                        EmptyView()
+                                    }
+                                    .progressViewStyle(.circular)
+                                    .tint(color)
+
+                                    Text(
+                                        timerInterval: range,
+                                        pauseTime: nil,
+                                        countsDown: true,
+                                        showsHours: false
+                                    )
+                                    .font(.system(size: 11, weight: .medium))
+                                    .monospacedDigit()
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.9)
+                                    .frame(width: 36, alignment: .center)
+                                    .offset(x: 2.8)
+                                }
+                                .frame(width: 40, height: 40)
+                                .padding(2)
                             }
-                            .frame(width: 40, height: 40)
-                            .padding(2)
                         } else {
-                            CircularTimerRing(
-                                progress: progress(for: context),
-                                remainingSeconds: remaining,
-                                ringColor: color,
-                                size: 32,
-                                lineWidth: 4,
-                                showText: true,
-                                timerRange: context.state.isPaused ? nil : range
-                            )
-                            .padding(2)
+                            EmptyView()
                         }
                     }
                 }
@@ -358,19 +366,32 @@ struct FocusSessionLiveActivityWidget: Widget {
                 }
                 
                 DynamicIslandExpandedRegion(.bottom) {
-                    if #available(iOSApplicationExtension 17.0, *), !context.state.isPaused {
-                        ProgressView(timerInterval: range, countsDown: true) {
-                            EmptyView()
-                        } currentValueLabel: {
-                            EmptyView()
+                    if #available(iOSApplicationExtension 17.0, *) {
+                        if context.state.isPaused {
+                            // Frozen bar on pause
+                            ProgressView(value: progress(for: context))
+                                .progressViewStyle(.linear)
+                                .tint(color)
+                                .frame(height: 1)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .padding(.bottom, 8)
+                        } else {
+                            // Animated bar while running
+                            ProgressView(timerInterval: range, countsDown: true) {
+                                EmptyView()
+                            } currentValueLabel: {
+                                EmptyView()
+                            }
+                            .progressViewStyle(.linear)
+                            .tint(color)
+                            .frame(height: 1)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .padding(.bottom, 8)
                         }
-                        .progressViewStyle(.linear)
-                        .tint(color)
-                        .frame(height: 1)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .padding(.bottom, 8)
                     } else {
+                        // iOS 16 fallback
                         ProgressView(value: progress(for: context))
                             .progressViewStyle(.linear)
                             .tint(color)
@@ -383,60 +404,70 @@ struct FocusSessionLiveActivityWidget: Widget {
             } compactLeading: {
                 let range = context.state.startDate...context.state.endDate
                 let remaining = remainingSeconds(for: context)
-                
-                if #available(iOSApplicationExtension 17.0, *), !context.state.isPaused {
-                    Text(
-                        timerInterval: range,
-                        pauseTime: nil,
-                        countsDown: true,
-                        showsHours: false
-                    )
-                    .font(.system(size: 14, weight: .medium))
-                    .monospacedDigit()
-                    .frame(width: 40, alignment: .center)
+
+                if #available(iOSApplicationExtension 17.0, *) {
+                    if context.state.isPaused {
+                        // Frozen countdown when paused
+                        Text(formattedTime(remaining))
+                            .font(.system(size: 14, weight: .medium))
+                            .monospacedDigit()
+                            .frame(width: 40, alignment: .center)
+                    } else {
+                        // Animated system countdown when running
+                        Text(
+                            timerInterval: range,
+                            pauseTime: nil,
+                            countsDown: true,
+                            showsHours: false
+                        )
+                        .font(.system(size: 14, weight: .medium))
+                        .monospacedDigit()
+                        .frame(width: 40, alignment: .center)
+                    }
                 } else {
-                    Text(timeAbbrev(remaining))
+                    // super simple fallback for iOS 16.1–16.x
+                    Text("\(remaining)s")
                         .font(.system(size: 14, weight: .medium))
                         .monospacedDigit()
                         .frame(width: 40, alignment: .center)
                 }
             } compactTrailing: {
                 let range = context.state.startDate...context.state.endDate
-                let total = max(context.attributes.totalSeconds, max(context.state.remainingSeconds, 1))
+                let total = max(context.attributes.totalSeconds,
+                                max(context.state.remainingSeconds, 1))
                 let remaining = remainingSeconds(for: context)
                 let color = ringColor(forRemaining: remaining, total: total)
-                
-                if #available(iOSApplicationExtension 17.0, *), !context.state.isPaused {
-                    // System-driven animated ring
-                    ProgressView(timerInterval: range, countsDown: true) {
-                        EmptyView()
-                    } currentValueLabel: {
-                        EmptyView()
+
+                if #available(iOSApplicationExtension 17.0, *) {
+                    if context.state.isPaused {
+                        // Frozen circular bar on pause
+                        ProgressView(value: progress(for: context))
+                            .progressViewStyle(.circular)
+                            .tint(color)
+                            .frame(width: 25, height: 25)
+                            .padding(2)
+                    } else {
+                        // Animated circular bar while running
+                        ProgressView(timerInterval: range, countsDown: true) {
+                            EmptyView()
+                        } currentValueLabel: {
+                            EmptyView()
+                        }
+                        .progressViewStyle(.circular)
+                        .tint(color)
+                        .frame(width: 25, height: 25)
+                        .padding(2)
                     }
-                    .progressViewStyle(.circular)
-                    .tint(color)                     // keep your color logic
-                    .frame(width: 25, height: 25)    // tweak to taste
-                    .padding(2)
                 } else {
-                    // Fallback: your custom static ring
-                    CircularTimerRing(
-                        progress: progress(for: context),
-                        remainingSeconds: remaining,
-                        ringColor: color,
-                        size: 25,
-                        lineWidth: 4.0,
-                        showText: false,
-                        timerRange: context.state.isPaused ? nil : range
-                    )
-                    .padding(2)
+                    EmptyView()
                 }
             } minimal: {
                 let range = context.state.startDate...context.state.endDate
                 let total = max(context.attributes.totalSeconds, max(context.state.remainingSeconds, 1))
                 let remaining = remainingSeconds(for: context)
                 let color = ringColor(forRemaining: remaining, total: total)
-                
-                if #available(iOSApplicationExtension 17.0, *), !context.state.isPaused {
+
+                if #available(iOSApplicationExtension 17.0, *) {
                     ProgressView(timerInterval: range, countsDown: true) {
                         EmptyView()
                     } currentValueLabel: {
@@ -444,19 +475,10 @@ struct FocusSessionLiveActivityWidget: Widget {
                     }
                     .progressViewStyle(.circular)
                     .tint(color)
-                    .frame(width: 16, height: 16)    // minimal can be a bit bigger
+                    .frame(width: 16, height: 16)
                     .padding(2)
                 } else {
-                    CircularTimerRing(
-                        progress: progress(for: context),
-                        remainingSeconds: remaining,
-                        ringColor: color,
-                        size: 16,
-                        lineWidth: 2.5,
-                        showText: false,
-                        timerRange: context.state.isPaused ? nil : range
-                    )
-                    .padding(2)
+                    EmptyView()
                 }
             }
         }
