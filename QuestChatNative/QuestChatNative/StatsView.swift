@@ -442,8 +442,8 @@ struct StatsView: View {
                     .font(.headline)
                     .foregroundStyle(.mint)
                 Spacer()
-                if let focusAreaLabelForScope {
-                    Text(focusAreaLabel)
+                if let label = focusAreaLabelForScope {
+                    Text(label)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }

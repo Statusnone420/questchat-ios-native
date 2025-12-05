@@ -41,6 +41,12 @@ struct Quest: Identifiable, Equatable {
     var isOncePerDay: Bool { definition.isOncePerDay }
 }
 
+extension Quest {
+    static func == (lhs: Quest, rhs: Quest) -> Bool {
+        return lhs.id == rhs.id
+    }
+}
+
 final class QuestsViewModel: ObservableObject {
     @Published var dailyQuests: [Quest] = []
     @Published var weeklyQuests: [Quest] = []
@@ -418,7 +424,7 @@ final class QuestsViewModel: ObservableObject {
         guard let newDefinition = replacementCandidates.first(where: { candidate in
             var updatedDefinitions = currentDefinitions
             updatedDefinitions[index] = candidate
-            return meetsDailyBoardRules(definitions: updatedDefinitions)
+            return Self.meetsDailyBoardRules(definitions: updatedDefinitions)
         }) else { return }
 
         dailyQuests[index] = Quest(
