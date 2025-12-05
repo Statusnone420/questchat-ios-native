@@ -97,15 +97,27 @@ private struct CircularTimerRing: View {
                         showsHours: true
                     )
                     .font(.system(size: size * 0.32, weight: .semibold, design: .monospaced))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
                     .foregroundStyle(.primary)
+                    .frame(width: size * 0.9, alignment: .center)
                 } else if let endDate = timerRange?.upperBound {
                     Text(endDate, style: .timer)
                         .font(.system(size: size * 0.32, weight: .semibold, design: .monospaced))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
                         .foregroundStyle(.primary)
+                        .frame(width: size * 0.9, alignment: .center)
                 } else {
                     Text(formattedTime(remainingSeconds))
                         .font(.system(size: size * 0.32, weight: .semibold, design: .monospaced))
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.9)
                         .foregroundStyle(.primary)
+                        .frame(width: size * 0.9, alignment: .center)
                 }
             }
         }
@@ -193,8 +205,13 @@ struct FocusSessionLiveActivityView: View {
                     .font(.footnote)
                     .foregroundColor(.secondary)
                 Text(context.state.endDate, style: .time)
-                    .font(.headline)
-                    .foregroundColor(.primary)
+                    .font(.subheadline)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .minimumScaleFactor(0.85)
+                    .allowsTightening(true)
+                    .padding(.trailing, 10)
             }
             .frame(minWidth: 72, alignment: .trailing)
         }
@@ -267,7 +284,7 @@ struct FocusSessionLiveActivityWidget: Widget {
                 let remaining = remainingSeconds(for: context)
                 let color = ringColor(forRemaining: remaining, total: total)
                 let symbol = symbolName(forTitle: context.state.title)
-
+                
                 // Expanded Regions
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 6) {
@@ -288,19 +305,25 @@ struct FocusSessionLiveActivityWidget: Widget {
                         .padding(2)
                     }
                 }
-
+                
                 DynamicIslandExpandedRegion(.center) {
                     Text(context.state.title)
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
                         .frame(maxWidth: .infinity)
                 }
-
+                
                 DynamicIslandExpandedRegion(.trailing) {
                     Text(context.state.endDate, style: .time)
                         .font(.subheadline)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.85)
+                        .allowsTightening(true)
+                        .padding(.trailing, 5)
                 }
-
+                
                 DynamicIslandExpandedRegion(.bottom) {
                     if #available(iOSApplicationExtension 17.0, *), !context.state.isPaused {
                         ProgressView(timerInterval: range, countsDown: true) {
@@ -324,62 +347,89 @@ struct FocusSessionLiveActivityWidget: Widget {
                             .padding(.bottom, 8)
                     }
                 }
-            } compactLeading: { context in
+            } compactLeading: {
                 let range = context.state.startDate...context.state.endDate
                 let remaining = remainingSeconds(for: context)
-
+                
                 if #available(iOSApplicationExtension 17.0, *), !context.state.isPaused {
                     Text(
                         timerInterval: range,
                         pauseTime: nil,
                         countsDown: true,
-                        showsHours: true
+                        showsHours: false
                     )
-                    .font(.caption2.weight(.semibold))
+                    .font(.system(size: 14, weight: .medium))
                     .monospacedDigit()
-                    .frame(width: 80, alignment: .center)
+                    .frame(width: 40, alignment: .center)
                 } else {
                     Text(timeAbbrev(remaining))
-                        .font(.caption2.weight(.semibold))
+                        .font(.system(size: 14, weight: .medium))
                         .monospacedDigit()
-                        .frame(width: 80, alignment: .center)
+                        .frame(width: 40, alignment: .center)
                 }
-            } compactTrailing: { context in
+            } compactTrailing: {
                 let range = context.state.startDate...context.state.endDate
                 let total = max(context.attributes.totalSeconds, max(context.state.remainingSeconds, 1))
                 let remaining = remainingSeconds(for: context)
                 let color = ringColor(forRemaining: remaining, total: total)
-
-                CircularTimerRing(
-                    progress: progress(for: context),
-                    remainingSeconds: remaining,
-                    ringColor: color,
-                    size: 14,
-                    lineWidth: 2.5,
-                    showText: false,
-                    timerRange: context.state.isPaused ? nil : range
-                )
-                .padding(2)
-            } minimal: { context in
+                
+                if #available(iOSApplicationExtension 17.0, *), !context.state.isPaused {
+                    // System-driven animated ring
+                    ProgressView(timerInterval: range, countsDown: true) {
+                        EmptyView()
+                    } currentValueLabel: {
+                        EmptyView()
+                    }
+                    .progressViewStyle(.circular)
+                    .tint(color)                     // keep your color logic
+                    .frame(width: 14, height: 14)    // tweak to taste
+                    .padding(2)
+                } else {
+                    // Fallback: your custom static ring
+                    CircularTimerRing(
+                        progress: progress(for: context),
+                        remainingSeconds: remaining,
+                        ringColor: color,
+                        size: 14,
+                        lineWidth: 2.5,
+                        showText: false,
+                        timerRange: context.state.isPaused ? nil : range
+                    )
+                    .padding(2)
+                }
+            } minimal: {
                 let range = context.state.startDate...context.state.endDate
                 let total = max(context.attributes.totalSeconds, max(context.state.remainingSeconds, 1))
                 let remaining = remainingSeconds(for: context)
                 let color = ringColor(forRemaining: remaining, total: total)
-
-                CircularTimerRing(
-                    progress: progress(for: context),
-                    remainingSeconds: remaining,
-                    ringColor: color,
-                    size: 16,
-                    lineWidth: 2.5,
-                    showText: false,
-                    timerRange: context.state.isPaused ? nil : range
-                )
-                .padding(2)
+                
+                if #available(iOSApplicationExtension 17.0, *), !context.state.isPaused {
+                    ProgressView(timerInterval: range, countsDown: true) {
+                        EmptyView()
+                    } currentValueLabel: {
+                        EmptyView()
+                    }
+                    .progressViewStyle(.circular)
+                    .tint(color)
+                    .frame(width: 16, height: 16)    // minimal can be a bit bigger
+                    .padding(2)
+                } else {
+                    CircularTimerRing(
+                        progress: progress(for: context),
+                        remainingSeconds: remaining,
+                        ringColor: color,
+                        size: 16,
+                        lineWidth: 2.5,
+                        showText: false,
+                        timerRange: context.state.isPaused ? nil : range
+                    )
+                    .padding(2)
+                }
             }
         }
     }
 }
+    
 #if DEBUG
 @available(iOS 17.0, *)
 #Preview("Focus Session", as: .content, using: FocusSessionAttributes(sessionId: UUID(), totalSeconds: 1800)) {
@@ -394,5 +444,3 @@ struct FocusSessionLiveActivityWidget: Widget {
     )
 }
 #endif
-
-
