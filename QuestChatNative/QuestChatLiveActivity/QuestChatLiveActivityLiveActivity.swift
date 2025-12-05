@@ -293,16 +293,49 @@ struct FocusSessionLiveActivityWidget: Widget {
                             .imageScale(.medium)
                             .font(.subheadline)
                             .foregroundStyle(color)
-                        CircularTimerRing(
-                            progress: progress(for: context),
-                            remainingSeconds: remaining,
-                            ringColor: color,
-                            size: 32,
-                            lineWidth: 4,
-                            showText: true,
-                            timerRange: context.state.isPaused ? nil : range
-                        )
-                        .padding(2)
+                        
+
+                        if #available(iOSApplicationExtension 17.0, *), !context.state.isPaused {
+                            let range = context.state.startDate...context.state.endDate
+
+                            ZStack {
+                                // Animated ring
+                                ProgressView(timerInterval: range, countsDown: true) {
+                                    EmptyView()
+                                } currentValueLabel: {
+                                    EmptyView()
+                                }
+                                .progressViewStyle(.circular)
+                                .tint(color)
+
+                                // Time text inside the ring
+                                Text(
+                                    timerInterval: range,
+                                    pauseTime: nil,
+                                    countsDown: true,
+                                    showsHours: false   // or true if want to show hours
+                                )
+                                .font(.system(size: 11, weight: .medium))
+                                .monospacedDigit()
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.9)
+                                .frame(width: 36, alignment: .center)
+                                .offset(x: 2.8)
+                            }
+                            .frame(width: 40, height: 40)
+                            .padding(2)
+                        } else {
+                            CircularTimerRing(
+                                progress: progress(for: context),
+                                remainingSeconds: remaining,
+                                ringColor: color,
+                                size: 32,
+                                lineWidth: 4,
+                                showText: true,
+                                timerRange: context.state.isPaused ? nil : range
+                            )
+                            .padding(2)
+                        }
                     }
                 }
                 
@@ -382,7 +415,7 @@ struct FocusSessionLiveActivityWidget: Widget {
                     }
                     .progressViewStyle(.circular)
                     .tint(color)                     // keep your color logic
-                    .frame(width: 14, height: 14)    // tweak to taste
+                    .frame(width: 25, height: 25)    // tweak to taste
                     .padding(2)
                 } else {
                     // Fallback: your custom static ring
@@ -390,8 +423,8 @@ struct FocusSessionLiveActivityWidget: Widget {
                         progress: progress(for: context),
                         remainingSeconds: remaining,
                         ringColor: color,
-                        size: 14,
-                        lineWidth: 2.5,
+                        size: 25,
+                        lineWidth: 4.0,
                         showText: false,
                         timerRange: context.state.isPaused ? nil : range
                     )
@@ -444,3 +477,4 @@ struct FocusSessionLiveActivityWidget: Widget {
     )
 }
 #endif
+
