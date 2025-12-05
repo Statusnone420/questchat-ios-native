@@ -10,7 +10,7 @@ enum FocusTimerMode: String, CaseIterable, Identifiable, Codable {
     case focus
     case selfCare
 
-    var id: String { rawValue }
+    var id: String { displayName }
 
     var title: String {
         switch self {
@@ -169,77 +169,104 @@ struct TimerCategory: Identifiable, Equatable {
     var durationSeconds: Int
 }
 
-enum FocusArea: String, CaseIterable, Identifiable, Codable {
+enum FocusArea: CaseIterable, Codable, Equatable, Identifiable, Hashable {
     case work
-    case home
-    case health
+    case selfCare
     case chill
+    case grind
 
-    var id: String { rawValue }
+    var id: String { displayName }
 
-    var title: String {
+    var icon: String {
         switch self {
-        case .work:
-            return QuestChatStrings.FocusAreaTitles.work
-        case .home:
-            return QuestChatStrings.FocusAreaTitles.home
-        case .health:
-            return QuestChatStrings.FocusAreaTitles.health
-        case .chill:
-            return QuestChatStrings.FocusAreaTitles.chill
+        case .work: return "💼"
+        case .selfCare: return "🧘"
+        case .chill: return "😌"
+        case .grind: return "🔥"
         }
     }
 
-    var emoji: String {
+    var displayName: String {
         switch self {
-        case .work:
-            return "💼"
-        case .home:
-            return "🏡"
-        case .health:
-            return "💪"
-        case .chill:
-            return "😌"
+        case .work: return QuestChatStrings.FocusAreaTitles.work
+        case .selfCare: return QuestChatStrings.FocusAreaTitles.selfCare
+        case .chill: return QuestChatStrings.FocusAreaTitles.chill
+        case .grind: return QuestChatStrings.FocusAreaTitles.grind
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        switch rawValue {
+        case "work":
+            self = .work
+        case "selfCare", "selfcare", "health", "home":
+            self = .selfCare
+        case "chill":
+            self = .chill
+        case "grind":
+            self = .grind
+        default:
+            self = .work
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .work: try container.encode("work")
+        case .selfCare: try container.encode("selfCare")
+        case .chill: try container.encode("chill")
+        case .grind: try container.encode("grind")
         }
     }
 }
 
-struct DailyConfig: Codable {
+struct DailyPlan: Codable, Equatable {
     let date: Date
-    let focusArea: FocusArea
-    let dailyMinutesGoal: Int
+    var focusArea: FocusArea
+    var energyLevel: EnergyLevel
+    var focusGoalMinutes: Int
 }
 
-enum DailyEnergyLevel: String, CaseIterable, Identifiable {
+struct DailyProgress: Codable, Equatable, Identifiable {
+    let date: Date
+    var questsCompleted: Int
+    var focusMinutes: Int
+    var reachedFocusGoal: Bool
+
+    var id: Date { date }
+}
+
+enum EnergyLevel: String, CaseIterable, Identifiable, Codable {
     case low
     case medium
     case high
 
     var id: String { rawValue }
 
-    var title: String {
-        rawValue.capitalized
+    var label: String {
+        switch self {
+        case .low: return "Low – 20 min"
+        case .medium: return "Medium – 40 min"
+        case .high: return "High – 60 min"
+        }
     }
 
-    var suggestedMinutes: Int {
+    var focusGoalMinutes: Int {
         switch self {
-        case .low:
-            return 20
-        case .medium:
-            return 40
-        case .high:
-            return 60
+        case .low: return 20
+        case .medium: return 40
+        case .high: return 60
         }
     }
 
     var emoji: String {
         switch self {
-        case .low:
-            return "🌙"
-        case .medium:
-            return "🌤️"
-        case .high:
-            return "☀️"
+        case .low: return "🌙"
+        case .medium: return "🌤️"
+        case .high: return "☀️"
         }
     }
 }
@@ -296,7 +323,8 @@ final class SessionStatsStore: ObservableObject {
     @Published private(set) var sessionHistory: [SessionRecord]
     @Published private(set) var totalFocusSecondsToday: Int
     @Published var pendingLevelUp: Int?
-    @Published private(set) var dailyConfig: DailyConfig?
+    @Published private(set) var dailyPlan: DailyPlan?
+    @Published private(set) var dailyProgressHistory: [DailyProgress]
     @Published var shouldShowDailySetup: Bool = false
     @Published private(set) var lastWeeklyGoalBonusAwardedDate: Date?
     @Published private(set) var progression: ProgressionState
@@ -346,7 +374,18 @@ final class SessionStatsStore: ObservableObject {
         return QuestChatStrings.StatusLines.xpEarned(totalXP)
     }
 
-    var dailyMinutesGoal: Int? { dailyConfig?.dailyMinutesGoal }
+    var dailyMinutesGoal: Int? { dailyPlan?.focusGoalMinutes }
+
+    var todayPlan: DailyPlan? {
+        let today = Calendar.current.startOfDay(for: Date())
+        guard let plan = dailyPlan, Calendar.current.isDate(plan.date, inSameDayAs: today) else { return nil }
+        return plan
+    }
+
+    var todayProgress: DailyProgress? {
+        let today = Calendar.current.startOfDay(for: Date())
+        return dailyProgressHistory.first { Calendar.current.isDate($0.date, inSameDayAs: today) }
+    }
 
     var dailyMinutesProgress: Int {
         totalFocusSecondsToday / 60
@@ -419,9 +458,11 @@ final class SessionStatsStore: ObservableObject {
         lastKnownLevel = storedLevel > 0 ? storedLevel : initialLevel
         pendingLevelUp = nil
 
-        let storedConfig = Self.decodeConfig(from: userDefaults.data(forKey: Keys.dailyConfig))
-        dailyConfig = storedConfig
-        shouldShowDailySetup = !Self.isConfigValidForToday(storedConfig)
+        let storedPlan = Self.decodePlan(from: userDefaults.data(forKey: Keys.dailyPlan))
+            ?? Self.decodeLegacyConfig(from: userDefaults.data(forKey: Keys.legacyDailyConfig))
+        dailyPlan = storedPlan
+        dailyProgressHistory = Self.decodeDailyProgress(from: userDefaults.data(forKey: Keys.dailyProgressHistory)) ?? []
+        shouldShowDailySetup = !Self.isPlanValidForToday(storedPlan)
 
         lastWeeklyGoalBonusAwardedDate = userDefaults.object(forKey: Keys.lastWeeklyGoalBonusAwardedDate) as? Date
 
@@ -440,6 +481,8 @@ final class SessionStatsStore: ObservableObject {
         }
 
         refreshDailySetupIfNeeded()
+        pruneDailyProgressHistory(referenceDate: today)
+        updateDailyProgress(for: today, focusGoalMinutes: dailyPlan?.focusGoalMinutes)
         evaluateWeeklyGoalBonus()
 
         syncPlayerStateProgress()
@@ -469,6 +512,10 @@ final class SessionStatsStore: ObservableObject {
         let boostedXP = Int(round(Double(baseXP) * momentumMultiplier))
         let minutes = Int(duration / 60)
         _ = grantXP(boostedXP, reason: .focusSession(minutes: minutes))
+
+        if mode == .focus {
+            updateDailyProgress(for: now, focusGoalMinutes: dailyPlan?.focusGoalMinutes)
+        }
 
         persist()
         evaluateWeeklyGoalBonus()
@@ -513,6 +560,8 @@ final class SessionStatsStore: ObservableObject {
             .reduce(0) { $0 + $1.durationSeconds }
         totalFocusSecondsToday = max(0, totalFocusSecondsToday - focusRemovedToday)
 
+        updateDailyProgress(for: today, focusGoalMinutes: dailyPlan?.focusGoalMinutes)
+
         persist()
     }
 
@@ -531,24 +580,30 @@ final class SessionStatsStore: ObservableObject {
 
     func refreshDailySetupIfNeeded() {
         let today = Calendar.current.startOfDay(for: Date())
-        let isValid = Self.isConfigValidForToday(dailyConfig, today: today)
+        let isValid = Self.isPlanValidForToday(dailyPlan, today: today)
         if !isValid {
-            dailyConfig = nil
-            persistDailyConfig(nil)
+            dailyPlan = nil
+            persistDailyPlan(nil)
         }
         shouldShowDailySetup = !isValid
     }
 
-    func completeDailyConfig(focusArea: FocusArea, energyLevel: DailyEnergyLevel) {
+    func completeDailyConfig(focusArea: FocusArea, energyLevel: EnergyLevel) {
         let today = Calendar.current.startOfDay(for: Date())
-        let config = DailyConfig(
+        let plan = DailyPlan(
             date: today,
             focusArea: focusArea,
-            dailyMinutesGoal: energyLevel.suggestedMinutes
+            energyLevel: energyLevel,
+            focusGoalMinutes: energyLevel.focusGoalMinutes
         )
-        dailyConfig = config
+        dailyPlan = plan
         shouldShowDailySetup = false
-        persistDailyConfig(config)
+        persistDailyPlan(plan)
+        updateDailyProgress(for: today, focusGoalMinutes: plan.focusGoalMinutes)
+    }
+
+    func updateDailyQuestsCompleted(_ count: Int, date: Date = Date()) {
+        updateDailyProgress(for: date, focusGoalMinutes: dailyPlan?.focusGoalMinutes, questsCompleted: count)
     }
 
     func recordSessionHistory(mode: FocusTimerMode, duration: Int) {
@@ -756,14 +811,12 @@ final class SessionStatsStore: ObservableObject {
     var weeklyGoalProgress: [WeeklyGoalDayStatus] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let goalMinutes = dailyMinutesGoal ?? 40
 
         let statuses: [WeeklyGoalDayStatus] = stride(from: -6, through: 0, by: 1).compactMap { offset in
             guard let date = calendar.date(byAdding: .day, value: offset, to: today) else { return nil }
-            let focusSecondsForDay = focusSeconds(on: date)
-            let goalHit = goalMinutes > 0 && focusSecondsForDay >= goalMinutes * 60
+            let progress = progressForDay(date)
             let isToday = calendar.isDate(date, inSameDayAs: today)
-            return WeeklyGoalDayStatus(date: date, goalHit: goalHit, isToday: isToday)
+            return WeeklyGoalDayStatus(date: date, goalHit: progress.reachedFocusGoal, isToday: isToday)
         }
 
         return statuses
@@ -841,7 +894,9 @@ final class SessionStatsStore: ObservableObject {
         static let lastKnownLevel = "lastKnownLevel"
         static let totalFocusSecondsToday = "totalFocusSecondsToday"
         static let totalFocusDate = "totalFocusDate"
-        static let dailyConfig = "dailyConfig"
+        static let dailyPlan = "dailyPlan"
+        static let dailyProgressHistory = "dailyProgressHistory"
+        static let legacyDailyConfig = "dailyConfig"
         static let lastWeeklyGoalBonusAwardedDate = "lastWeeklyGoalBonusAwardedDate"
     }
 
@@ -863,7 +918,8 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
         userDefaults.set(Calendar.current.startOfDay(for: Date()), forKey: Keys.totalFocusDate)
         persistWeeklyGoalBonus()
-        persistDailyConfig(dailyConfig)
+        persistDailyPlan(dailyPlan)
+        persistDailyProgressHistory()
         persistSessionHistory()
     }
 
@@ -884,37 +940,155 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(today, forKey: Keys.totalFocusDate)
         userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
         refreshDailySetupIfNeeded()
+        pruneDailyProgressHistory(referenceDate: today)
+        updateDailyProgress(for: today)
     }
 
-    private func persistDailyConfig(_ config: DailyConfig?) {
-        guard let config else {
-            userDefaults.removeObject(forKey: Keys.dailyConfig)
+    private func persistDailyPlan(_ plan: DailyPlan?) {
+        guard let plan else {
+            userDefaults.removeObject(forKey: Keys.dailyPlan)
             return
         }
 
-        if let data = try? JSONEncoder().encode(config) {
-            userDefaults.set(data, forKey: Keys.dailyConfig)
+        if let data = try? JSONEncoder().encode(plan) {
+            userDefaults.set(data, forKey: Keys.dailyPlan)
         }
     }
 
-    private static func decodeConfig(from data: Data?) -> DailyConfig? {
-        guard let data else { return nil }
-        return try? JSONDecoder().decode(DailyConfig.self, from: data)
+    private func persistDailyProgressHistory() {
+        if let data = try? JSONEncoder().encode(dailyProgressHistory) {
+            userDefaults.set(data, forKey: Keys.dailyProgressHistory)
+        }
     }
 
-    private static func isConfigValidForToday(_ config: DailyConfig?, today: Date = Calendar.current.startOfDay(for: Date())) -> Bool {
-        guard let config else { return false }
-        return Calendar.current.isDate(config.date, inSameDayAs: today)
+    private static func decodePlan(from data: Data?) -> DailyPlan? {
+        guard let data else { return nil }
+        return try? JSONDecoder().decode(DailyPlan.self, from: data)
+    }
+
+    private static func decodeLegacyConfig(from data: Data?) -> DailyPlan? {
+        struct LegacyDailyConfig: Codable {
+            let date: Date
+            let focusArea: FocusArea
+            let dailyMinutesGoal: Int
+        }
+
+        guard let data else { return nil }
+        guard let legacy = try? JSONDecoder().decode(LegacyDailyConfig.self, from: data) else { return nil }
+
+        let energyLevel: EnergyLevel
+        switch legacy.dailyMinutesGoal {
+        case 60...:
+            energyLevel = .high
+        case 40...:
+            energyLevel = .medium
+        default:
+            energyLevel = .low
+        }
+
+        let normalizedDate = Calendar.current.startOfDay(for: legacy.date)
+        return DailyPlan(
+            date: normalizedDate,
+            focusArea: legacy.focusArea,
+            energyLevel: energyLevel,
+            focusGoalMinutes: legacy.dailyMinutesGoal
+        )
+    }
+
+    private static func decodeDailyProgress(from data: Data?) -> [DailyProgress]? {
+        guard let data else { return nil }
+        return try? JSONDecoder().decode([DailyProgress].self, from: data)
+    }
+
+    private static func isPlanValidForToday(_ plan: DailyPlan?, today: Date = Calendar.current.startOfDay(for: Date())) -> Bool {
+        guard let plan else { return false }
+        return Calendar.current.isDate(plan.date, inSameDayAs: today)
     }
 
     var currentStreakDays: Int { progression.streakDays }
 
-    private func focusSeconds(on day: Date) -> Int {
+    var currentGoalStreak: Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var streak = 0
+
+        for offset in 0..<7 {
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else { break }
+            let progress = progressForDay(date)
+            guard progress.reachedFocusGoal else { break }
+            streak += 1
+        }
+
+        return streak
+    }
+
+    private func normalizedDate(_ date: Date) -> Date { Calendar.current.startOfDay(for: date) }
+
+    private func focusSessionSeconds(on day: Date) -> Int {
         let calendar = Calendar.current
         let targetDay = calendar.startOfDay(for: day)
         return sessionHistory
-            .filter { calendar.isDate($0.date, inSameDayAs: targetDay) }
+            .filter { calendar.isDate($0.date, inSameDayAs: targetDay) && $0.modeRawValue == FocusTimerMode.focus.rawValue }
             .reduce(0) { $0 + $1.durationSeconds }
+    }
+
+    private func updateDailyProgress(for date: Date = Date(), focusGoalMinutes: Int? = nil, questsCompleted: Int? = nil) {
+        let calendar = Calendar.current
+        let day = normalizedDate(date)
+
+        var progress = dailyProgressHistory.first { calendar.isDate($0.date, inSameDayAs: day) }
+            ?? DailyProgress(date: day, questsCompleted: 0, focusMinutes: 0, reachedFocusGoal: false)
+
+        let focusMinutes: Int
+        if calendar.isDate(day, inSameDayAs: Date()) {
+            focusMinutes = totalFocusSecondsToday / 60
+        } else {
+            focusMinutes = focusSessionSeconds(on: day) / 60
+        }
+        progress.focusMinutes = focusMinutes
+
+        if let questsCompleted {
+            progress.questsCompleted = questsCompleted
+        }
+
+        let goalMinutes = focusGoalMinutes
+            ?? (dailyPlan.flatMap { Calendar.current.isDate($0.date, inSameDayAs: day) ? $0.focusGoalMinutes : nil })
+
+        if let goalMinutes, goalMinutes > 0 {
+            progress.reachedFocusGoal = progress.focusMinutes >= goalMinutes
+        }
+
+        dailyProgressHistory.removeAll { calendar.isDate($0.date, inSameDayAs: day) }
+        dailyProgressHistory.append(progress)
+        pruneDailyProgressHistory(referenceDate: day)
+    }
+
+    private func progressForDay(_ date: Date) -> DailyProgress {
+        let calendar = Calendar.current
+        let day = normalizedDate(date)
+        if let existing = dailyProgressHistory.first(where: { calendar.isDate($0.date, inSameDayAs: day) }) {
+            return existing
+        }
+
+        let focusMinutes = focusSessionSeconds(on: day) / 60
+        let goalMinutes = dailyPlan.flatMap { Calendar.current.isDate($0.date, inSameDayAs: day) ? $0.focusGoalMinutes : nil }
+        let reachedGoal = (goalMinutes ?? 0) > 0 ? focusMinutes >= (goalMinutes ?? 0) : false
+        let progress = DailyProgress(
+            date: day,
+            questsCompleted: 0,
+            focusMinutes: focusMinutes,
+            reachedFocusGoal: reachedGoal
+        )
+        dailyProgressHistory.append(progress)
+        pruneDailyProgressHistory(referenceDate: day)
+        return progress
+    }
+
+    private func pruneDailyProgressHistory(referenceDate: Date = Date()) {
+        let calendar = Calendar.current
+        let cutoff = calendar.date(byAdding: .day, value: -14, to: normalizedDate(referenceDate)) ?? referenceDate
+        dailyProgressHistory = dailyProgressHistory.filter { $0.date >= cutoff }
+        persistDailyProgressHistory()
     }
 
     private func hasSession(on day: Date, calendar: Calendar = .current) -> Bool {

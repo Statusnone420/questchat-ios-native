@@ -150,8 +150,8 @@ struct FocusView: View {
             )
         ) {
             DailySetupSheet(
-                initialFocusArea: statsStore.dailyConfig?.focusArea ?? .work,
-                initialEnergyLevel: .medium
+                initialFocusArea: statsStore.todayPlan?.focusArea ?? .work,
+                initialEnergyLevel: statsStore.todayPlan?.energyLevel ?? .medium
             ) { focusArea, energyLevel in
                 statsStore.completeDailyConfig(focusArea: focusArea, energyLevel: energyLevel)
                 questsViewModel.markCoreQuests(for: focusArea)
@@ -936,67 +936,29 @@ private struct DailySetupSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedFocusArea: FocusArea
-    @State private var selectedEnergy: DailyEnergyLevel
+    @State private var selectedEnergy: EnergyLevel
 
-    let onComplete: (FocusArea, DailyEnergyLevel) -> Void
+    let onComplete: (FocusArea, EnergyLevel) -> Void
 
-    init(initialFocusArea: FocusArea, initialEnergyLevel: DailyEnergyLevel, onComplete: @escaping (FocusArea, DailyEnergyLevel) -> Void) {
+    init(initialFocusArea: FocusArea, initialEnergyLevel: EnergyLevel, onComplete: @escaping (FocusArea, EnergyLevel) -> Void) {
         _selectedFocusArea = State(initialValue: initialFocusArea)
         _selectedEnergy = State(initialValue: initialEnergyLevel)
         self.onComplete = onComplete
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(QuestChatStrings.FocusView.dailySetupTitle)
-                        .font(.title2.bold())
-                    Text(QuestChatStrings.FocusView.dailySetupDescription)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+        VStack {
+            Spacer()
 
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(QuestChatStrings.FocusView.focusAreaLabel)
-                        .font(.headline)
-                    ForEach(FocusArea.allCases) { area in
-                        Button {
-                            selectedFocusArea = area
-                        } label: {
-                            HStack {
-                                Text(area.emoji)
-                                Text(area.title)
-                                    .font(.body)
-                                Spacer()
-                                if selectedFocusArea == area {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.mint)
-                                }
-                            }
-                            .padding(10)
-                            .frame(maxWidth: .infinity)
-                            .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
+            VStack(alignment: .leading, spacing: 16) {
+                header
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        focusAreaSection
+                        energySection
                     }
                 }
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(QuestChatStrings.FocusView.energyLevelLabel)
-                        .font(.headline)
-
-                    Picker(QuestChatStrings.FocusView.energyLevelLabel, selection: $selectedEnergy) {
-                        ForEach(DailyEnergyLevel.allCases) { level in
-                            Text("\(level.emoji) \(level.title) - \(level.suggestedMinutes) min")
-                                .tag(level)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-
-                Spacer()
 
                 Button {
                     onComplete(selectedFocusArea, selectedEnergy)
@@ -1005,15 +967,115 @@ private struct DailySetupSheet: View {
                     Text(QuestChatStrings.FocusView.saveTodayButtonTitle)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(.mint)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .frame(height: 52)
+                        .background(Color.accentColor)
+                        .foregroundColor(.black)
+                        .cornerRadius(20)
+                }
+                .padding(.top, 24)
+                .padding(.bottom, 4)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color.white.opacity(0.06))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 16)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.opacity(0.6).ignoresSafeArea())
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(QuestChatStrings.FocusView.dailySetupTitle)
+                .font(.title2.bold())
+                .foregroundColor(.white)
+            Text("Pick where to focus and your energy. We’ll set a realistic goal for today.")
+                .font(.subheadline)
+                .foregroundColor(Color.white.opacity(0.85))
+        }
+    }
+
+    private var focusAreaSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(QuestChatStrings.FocusView.focusAreaLabel)
+                .font(.headline)
+                .foregroundColor(.white)
+
+            VStack(spacing: 8) {
+                ForEach(FocusArea.allCases) { area in
+                    Button {
+                        selectedFocusArea = area
+                    } label: {
+                        HStack(spacing: 10) {
+                            Text(area.icon)
+                            Text(area.displayName)
+                                .font(.body)
+                            Spacer()
+                            if selectedFocusArea == area {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(selectedFocusArea == area ? Color.white.opacity(0.12) : Color.white.opacity(0.04))
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-            .padding()
-            .background(Color.black.ignoresSafeArea())
         }
+    }
+
+    private var energySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(QuestChatStrings.FocusView.energyLevelLabel)
+                .font(.headline)
+                .foregroundColor(.white)
+
+            HStack(spacing: 8) {
+                chip(for: .low)
+                chip(for: .medium)
+                chip(for: .high)
+            }
+        }
+    }
+
+    private func chip(for level: EnergyLevel) -> some View {
+        Button {
+            selectedEnergy = level
+        } label: {
+            HStack(spacing: 6) {
+                Text(level.emoji)
+                Text(level.label)
+            }
+            .font(.subheadline)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(level == selectedEnergy ? Color.white.opacity(0.15) : Color.white.opacity(0.05))
+            )
+            .overlay(
+                Capsule()
+                    .stroke(Color.white.opacity(level == selectedEnergy ? 0.3 : 0.15), lineWidth: 1)
+            )
+            .foregroundColor(.white)
+        }
+        .buttonStyle(.plain)
     }
 }
 

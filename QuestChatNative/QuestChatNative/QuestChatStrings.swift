@@ -28,9 +28,9 @@ enum QuestChatStrings {
 
     enum FocusAreaTitles {
         static let work = "Work"
-        static let home = "Home"
-        static let health = "Health"
+        static let selfCare = "Self care"
         static let chill = "Chill"
+        static let grind = "Grind"
     }
 
     enum PlayerTitles {

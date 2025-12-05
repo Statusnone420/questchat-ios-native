@@ -132,7 +132,7 @@ final class QuestsViewModel: ObservableObject {
         updateWeeklyHPQuestCompletion()
         updateWeeklyDailyQuestCompletionProgress()
 
-        if let focusArea = statsStore.dailyConfig?.focusArea, !statsStore.shouldShowDailySetup {
+        if let focusArea = statsStore.todayPlan?.focusArea, !statsStore.shouldShowDailySetup {
             markCoreQuests(for: focusArea)
         }
 
@@ -141,6 +141,7 @@ final class QuestsViewModel: ObservableObject {
         }
 
         statsStore.emitQuestProgressSnapshot()
+        statsStore.updateDailyQuestsCompleted(completedQuestsCount)
     }
 
     var completedQuestsCount: Int {
@@ -209,6 +210,7 @@ final class QuestsViewModel: ObservableObject {
 
         persistCompletions()
         checkQuestChestRewardIfNeeded()
+        statsStore.updateDailyQuestsCompleted(completedQuestsCount)
     }
 
     func handleQuestEvent(_ event: QuestEvent) {
@@ -309,7 +311,7 @@ final class QuestsViewModel: ObservableObject {
         userDefaults.set(true, forKey: rerollKey)
         persistCompletions()
 
-        if let focusArea = statsStore.dailyConfig?.focusArea, !statsStore.shouldShowDailySetup {
+        if let focusArea = statsStore.todayPlan?.focusArea, !statsStore.shouldShowDailySetup {
             markCoreQuests(for: focusArea)
         }
     }
@@ -375,9 +377,9 @@ private extension QuestsViewModel {
 
     static let coreQuestIDs: [FocusArea: [String]] = [
         .work: ["daily-checkin", "plan-focus-session", "healthbar-checkin", "finish-focus-session", "chore-blitz"],
-        .home: ["daily-checkin", "plan-focus-session", "healthbar-checkin", "finish-focus-session", "chore-blitz"],
-        .health: ["daily-checkin", "plan-focus-session", "healthbar-checkin", "finish-focus-session", "chore-blitz"],
-        .chill: ["daily-checkin", "plan-focus-session", "healthbar-checkin", "finish-focus-session", "chore-blitz"]
+        .selfCare: ["daily-checkin", "plan-focus-session", "healthbar-checkin", "finish-focus-session", "quick-self-care"],
+        .chill: ["daily-checkin", "plan-focus-session", "healthbar-checkin", "finish-focus-session", "step-outside"],
+        .grind: ["daily-checkin", "plan-focus-session", "healthbar-checkin", "finish-focus-session", "chore-blitz"]
     ]
 
     static func seedQuests(with completedIDs: Set<String>) -> [Quest] {
@@ -422,6 +424,7 @@ private extension QuestsViewModel {
 
         persistCompletions()
         checkQuestChestRewardIfNeeded()
+        statsStore.updateDailyQuestsCompleted(completedQuestsCount)
     }
 
     func persistCompletions() {

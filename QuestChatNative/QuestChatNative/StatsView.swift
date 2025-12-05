@@ -10,14 +10,15 @@ struct StatsView: View {
 
     private var focusMinutes: Int { store.focusSeconds / 60 }
     private var selfCareMinutes: Int { store.selfCareSeconds / 60 }
-    private var focusMinutesToday: Int { store.focusSecondsToday / 60 }
+    private var focusMinutesToday: Int { store.todayProgress?.focusMinutes ?? store.focusSecondsToday / 60 }
     private var selfCareMinutesToday: Int { store.selfCareSecondsToday / 60 }
-    private var dailyGoalMinutes: Int { store.dailyMinutesGoal ?? 40 }
-    private var dailyGoalProgress: Int { store.dailyMinutesProgress }
+    private var dailyGoalMinutes: Int { store.todayPlan?.focusGoalMinutes ?? 40 }
+    private var dailyGoalProgress: Int { store.todayProgress?.focusMinutes ?? store.dailyMinutesProgress }
     private var focusAreaLabel: String? {
-        guard let area = store.dailyConfig?.focusArea else { return nil }
-        return "\(area.emoji) \(area.title)"
+        guard let area = store.todayPlan?.focusArea else { return nil }
+        return "\(area.icon) \(area.displayName)"
     }
+    private var reachedFocusGoal: Bool { store.todayProgress?.reachedFocusGoal ?? false }
     private var levelProgress: Double {
         if store.level >= 100 { return 1 }
         let total = Double(store.xpTotalThisLevel)
@@ -77,8 +78,9 @@ struct StatsView: View {
                             completedQuests: questsViewModel.completedQuestsCount,
                             totalQuests: questsViewModel.totalQuestsCount,
                             focusMinutes: focusMinutesToday,
-                            selfCareMinutes: selfCareMinutesToday,
-                            dailyFocusTarget: dailyGoalMinutes,
+                            focusGoalMinutes: dailyGoalMinutes,
+                            reachedFocusGoal: reachedFocusGoal,
+                            focusAreaLabel: focusAreaLabel,
                             currentStreakDays: store.currentStreakDays
                         )
 
@@ -342,7 +344,7 @@ struct StatsView: View {
 
     private var weeklyPathCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label(QuestChatStrings.StatsView.weeklyPathTitle, systemImage: "chart.dots.scatter")
+            Label("Weekly streak", systemImage: "chart.dots.scatter")
                 .font(.headline)
                 .foregroundStyle(.mint)
 
@@ -369,11 +371,9 @@ struct StatsView: View {
                 }
             }
 
-            if weeklyGoalProgress.allSatisfy({ $0.goalHit }) {
-                Text(QuestChatStrings.StatsView.weeklyStreakBonus)
-                    .font(.caption)
-                    .foregroundStyle(.mint)
-            }
+            Text("Current streak: \(store.currentGoalStreak) day\(store.currentGoalStreak == 1 ? "" : "s")")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -400,6 +400,12 @@ struct StatsView: View {
 
             ProgressView(value: Double(min(dailyGoalProgress, dailyGoalMinutes)), total: Double(dailyGoalMinutes))
                 .tint(.mint)
+
+            if reachedFocusGoal {
+                Text("Goal hit! 🎯")
+                    .font(.caption.bold())
+                    .foregroundColor(.mint)
+            }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
