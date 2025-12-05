@@ -1156,12 +1156,6 @@ final class FocusViewModel: ObservableObject {
         let timestamp: Date
     }
 
-    struct HydrationNudge: Identifiable {
-        let id = UUID()
-        let level: HydrationNudgeLevel
-        let message: String
-    }
-
     enum HydrationNudgeLevel: CaseIterable {
         case thirtyMinutes
         case sixtyMinutes
@@ -1206,7 +1200,8 @@ final class FocusViewModel: ObservableObject {
     @Published var isShowingDurationPicker: Bool = false
     @Published var pendingDurationSeconds: Int = 0
     @Published var lastCompletedSession: SessionSummary?
-    @Published var activeHydrationNudge: HydrationNudge?
+    @Published var activeReminderEvent: ReminderEvent?
+    @Published var activeReminderMessage: String?
     @Published var lastLevelUp: SessionStatsStore.LevelUpResult?
     @Published var sleepQuality: SleepQuality = .okay {
         didSet {
@@ -1239,6 +1234,8 @@ final class FocusViewModel: ObservableObject {
     let playerTitleStore: PlayerTitleStore
     let healthStatsStore: HealthBarIRLStatsStore
     let hydrationSettingsStore: HydrationSettingsStore
+    let reminderSettingsStore: ReminderSettingsStore
+    let reminderEventsStore: ReminderEventsStore
     let seasonAchievementsStore: SeasonAchievementsStore
     private var cancellables = Set<AnyCancellable>()
     private var healthBarViewModel: HealthBarViewModel?
@@ -1246,12 +1243,17 @@ final class FocusViewModel: ObservableObject {
     @Published private var pausedRemainingSeconds: Int?
     @Published private var timerTick: Date = Date()
     private var timerCancellable: AnyCancellable?
-    @AppStorage("hydrateNudgesEnabled") private var hydrateNudgesEnabled: Bool = true
     private let notificationCenter = UNUserNotificationCenter.current()
     private let userDefaults = UserDefaults.standard
     private var activeSessionCategory: TimerCategory.Kind?
     private var hpCheckinQuestSentDate: Date?
     private var hydrationGoalQuestSentDate: Date?
+    private var reminderTimerCancellable: AnyCancellable?
+    private var lastReminderFiredAt: [ReminderType: Date] = [:]
+    private let reminderNotificationIdentifiers: [ReminderType: String] = [
+        .hydration: "hydration_reminder_next",
+        .posture: "posture_reminder_next",
+    ]
 
     @available(iOS 16.1, *)
     private var liveActivityManager: FocusTimerLiveActivityManager? {
@@ -1275,6 +1277,8 @@ final class FocusViewModel: ObservableObject {
         healthStatsStore: HealthBarIRLStatsStore = HealthBarIRLStatsStore(),
         healthBarViewModel: HealthBarViewModel? = nil,
         hydrationSettingsStore: HydrationSettingsStore = HydrationSettingsStore(),
+        reminderSettingsStore: ReminderSettingsStore = ReminderSettingsStore(),
+        reminderEventsStore: ReminderEventsStore = ReminderEventsStore(),
         seasonAchievementsStore: SeasonAchievementsStore = DependencyContainer.shared.seasonAchievementsStore,
         initialMode: FocusTimerMode = .focus
     ) {
@@ -1285,6 +1289,8 @@ final class FocusViewModel: ObservableObject {
         self.healthStatsStore = healthStatsStore
         self.healthBarViewModel = healthBarViewModel
         self.hydrationSettingsStore = hydrationSettingsStore
+        self.reminderSettingsStore = reminderSettingsStore
+        self.reminderEventsStore = reminderEventsStore
         self.seasonAchievementsStore = seasonAchievementsStore
         self.currentHP = healthStatsStore.currentHP
         hpCheckinQuestSentDate = userDefaults.object(forKey: HealthTrackingStorageKeys.hpCheckinQuestDate) as? Date
@@ -1308,6 +1314,12 @@ final class FocusViewModel: ObservableObject {
 
         hasInitialized = true
 
+        ReminderType.allCases.forEach { type in
+            if let storedDate = userDefaults.object(forKey: Self.reminderLastFiredKey(for: type)) as? Date {
+                lastReminderFiredAt[type] = storedDate
+            }
+        }
+
         // Now that initialization is complete, it is safe to use self in method calls.
         syncPlayerHP(with: initialHP)
 
@@ -1327,6 +1339,16 @@ final class FocusViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
+        reminderSettingsStore.$hydrationSettings
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.refreshReminderScheduling() }
+            .store(in: &cancellables)
+
+        reminderSettingsStore.$postureSettings
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.refreshReminderScheduling() }
+            .store(in: &cancellables)
+
         if let healthBarViewModel {
             bindHealthBarViewModel(healthBarViewModel)
         }
@@ -1337,6 +1359,7 @@ final class FocusViewModel: ObservableObject {
 
         refreshDailyHealthBonusState()
         loadSleepQuality()
+        refreshReminderScheduling()
     }
 
     var timerStatusText: String {
@@ -1549,7 +1572,8 @@ final class FocusViewModel: ObservableObject {
 
     var isRunning: Bool { state == .running }
 
-    var hydrationNudgesEnabled: Bool { hydrateNudgesEnabled }
+    var hydrationNudgesEnabled: Bool { reminderSettingsStore.hydrationSettings.enabled }
+    var postureRemindersEnabled: Bool { reminderSettingsStore.postureSettings.enabled }
 
     func logHydrationPillTapped() {
         guard let healthBarViewModel else { return }
@@ -2103,12 +2127,16 @@ final class FocusViewModel: ObservableObject {
             restorePersistedSessionIfNeeded()
             syncRemainingSecondsNow()
             startUITimer()
+            startReminderTimer()
+            refreshReminderScheduling()
             handleSessionCompletionIfNeeded()
         case .background:
             // App going to background: save state and stop UI timer
             persistCurrentSessionIfNeeded()
             scheduleCompletionNotification()
             stopUITimer()
+            stopReminderTimer()
+            scheduleBackgroundReminders()
         default:
             break
         }
@@ -2120,6 +2148,8 @@ final class FocusViewModel: ObservableObject {
         }
         // Make the in-app timer label catch up immediately
         syncRemainingSecondsNow()
+        startReminderTimer()
+        refreshReminderScheduling()
     }
 
     private func handleSessionCompletionIfNeeded() {
@@ -2180,20 +2210,44 @@ final class FocusViewModel: ObservableObject {
         userDefaults.removeObject(forKey: Self.persistedSessionKey)
     }
 
-    private func sendImmediateHydrationReminder() {
-        guard notificationAuthorized, hydrateNudgesEnabled else { return }
-        let content = UNMutableNotificationContent()
-        content.title = QuestChatStrings.Notifications.hydrateReminderTitle
-        content.body = QuestChatStrings.Notifications.hydrateReminderBody
-        content.sound = .default
+    func reminderIconName(for type: ReminderType) -> String {
+        switch type {
+        case .hydration:
+            return "drop.fill"
+        case .posture:
+            return "figure.stand"
+        }
+    }
 
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-        let request = UNNotificationRequest(identifier: "focus_timer_hydrate", content: content, trigger: trigger)
-        notificationCenter.add(request)
+    func reminderTitle(for type: ReminderType) -> String {
+        switch type {
+        case .hydration:
+            return QuestChatStrings.Reminders.hydrationTitle
+        case .posture:
+            return QuestChatStrings.Reminders.postureTitle
+        }
+    }
+
+    func reminderBody(for type: ReminderType) -> String {
+        switch type {
+        case .hydration:
+            return QuestChatStrings.Reminders.hydrationBody
+        case .posture:
+            return QuestChatStrings.Reminders.postureBody
+        }
+    }
+
+    private func sendImmediateHydrationReminder() {
+        triggerReminder(
+            for: .hydration,
+            at: Date(),
+            message: QuestChatStrings.Notifications.hydrateReminderBody,
+            bypassCadence: true
+        )
     }
 
     private func handleHydrationThresholds(previousTotal: Int, newTotal: Int) {
-        guard hydrateNudgesEnabled, selectedMode == .focus else { return }
+        guard hydrationNudgesEnabled, selectedMode == .focus else { return }
 
         for level in HydrationNudgeLevel.allCases {
             let threshold = level.thresholdSeconds
@@ -2206,32 +2260,7 @@ final class FocusViewModel: ObservableObject {
     }
 
     func sendHydrationNudge(level: HydrationNudgeLevel) {
-        guard hydrateNudgesEnabled else { return }
-
-        let content = UNMutableNotificationContent()
-        content.title = QuestChatStrings.Notifications.hydrateNudgeTitle
-        content.body = level.bodyText
-        content.sound = .default
-
-        if notificationAuthorized {
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-            let request = UNNotificationRequest(
-                identifier: "hydrate_nudge_\(level.thresholdSeconds)",
-                content: content,
-                trigger: trigger
-            )
-            notificationCenter.add(request)
-        }
-
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-            activeHydrationNudge = HydrationNudge(level: level, message: level.bodyText)
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
-            withAnimation(.easeInOut(duration: 0.3)) {
-                self?.activeHydrationNudge = nil
-            }
-        }
+        triggerReminder(for: .hydration, at: Date(), message: level.bodyText, bypassCadence: true)
     }
 
     private func bindHealthBarViewModel(_ healthBarViewModel: HealthBarViewModel) {
@@ -2400,6 +2429,191 @@ final class FocusViewModel: ObservableObject {
     private func markNudgeTriggered(for level: HydrationNudgeLevel) {
         let today = Calendar.current.startOfDay(for: Date())
         userDefaults.set(today, forKey: level.triggerKey)
+    }
+
+    private func startReminderTimer() {
+        reminderTimerCancellable?.cancel()
+        reminderTimerCancellable = Timer.publish(every: 60, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] date in
+                self?.evaluateReminders(now: date)
+            }
+    }
+
+    private func stopReminderTimer() {
+        reminderTimerCancellable?.cancel()
+        reminderTimerCancellable = nil
+    }
+
+    private func refreshReminderScheduling(now: Date = Date()) {
+        evaluateReminders(now: now)
+        scheduleBackgroundReminders(now: now)
+    }
+
+    private func evaluateReminders(now: Date = Date()) {
+        ReminderType.allCases.forEach { type in
+            guard shouldFireReminder(for: type, at: now) else { return }
+            triggerReminder(for: type, at: now)
+        }
+    }
+
+    private func triggerReminder(
+        for type: ReminderType,
+        at date: Date = Date(),
+        message: String? = nil,
+        bypassCadence: Bool = false
+    ) {
+        let settings = reminderSettingsStore.settings(for: type)
+        guard settings.enabled else { return }
+
+        if type == .posture, settings.onlyDuringFocusSessions, !isFocusSessionActive {
+            return
+        }
+
+        if !bypassCadence, !shouldFireReminder(for: type, at: date) {
+            return
+        }
+
+        let event = ReminderEvent(
+            id: UUID(),
+            type: type,
+            firedAt: date,
+            responded: false,
+            respondedAt: nil
+        )
+        lastReminderFiredAt[type] = date
+        userDefaults.set(date, forKey: Self.reminderLastFiredKey(for: type))
+        reminderEventsStore.log(event: event)
+
+        presentInAppReminder(event: event, message: message ?? reminderBody(for: type))
+        scheduleLocalNotification(for: type, message: message)
+        scheduleBackgroundReminders(now: date)
+    }
+
+    private func presentInAppReminder(event: ReminderEvent, message: String) {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            activeReminderEvent = event
+            activeReminderMessage = message
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                self?.activeReminderEvent = nil
+                self?.activeReminderMessage = nil
+            }
+        }
+    }
+
+    private func scheduleLocalNotification(for type: ReminderType, message: String?) {
+        guard notificationAuthorized else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = reminderTitle(for: type)
+        content.body = message ?? reminderBody(for: type)
+        content.sound = .default
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let identifier = "reminder_fire_\(type.rawValue)_\(UUID().uuidString)"
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        notificationCenter.add(request)
+    }
+
+    private func scheduleBackgroundReminders(now: Date = Date()) {
+        ReminderType.allCases.forEach { type in
+            scheduleNextReminderNotification(for: type, now: now)
+        }
+    }
+
+    private func scheduleNextReminderNotification(for type: ReminderType, now: Date = Date()) {
+        let identifier = reminderNotificationIdentifiers[type] ?? "reminder_\(type.rawValue)_next"
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
+        guard notificationAuthorized else { return }
+        guard let next = nextReminderDate(for: type, from: now) else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = reminderTitle(for: type)
+        content.body = reminderBody(for: type)
+        content.sound = .default
+
+        let components = Calendar.current.dateComponents([
+            .year, .month, .day, .hour, .minute, .second
+        ], from: next)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        notificationCenter.add(request)
+    }
+
+    private func shouldFireReminder(for type: ReminderType, at date: Date) -> Bool {
+        let settings = reminderSettingsStore.settings(for: type)
+        guard settings.enabled else { return false }
+
+        if type == .posture, settings.onlyDuringFocusSessions, !isFocusSessionActive {
+            return false
+        }
+
+        guard isWithinActiveWindow(date, settings: settings) else { return false }
+        let cadence = TimeInterval(settings.cadenceMinutes * 60)
+        let lastFired = lastReminderFiredAt[type] ?? .distantPast
+        return date.timeIntervalSince(lastFired) >= cadence
+    }
+
+    private func nextReminderDate(for type: ReminderType, from date: Date) -> Date? {
+        let settings = reminderSettingsStore.settings(for: type)
+        guard settings.enabled else { return nil }
+
+        if type == .posture, settings.onlyDuringFocusSessions, !isFocusSessionActive {
+            return nil
+        }
+
+        let cadence = TimeInterval(settings.cadenceMinutes * 60)
+        let lastFired = lastReminderFiredAt[type] ?? date
+        let tentative = max(date, lastFired.addingTimeInterval(cadence))
+
+        guard isWithinActiveWindow(tentative, settings: settings) else {
+            return nextWindowStart(after: tentative, settings: settings)
+        }
+
+        return tentative
+    }
+
+    private func isWithinActiveWindow(_ date: Date, settings: ReminderSettings) -> Bool {
+        let calendar = Calendar.current
+        guard
+            let start = calendar.date(bySettingHour: settings.activeStartHour, minute: 0, second: 0, of: date),
+            let end = calendar.date(bySettingHour: settings.activeEndHour, minute: 0, second: 0, of: date)
+        else { return true }
+
+        if settings.activeStartHour == settings.activeEndHour {
+            return true
+        }
+
+        if end > start {
+            return date >= start && date <= end
+        } else {
+            return date >= start || date <= end
+        }
+    }
+
+    private func nextWindowStart(after date: Date, settings: ReminderSettings) -> Date? {
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: date)
+        components.hour = settings.activeStartHour
+        components.minute = 0
+        components.second = 0
+
+        guard let todayStart = calendar.date(from: components) else { return nil }
+
+        if date < todayStart {
+            return todayStart
+        }
+
+        return calendar.date(byAdding: .day, value: 1, to: todayStart)
+    }
+
+    private var isFocusSessionActive: Bool { timerState == .running }
+
+    private static func reminderLastFiredKey(for type: ReminderType) -> String {
+        "reminder_last_fired_\(type.rawValue)"
     }
 
     private static func durationKey(for category: TimerCategory.Kind) -> String {

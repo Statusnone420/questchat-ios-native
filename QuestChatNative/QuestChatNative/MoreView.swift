@@ -10,6 +10,8 @@ struct MoreView: View {
                 VStack(spacing: 24) {
                     hydrationSection
 
+                    reminderSection
+
                     LegacyMoreContentView()
                 }
                 .padding()
@@ -73,11 +75,130 @@ struct MoreView: View {
         .background(Color(uiColor: .secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
+
+    private var reminderSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(QuestChatStrings.Reminders.settingsHeader)
+                .font(.headline)
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 12) {
+                reminderSettingsCard(
+                    title: QuestChatStrings.Reminders.hydrationTitle,
+                    description: QuestChatStrings.Reminders.hydrationDescription,
+                    settings: $viewModel.hydrationReminderSettings,
+                    showFocusOnly: false
+                )
+
+                reminderSettingsCard(
+                    title: QuestChatStrings.Reminders.postureTitle,
+                    description: QuestChatStrings.Reminders.postureDescription,
+                    settings: $viewModel.postureReminderSettings,
+                    showFocusOnly: true
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func reminderSettingsCard(
+        title: String,
+        description: String,
+        settings: Binding<ReminderSettings>,
+        showFocusOnly: Bool
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                    Text(description)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Toggle(isOn: settings.enabled) {
+                    EmptyView()
+                }
+                .labelsHidden()
+                .tint(.mint)
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(QuestChatStrings.Reminders.cadenceLabel)
+                    Spacer()
+                    Picker("Cadence", selection: settings.cadenceMinutes) {
+                        ForEach(cadenceOptions, id: \.self) { minutes in
+                            Text(QuestChatStrings.Reminders.cadenceValue(minutes))
+                                .tag(minutes)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+
+                HStack {
+                    Text(QuestChatStrings.Reminders.startHourLabel)
+                    Spacer()
+                    Picker("Start", selection: settings.activeStartHour) {
+                        ForEach(hourOptions, id: \.self) { hour in
+                            Text(hourLabel(hour))
+                                .tag(hour)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+
+                HStack {
+                    Text(QuestChatStrings.Reminders.endHourLabel)
+                    Spacer()
+                    Picker("End", selection: settings.activeEndHour) {
+                        ForEach(hourOptions, id: \.self) { hour in
+                            Text(hourLabel(hour))
+                                .tag(hour)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+
+                if showFocusOnly {
+                    Toggle(isOn: settings.onlyDuringFocusSessions) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(QuestChatStrings.Reminders.focusOnlyLabel)
+                                .font(.subheadline)
+                            Text(QuestChatStrings.Reminders.focusOnlyDescription)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .tint(.mint)
+                }
+            }
+            .font(.subheadline)
+        }
+    }
+
+    private var cadenceOptions: [Int] { [30, 45, 60, 90] }
+    private var hourOptions: [Int] { Array(0...23) }
+
+    private func hourLabel(_ hour: Int) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h a"
+        var components = DateComponents()
+        components.hour = hour
+        let calendar = Calendar.current
+        let date = calendar.date(from: components) ?? Date()
+        return formatter.string(from: date)
+    }
 }
 
 struct LegacyMoreContentView: View {
     @Environment(\.openURL) private var openURL
-    @AppStorage("hydrateNudgesEnabled") private var hydrateNudgesEnabled: Bool = true
 
     var body: some View {
         VStack(spacing: 16) {
@@ -95,17 +216,6 @@ struct LegacyMoreContentView: View {
                     Text(QuestChatStrings.MoreView.timerDurationsDescription)
                         .font(.headline)
                 }
-
-                Toggle(isOn: $hydrateNudgesEnabled) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(QuestChatStrings.MoreView.hydrationToggleTitle)
-                            .font(.headline)
-                        Text(QuestChatStrings.MoreView.hydrationToggleDescription)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .tint(.mint)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
