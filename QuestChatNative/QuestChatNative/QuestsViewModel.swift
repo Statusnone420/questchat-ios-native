@@ -30,6 +30,10 @@ struct Quest: Identifiable, Equatable {
         self.isCoreToday = isCoreToday
     }
 
+    static func == (lhs: Quest, rhs: Quest) -> Bool {
+        return lhs.id == rhs.id && lhs.isCompleted == rhs.isCompleted && lhs.isCoreToday == rhs.isCoreToday
+    }
+
     var id: String { definition.id }
     var title: String { definition.title }
     var detail: String { definition.subtitle }
@@ -409,7 +413,7 @@ final class QuestsViewModel: ObservableObject {
         guard let newDefinition = replacementCandidates.first(where: { candidate in
             var updatedDefinitions = currentDefinitions
             updatedDefinitions[index] = candidate
-            return meetsDailyBoardRules(definitions: updatedDefinitions)
+            return Self.meetsDailyBoardRules(definitions: updatedDefinitions)
         }) else { return }
 
         dailyQuests[index] = Quest(
@@ -953,3 +957,4 @@ private extension QuestsViewModel {
     static let weeklyFocusMinutesTarget = 120
     static let weeklyFocusSessionTarget = 15
 }
+
