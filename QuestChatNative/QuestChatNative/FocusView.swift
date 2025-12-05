@@ -73,25 +73,25 @@ struct FocusView: View {
     var body: some View {
         ZStack {
             NavigationStack {
-                ScrollView (.vertical, showsIndicators: false) {
+                ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 20) {
                         healthHeaderCard
                         vitalsCard
                         potionsCard
                         compactStatusHeader
                         todayQuestBanner
-                        
+
                         if let selectedCategory = viewModel.selectedCategoryData {
                             heroCard(for: selectedCategory)
                         }
-                        
+
                         quickTimersList
 
                         reminderCard
                     }
-                    .padding(.vertical, 16)
                     .padding(.horizontal, 20)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 16)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
                 .background(Color.black.ignoresSafeArea())
                 .navigationTitle(QuestChatStrings.FocusView.navigationTitle)
@@ -172,7 +172,7 @@ struct FocusView: View {
             headerItem(title: QuestChatStrings.FocusView.headerStreakTitle, value: streakSummaryText, icon: "flame.fill", tint: .orange)
         }
         .padding(14)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color(uiColor: .secondarySystemBackground).opacity(0.16))
@@ -302,6 +302,7 @@ struct FocusView: View {
             }
         }
         .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.65))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
@@ -361,48 +362,112 @@ struct FocusView: View {
             )
         }
         .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.45))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    private func potionButton(title: String, systemImage: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+    private var potionsCard: some View {
+        PotionsCard(
+            onHealthTap: { viewModel.logComfortBeverageTapped() },
+            onManaTap: { viewModel.logHydrationPillTapped() },
+            onStaminaTap: { viewModel.logStaminaPotionTapped() }
+        )
+    }
+
+    private struct PotionsCard: View {
+        let onHealthTap: () -> Void
+        let onManaTap: () -> Void
+        let onStaminaTap: () -> Void
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Potions")
+                    .font(.headline.weight(.semibold))
+
+                PotionsRow(
+                    onHealthTap: onHealthTap,
+                    onManaTap: onManaTap,
+                    onStaminaTap: onStaminaTap
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.45))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+    }
+
+    private struct PotionsRow: View {
+        let onHealthTap: () -> Void
+        let onManaTap: () -> Void
+        let onStaminaTap: () -> Void
+
+        var body: some View {
+            GeometryReader { geo in
+                let spacing: CGFloat = 12
+                let totalSpacing = spacing * 2
+                let pillWidth = (geo.size.width - totalSpacing) / 3
+
+                HStack(spacing: spacing) {
+                    Button(action: onHealthTap) {
+                        potionPill(label: "Health", systemImage: "cross.case.fill", style: .health)
+                    }
+                    .frame(width: pillWidth)
+                    .buttonStyle(.plain)
+
+                    Button(action: onManaTap) {
+                        potionPill(label: "Mana", systemImage: "drop.fill", style: .mana)
+                    }
+                    .frame(width: pillWidth)
+                    .buttonStyle(.plain)
+
+                    Button(action: onStaminaTap) {
+                        potionPill(label: "Stamina", systemImage: "bolt.fill", style: .stamina)
+                    }
+                    .frame(width: pillWidth)
+                    .buttonStyle(.plain)
+                }
+            }
+            .frame(height: 52)
+        }
+
+        private func potionPill(label: String, systemImage: String, style: PotionStyle) -> some View {
             Label {
-                Text(title)
+                Text(label)
+                    .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                     .allowsTightening(true)
             } icon: {
                 Image(systemName: systemImage)
+                    .font(.subheadline.weight(.semibold))
             }
-            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(style.backgroundColor)
+            .foregroundStyle(Color.white)
+            .clipShape(Capsule())
         }
-        .buttonStyle(HealthPotionButtonStyle(color: color))
     }
 
-    private var potionsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Potions")
-                .font(.headline.weight(.semibold))
+    private enum PotionStyle {
+        case health
+        case mana
+        case stamina
 
-            HStack(spacing: 12) {
-                potionButton(title: "Health", systemImage: "cross.case.fill", color: .green) {
-                    viewModel.logComfortBeverageTapped()
-                }
-
-                potionButton(title: "Mana", systemImage: "drop.fill", color: .cyan) {
-                    viewModel.logHydrationPillTapped()
-                }
-
-                potionButton(title: "Stamina", systemImage: "bolt.fill", color: .orange) {
-                    viewModel.logStaminaPotionTapped()
-                }
+        var backgroundColor: Color {
+            switch self {
+            case .health:
+                return .green
+            case .mana:
+                return .cyan
+            case .stamina:
+                return .orange
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(14)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.45))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     @ViewBuilder
@@ -438,7 +503,7 @@ struct FocusView: View {
                     }
                 }
                 .padding()
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.ultraThinMaterial.opacity(0.14))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
@@ -761,6 +826,7 @@ struct FocusView: View {
                 .foregroundStyle(.secondary)
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.12))
         .cornerRadius(18)
         .overlay(
@@ -1079,7 +1145,7 @@ private struct DailySetupSheet: View {
     }
 }
 
-#Preview("Focus – iPhone 15 Pro") {
+#Preview("FocusView – iPhone 15 Pro") {
     let container = DependencyContainer.shared
     let focusVM = container.focusViewModel
     let healthBarVM = HealthBarViewModel()
@@ -1089,10 +1155,10 @@ private struct DailySetupSheet: View {
         selectedTab: .constant(.focus)
     )
     .environmentObject(QuestsViewModel(statsStore: container.sessionStatsStore))
-    .previewDevice(.init(rawValue: "iPhone 15 Pro"))
+    .previewDevice("iPhone 15 Pro")
 }
 
-#Preview("Focus – iPhone 13 mini") {
+#Preview("FocusView – iPhone 17 Pro Max") {
     let container = DependencyContainer.shared
     let focusVM = container.focusViewModel
     let healthBarVM = HealthBarViewModel()
@@ -1102,5 +1168,19 @@ private struct DailySetupSheet: View {
         selectedTab: .constant(.focus)
     )
     .environmentObject(QuestsViewModel(statsStore: container.sessionStatsStore))
-    .previewDevice(.init(rawValue: "iPhone 13 mini"))
+    .previewDevice("iPhone 17 Pro Max")
+}
+
+#Preview("Potions – iPhone 15 Pro") {
+    FocusView.PotionsCard(onHealthTap: {}, onManaTap: {}, onStaminaTap: {})
+        .padding(20)
+        .background(Color.black)
+        .previewDevice("iPhone 15 Pro")
+}
+
+#Preview("Potions – iPhone 17 Pro Max") {
+    FocusView.PotionsCard(onHealthTap: {}, onManaTap: {}, onStaminaTap: {})
+        .padding(20)
+        .background(Color.black)
+        .previewDevice("iPhone 17 Pro Max")
 }
