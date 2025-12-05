@@ -375,7 +375,7 @@ struct FocusView: View {
         )
     }
 
-    private struct PotionsCard: View {
+    struct PotionsCard: View {
         let onHealthTap: () -> Void
         let onManaTap: () -> Void
         let onStaminaTap: () -> Void
@@ -1184,3 +1184,4 @@ private struct DailySetupSheet: View {
         .background(Color.black)
         .previewDevice("iPhone 17 Pro Max")
 }
+
