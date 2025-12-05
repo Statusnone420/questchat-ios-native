@@ -243,16 +243,19 @@ struct StatsView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "person.crop.circle")
-                        .font(.title2)
+                        .font(.headline)
                     Text("Player Card")
-                        .font(.subheadline)
+                        .font(.subheadline.weight(.semibold))
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color(uiColor: .secondarySystemBackground).opacity(0.25))
-                .cornerRadius(12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.08))
+                )
             }
             .buttonStyle(.plain)
+            .foregroundStyle(.primary)
         }
     }
 

@@ -12,44 +12,7 @@ struct PlayerCardView: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 20) {
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    TextField(QuestChatStrings.PlayerCard.namePlaceholder, text: $playerDisplayName)
-                        .font(.title.bold())
-                        .textFieldStyle(.plain)
-
-                    Button {
-                        isTitlePickerPresented = true
-                    } label: {
-                        HStack(spacing: 6) {
-                            Text(statsViewModel.activeTitle ?? "Choose Title")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.leading)
-                            Image(systemName: "chevron.down")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                Spacer()
-
-                if let latest = statsViewModel.latestUnlockedSeasonAchievement {
-                    SeasonAchievementBadgeView(
-                        title: latest.title,
-                        iconName: latest.iconName,
-                        isUnlocked: true,
-                        progressFraction: 1.0
-                    )
-                    .frame(width: 48, height: 48)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
-            .cornerRadius(14)
+                headerCard
 
                 playerHUDSection
 
@@ -81,24 +44,45 @@ struct PlayerCardView: View {
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .sheet(isPresented: $isTitlePickerPresented) {
             NavigationStack {
-                List {
-                    if let base = statsViewModel.baseLevelTitle {
-                        Section("Level titles") {
-                            Button(base) {
-                                statsViewModel.equipBaseLevelTitle()
-                                isTitlePickerPresented = false
+                VStack(spacing: 16) {
+                    List {
+                        if let base = statsViewModel.baseLevelTitle {
+                            Section("Level titles") {
+                                Button {
+                                    statsViewModel.equipBaseLevelTitle()
+                                    isTitlePickerPresented = false
+                                } label: {
+                                    HStack {
+                                        Text(base)
+                                        Spacer()
+                                        if statsViewModel.activeTitle == base {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.subheadline)
+                                        }
+                                    }
+                                }
                             }
                         }
-                    }
 
-                    Section("Achievement titles") {
-                        ForEach(Array(statsViewModel.unlockedAchievementTitles).sorted(), id: \.self) { title in
-                            Button(title) {
-                                statsViewModel.equipOverrideTitle(title)
-                                isTitlePickerPresented = false
+                        Section("Achievement titles") {
+                            ForEach(Array(statsViewModel.unlockedAchievementTitles).sorted(), id: \.self) { title in
+                                Button {
+                                    statsViewModel.equipOverrideTitle(title)
+                                    isTitlePickerPresented = false
+                                } label: {
+                                    HStack {
+                                        Text(title)
+                                        Spacer()
+                                        if statsViewModel.activeTitle == title {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.subheadline)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
+                    .listStyle(.insetGrouped)
                 }
                 .navigationTitle("Choose Title")
                 .toolbar {
@@ -110,6 +94,86 @@ struct PlayerCardView: View {
                 }
             }
         }
+    }
+
+    private var headerCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .center, spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.06))
+                        .frame(width: 56, height: 56)
+
+                    Text(playerDisplayName.isEmpty ? "P1" : String(playerDisplayName.prefix(2)))
+                        .font(.headline.weight(.bold))
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    TextField(QuestChatStrings.PlayerCard.namePlaceholder, text: $playerDisplayName)
+                        .font(.title2.weight(.bold))
+                        .textFieldStyle(.plain)
+
+                    Button {
+                        isTitlePickerPresented = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "wand.and.stars")
+                                .font(.caption)
+
+                            Text(statsViewModel.activeTitle ?? "Choose a title")
+                                .font(.subheadline.weight(.semibold))
+
+                            Image(systemName: "chevron.down")
+                                .font(.caption2)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(Color.cyan.opacity(0.26))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.cyan)
+                }
+
+                Spacer()
+
+                if let latest = statsViewModel.latestUnlockedSeasonAchievement {
+                    SeasonAchievementBadgeView(
+                        title: latest.title,
+                        iconName: latest.iconName,
+                        isUnlocked: true,
+                        progressFraction: 1.0
+                    )
+                    .frame(width: 52, height: 52)
+                }
+            }
+
+            Text("Your real-life player card. Track your HP, habits, and streaks here.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.02)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.white.opacity(0.06), lineWidth: 1)
+        )
+        .padding(.horizontal)
+        .padding(.top, 16)
     }
 
     private func statRow(label: String, value: String, tint: Color) -> some View {
