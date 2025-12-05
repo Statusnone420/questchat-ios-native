@@ -53,9 +53,10 @@
 		D8A200222EDE07B400A6A001 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0222EDE07B400A6A022 /* OnboardingView.swift */; };
 		D8A200232EDE07B400A6A001 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0232EDE07B400A6A023 /* OnboardingViewModel.swift */; };
 		D8ABE41B2EE23E2400813C61 /* AchievementUnlockOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8ABE41A2EE23E2400813C61 /* AchievementUnlockOverlayView.swift */; };
-		D8ABE41D2EE2411600813C61 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8ABE41C2EE2410C00813C61 /* ConfettiView.swift */; };
-		D8E9D6532EE1017A00EF0582 /* PlayerStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E9D6522EE1017A00EF0582 /* PlayerStateStore.swift */; };
-		D8EDD5292EE1F14B00922DCF /* QuestEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */; };
+                D8ABE41D2EE2411600813C61 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8ABE41C2EE2410C00813C61 /* ConfettiView.swift */; };
+                D8E9D6532EE1017A00EF0582 /* PlayerStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E9D6522EE1017A00EF0582 /* PlayerStateStore.swift */; };
+                D8EDD5292EE1F14B00922DCF /* QuestEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */; };
+                399C54D99232406C91BC2260 /* QuestCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,10 +85,11 @@
 
 /* Begin PBXFileReference section */
 		2A1BDF6F83A546F0B90DA4A3 /* SeasonAchievementsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievementsStore.swift; sourceTree = "<group>"; };
-		3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievementBadgeView.swift; sourceTree = "<group>"; };
-		76CAEBCF8CD8432DA6BB0E0E /* SeasonAchievement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievement.swift; sourceTree = "<group>"; };
-		D80A60BC2EE1397D003C5262 /* QuestEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestEngine.swift; sourceTree = "<group>"; };
-		D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProgress.swift; sourceTree = "<group>"; };
+                3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievementBadgeView.swift; sourceTree = "<group>"; };
+                76CAEBCF8CD8432DA6BB0E0E /* SeasonAchievement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievement.swift; sourceTree = "<group>"; };
+                D80A60BC2EE1397D003C5262 /* QuestEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestEngine.swift; sourceTree = "<group>"; };
+                7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestCatalog.swift; sourceTree = "<group>"; };
+                D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProgress.swift; sourceTree = "<group>"; };
 		D87C182B2EDF9B6F00438C3A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		D87C182D2EDF9B6F00438C3A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		D87C18812EDFA74B00438C3A /* QuestChatLiveActivityExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QuestChatLiveActivityExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -247,11 +249,12 @@
 				D899A6D12EDF6D6500F90F46 /* PlayerStatusBarsView.swift */,
 				D8A1A0212EDE07B400A6A021 /* PlayerTitleStore.swift */,
 				D8A1A01E2EDE07B400A6A01E /* QuestChatNativeApp.swift */,
-				D8A1A0112EDE07B400A6A011 /* QuestChatStrings.swift */,
-				D80A60BC2EE1397D003C5262 /* QuestEngine.swift */,
-				D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */,
-				D8A1A01D2EDE07B400A6A01D /* QuestsView.swift */,
-				D8A1A0082EDE07B400A6A008 /* QuestsViewModel.swift */,
+                                D8A1A0112EDE07B400A6A011 /* QuestChatStrings.swift */,
+                                D80A60BC2EE1397D003C5262 /* QuestEngine.swift */,
+                                7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */,
+                                D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */,
+                                D8A1A01D2EDE07B400A6A01D /* QuestsView.swift */,
+                                D8A1A0082EDE07B400A6A008 /* QuestsViewModel.swift */,
 				D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */,
 				76CAEBCF8CD8432DA6BB0E0E /* SeasonAchievement.swift */,
 				3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */,
@@ -406,9 +409,10 @@
 				D80A60E12EE13C6D003C5262 /* PlayerProgress.swift in Sources */,
 				D8A2000D2EDE07B400A6A001 /* GameDataResetter.swift in Sources */,
 				D8A2000C2EDE07B400A6A001 /* HealthBarStorage.swift in Sources */,
-				D8A2000B2EDE07B400A6A001 /* SettingsView.swift in Sources */,
-				D80A60BD2EE1397D003C5262 /* QuestEngine.swift in Sources */,
-				D8A2000A2EDE07B400A6A001 /* HealthBarViewModel.swift in Sources */,
+                                D8A2000B2EDE07B400A6A001 /* SettingsView.swift in Sources */,
+                                D80A60BD2EE1397D003C5262 /* QuestEngine.swift in Sources */,
+                                399C54D99232406C91BC2260 /* QuestCatalog.swift in Sources */,
+                                D8A2000A2EDE07B400A6A001 /* HealthBarViewModel.swift in Sources */,
 				D8A200092EDE07B400A6A001 /* AppCoordinator.swift in Sources */,
 				D8A200082EDE07B400A6A001 /* QuestsViewModel.swift in Sources */,
 				D8A200072EDE07B400A6A001 /* MoreView.swift in Sources */,

@@ -20,13 +20,25 @@ struct Quest: Identifiable, Equatable {
         }
     }
 
-    let id: String
-    let title: String
-    let detail: String
-    let xpReward: Int
-    let tier: Tier
+    let definition: QuestDefinition
     var isCompleted: Bool
     var isCoreToday: Bool = false
+
+    init(definition: QuestDefinition, isCompleted: Bool = false, isCoreToday: Bool = false) {
+        self.definition = definition
+        self.isCompleted = isCompleted
+        self.isCoreToday = isCoreToday
+    }
+
+    var id: String { definition.id }
+    var title: String { definition.title }
+    var detail: String { definition.subtitle }
+    var xpReward: Int { definition.xpReward }
+    var tier: Tier { definition.tier }
+    var category: QuestCategory { definition.category }
+    var difficulty: QuestDifficulty { definition.difficulty }
+    var type: QuestType { definition.type }
+    var isOncePerDay: Bool { definition.isOncePerDay }
 }
 
 final class QuestsViewModel: ObservableObject {
@@ -48,6 +60,26 @@ final class QuestsViewModel: ObservableObject {
         "hydrate-checkpoint",
         "hydration-goal",
         "focus-25-min",
+        "LOAD_QUEST_LOG",
+        "DAILY_TIMER_QUICK_WORK",
+        "DAILY_TIMER_DEEP_WORK",
+        "DAILY_TIMER_CHORES_BURST",
+        "DAILY_TIMER_HOME_RESET",
+        "DAILY_TIMER_SELF_CARE",
+        "DAILY_TIMER_MINDFUL_BREAK",
+        "DAILY_TIMER_FOCUS_CHAIN",
+        "DAILY_TIMER_EVENING_RESET",
+        "DAILY_TIMER_BOSS_BATTLE",
+        "DAILY_TIMER_CHILL_CHOICE",
+        "DAILY_HB_MORNING_CHECKIN",
+        "DAILY_HB_SLEEP_LOG",
+        "DAILY_HB_FIRST_POTION",
+        "DAILY_HB_HYDRATION_COMPLETE",
+        "DAILY_HB_GENTLE_MOVEMENT",
+        "DAILY_HB_GUT_CHECK",
+        "DAILY_META_SETUP_COMPLETE",
+        "DAILY_EASY_TINY_TIDY",
+        "DAILY_EASY_ONE_NICE_THING",
     ]
     private let weeklyEventDrivenQuestIDs: Set<String> = [
         "weekly-hydration-hero",
@@ -55,6 +87,21 @@ final class QuestsViewModel: ObservableObject {
         "weekly-session-grinder",
         "weekly-daily-quest-slayer",
         "weekly-health-check",
+        "WEEK_WORK_WARRIOR",
+        "WEEK_DEEP_WORK",
+        "WEEK_CLUTTER_CRUSHER",
+        "WEEK_SELFCARE_CHAMPION",
+        "WEEK_EVENING_RESET",
+        "WEEK_HYDRATION_HERO_PLUS",
+        "WEEK_HYDRATION_DEMON",
+        "WEEK_MOOD_TRACKER",
+        "WEEK_SLEEP_SENTINEL",
+        "WEEK_BALANCED_BAR",
+        "WEEK_DAILY_SETUP_STREAK",
+        "WEEK_QUEST_FINISHER",
+        "WEEK_MINI_BOSS",
+        "WEEK_THREE_GOOD_DAYS",
+        "WEEK_WEEKEND_WARRIOR",
     ]
     private static let disabledDailyQuestIDs: Set<String> = [
         "irl-patch",
@@ -67,6 +114,14 @@ final class QuestsViewModel: ObservableObject {
     ]
     private var hydrationGoalDaysThisWeek: Set<Date> = []
     private var hpCheckinDaysThisWeek: Set<Date> = []
+    private var weeklyWorkTimerCount: Int = 0
+    private var weeklyWorkMinutes: Int = 0
+    private var weeklyChoresMinutes: Int = 0
+    private var weeklySelfCareDays: Set<Date> = []
+    private var weeklyEveningResetDays: Set<Date> = []
+    private var weeklyDailySetupDays: Set<Date> = []
+    private var weekendTimerDays: Set<Date> = []
+    private var weeklyHardQuestCount: Int = 0
 
     private var completionKey: String {
         Self.dateKey(for: dayReference, calendar: calendar)
@@ -110,6 +165,30 @@ final class QuestsViewModel: ObservableObject {
     private var hpCheckinDaysKey: String {
         "\(currentWeekKey)-hp-checkins"
     }
+    private var workTimerCountKey: String {
+        "\(currentWeekKey)-work-timer-count"
+    }
+    private var workMinutesKey: String {
+        "\(currentWeekKey)-work-minutes"
+    }
+    private var choresMinutesKey: String {
+        "\(currentWeekKey)-chores-minutes"
+    }
+    private var selfCareDaysKey: String {
+        "\(currentWeekKey)-selfcare-days"
+    }
+    private var eveningResetDaysKey: String {
+        "\(currentWeekKey)-evening-resets"
+    }
+    private var dailySetupDaysKey: String {
+        "\(currentWeekKey)-setup-days"
+    }
+    private var weekendTimerDaysKey: String {
+        "\(currentWeekKey)-weekend-timers"
+    }
+    private var hardQuestCountKey: String {
+        "\(currentWeekKey)-hard-quests"
+    }
 
     init(
         statsStore: SessionStatsStore = DependencyContainer.shared.sessionStatsStore,
@@ -128,6 +207,12 @@ final class QuestsViewModel: ObservableObject {
         seedWeeklyQuestsIfNeeded()
         loadHydrationGoalDays()
         loadHPCheckinDays()
+        loadWeeklyTimerProgress()
+        loadSelfCareDays()
+        loadEveningResetDays()
+        loadDailySetupDays()
+        loadWeekendTimerDays()
+        weeklyHardQuestCount = userDefaults.integer(forKey: hardQuestCountKey)
         updateWeeklyHydrationQuestCompletion()
         updateWeeklyHPQuestCompletion()
         updateWeeklyDailyQuestCompletionProgress()
@@ -206,6 +291,7 @@ final class QuestsViewModel: ObservableObject {
         if dailyQuests[index].isCompleted && !wasCompleted {
             statsStore.registerQuestCompleted(id: dailyQuests[index].id, xp: dailyQuests[index].xpReward)
             updateWeeklyDailyQuestCompletionProgress()
+            trackHardQuestCompletion(for: dailyQuests[index])
         }
 
         persistCompletions()
@@ -222,6 +308,7 @@ final class QuestsViewModel: ObservableObject {
         switch event {
         case .questsTabOpened:
             completeQuestIfNeeded(id: "daily-checkin")
+            completeQuestIfNeeded(id: "LOAD_QUEST_LOG")
         case .focusSessionStarted(let durationMinutes):
             guard durationMinutes >= 15 else { return }
             completeQuestIfNeeded(id: "plan-focus-session")
@@ -229,6 +316,8 @@ final class QuestsViewModel: ObservableObject {
             guard durationMinutes >= 25 else { return }
             completeQuestIfNeeded(id: "finish-focus-session")
             completeWeeklyFocusSessionQuestsIfNeeded()
+        case .timerCompleted(let category, let durationMinutes, let endedAt):
+            handleTimerCompletion(category: category, durationMinutes: durationMinutes, endedAt: endedAt)
         case .focusMinutesUpdated(let totalMinutesToday):
             if totalMinutesToday >= 25 {
                 completeQuestIfNeeded(id: "focus-25-min")
@@ -241,15 +330,23 @@ final class QuestsViewModel: ObservableObject {
             completeQuestIfNeeded(id: "chore-blitz")
         case .hpCheckinCompleted:
             completeQuestIfNeeded(id: "healthbar-checkin")
+            completeQuestIfNeeded(id: "DAILY_HB_MORNING_CHECKIN")
+            completeQuestIfNeeded(id: "DAILY_HB_GUT_CHECK")
+            completeQuestIfNeeded(id: "DAILY_HB_SLEEP_LOG")
             registerHPCheckinDayIfNeeded()
         case .hydrationIntakeLogged(let totalOuncesToday):
             guard totalOuncesToday > 0 else { return }
             completeQuestIfNeeded(id: "hydrate-checkpoint")
+            completeQuestIfNeeded(id: "DAILY_HB_FIRST_POTION")
         case .hydrationGoalReached:
             completeQuestIfNeeded(id: "hydration-goal")
+            completeQuestIfNeeded(id: "DAILY_HB_HYDRATION_COMPLETE")
             registerHydrationGoalDayIfNeeded()
         case .hydrationGoalDayCompleted:
             registerHydrationGoalDayIfNeeded()
+        case .dailySetupCompleted:
+            completeQuestIfNeeded(id: "DAILY_META_SETUP_COMPLETE")
+            registerDailySetupDay()
         }
     }
 
@@ -275,6 +372,7 @@ final class QuestsViewModel: ObservableObject {
 
         if weeklyQuests[index].isCompleted && !wasCompleted {
             statsStore.registerQuestCompleted(id: weeklyQuests[index].id, xp: weeklyQuests[index].xpReward)
+            trackHardQuestCompletion(for: weeklyQuests[index])
         }
 
         persistWeeklyCompletions()
@@ -288,21 +386,34 @@ final class QuestsViewModel: ObservableObject {
 
         let currentIDs = Set(dailyQuests.map { $0.id })
         let completedToday = completedQuestIDs(for: dayReference, calendar: calendar, userDefaults: userDefaults)
-        let availableReplacementQuests = Self.activeDailyQuestPool.filter { candidate in
+        let currentDefinitions = dailyQuests.map { $0.definition }
+
+        let preferredPool = Self.activeDailyQuestPool.filter { candidate in
+            candidate.id != quest.id &&
+                !currentIDs.contains(candidate.id) &&
+                !completedToday.contains(candidate.id) &&
+                !Self.nonRerollableQuestIDs.contains(candidate.id) &&
+                candidate.category == quest.category &&
+                candidate.difficulty == quest.difficulty
+        }
+
+        let fallbackPool = Self.activeDailyQuestPool.filter { candidate in
             candidate.id != quest.id &&
                 !currentIDs.contains(candidate.id) &&
                 !completedToday.contains(candidate.id) &&
                 !Self.nonRerollableQuestIDs.contains(candidate.id)
         }
 
-        guard let newQuest = availableReplacementQuests.randomElement() else { return }
+        let replacementCandidates = preferredPool.isEmpty ? fallbackPool : preferredPool
+
+        guard let newDefinition = replacementCandidates.first(where: { candidate in
+            var updatedDefinitions = currentDefinitions
+            updatedDefinitions[index] = candidate
+            return meetsDailyBoardRules(definitions: updatedDefinitions)
+        }) else { return }
 
         dailyQuests[index] = Quest(
-            id: newQuest.id,
-            title: newQuest.title,
-            detail: newQuest.detail,
-            xpReward: newQuest.xpReward,
-            tier: newQuest.tier,
+            definition: newDefinition,
             isCompleted: false,
             isCoreToday: false
         )
@@ -339,40 +450,14 @@ private extension QuestsViewModel {
     static let questChestBonusXP = 50
 
     static let desiredDailyQuestCount = 5
+    static let maxTimerQuests = 2
 
-    static let desiredWeeklyQuestCount = 3
-
-    static let questPool: [Quest] = [
-        Quest(id: "daily-checkin", title: "Load today’s quest log", detail: "Open the quest log and decide what actually matters.", xpReward: 10, tier: .core, isCompleted: false),
-        Quest(id: "plan-focus-session", title: "Plan one focus session", detail: "Start a focus timer that runs for at least 15 minutes today.", xpReward: 35, tier: .core, isCompleted: false),
-        Quest(id: "healthbar-checkin", title: "HealthBar check-in", detail: "Update your mood, gut, and sleep before you go heads-down.", xpReward: 35, tier: .core, isCompleted: false),
-        Quest(id: "chore-blitz", title: "Chore blitz", detail: "Run a Chores timer for at least 10 minutes to clear a small dungeon.", xpReward: 35, tier: .core, isCompleted: false),
-        Quest(id: "finish-focus-session", title: "Finish one focus session", detail: "Complete a focus timer that lasts 25 minutes or longer.", xpReward: 35, tier: .habit, isCompleted: false),
-        Quest(id: "focus-25-min", title: "Hit 25 focus minutes today", detail: "Accumulate at least 25 minutes of focus time.", xpReward: 60, tier: .bonus, isCompleted: false),
-        Quest(id: "hydrate-checkpoint", title: "Hydrate checkpoint", detail: "Drink at least 16 oz of water before a session starts.", xpReward: 20, tier: .habit, isCompleted: false),
-        Quest(id: "hydration-goal", title: "Hit your hydration goal today", detail: "Stay on top of water throughout the day.", xpReward: 60, tier: .bonus, isCompleted: false),
-        Quest(id: "irl-patch", title: "IRL patch update", detail: "Stretch for 2 minutes and do a posture check.", xpReward: 20, tier: .habit, isCompleted: false),
-        Quest(id: "tidy-spot", title: "Tidy one small area", detail: "Reset your desk, sink, or a small zone.", xpReward: 20, tier: .habit, isCompleted: false),
-        Quest(id: "step-outside", title: "Step outside or change rooms", detail: "Move your body and reset your head for a few minutes.", xpReward: 20, tier: .habit, isCompleted: false),
-        Quest(id: "quick-self-care", title: "Do one quick self-care check", detail: "Breathe, sip water, or take a bathroom break.", xpReward: 20, tier: .habit, isCompleted: false)
-    ]
-    // TODO: Reintroduce digital-cobweb once a reliable event source exists.
-
-    static let weeklyQuestPool: [Quest] = [
-        Quest(id: "weekly-focus-marathon", title: "Weekly focus marathon", detail: "Hit 120 focus minutes this week.", xpReward: 100, tier: .bonus, isCompleted: false),
-        Quest(id: "weekly-session-grinder", title: "Session grinder", detail: "Complete 15 focus sessions this week.", xpReward: 100, tier: .bonus, isCompleted: false),
-        Quest(id: "weekly-daily-quest-slayer", title: "Daily quest slayer", detail: "Complete 20 daily quests this week.", xpReward: 60, tier: .habit, isCompleted: false),
-        Quest(id: "weekly-health-check", title: "Health check-in", detail: "Log mood, gut, and sleep on 4 days this week.", xpReward: 60, tier: .habit, isCompleted: false),
-        Quest(id: "weekly-hydration-hero", title: "Hydration hero", detail: "Hit your hydration goal on 4 days this week.", xpReward: 60, tier: .habit, isCompleted: false),
-        Quest(id: "weekly-digital-dust", title: "Digital dust buster", detail: "Clear a digital cobweb on 3 days this week.", xpReward: 60, tier: .habit, isCompleted: false)
-    ]
-
-    static var activeDailyQuestPool: [Quest] {
-        questPool.filter { !disabledDailyQuestIDs.contains($0.id) }
+    static var activeDailyQuestPool: [QuestDefinition] {
+        QuestCatalog.allDailyQuests.filter { !disabledDailyQuestIDs.contains($0.id) }
     }
 
-    static var activeWeeklyQuestPool: [Quest] {
-        weeklyQuestPool.filter { !disabledWeeklyQuestIDs.contains($0.id) }
+    static var activeWeeklyQuestPool: [QuestDefinition] {
+        QuestCatalog.allWeeklyQuests.filter { !disabledWeeklyQuestIDs.contains($0.id) }
     }
 
     static let coreQuestIDs: [FocusArea: [String]] = [
@@ -383,30 +468,204 @@ private extension QuestsViewModel {
     ]
 
     static func seedQuests(with completedIDs: Set<String>) -> [Quest] {
-        let poolByID = Dictionary(uniqueKeysWithValues: activeDailyQuestPool.map { ($0.id, $0) })
+        var selectedDefinitions: [QuestDefinition] = requiredQuestIDs.compactMap { id in
+            activeDailyQuestPool.first(where: { $0.id == id })
+        }
 
-        var quests: [Quest] = requiredQuestIDs.compactMap { poolByID[$0] }
+        var availablePool = activeDailyQuestPool.filter { definition in
+            !selectedDefinitions.contains(where: { $0.id == definition.id })
+        }
 
-        for preferredID in preferredQuestIDs where quests.count < desiredDailyQuestCount {
-            if !quests.contains(where: { $0.id == preferredID }), let quest = poolByID[preferredID] {
-                quests.append(quest)
+        for preferredID in preferredQuestIDs where selectedDefinitions.count < desiredDailyQuestCount {
+            guard let definition = availablePool.first(where: { $0.id == preferredID }) else { continue }
+            guard canAddToBoard(definition: definition, existing: selectedDefinitions) else { continue }
+            selectedDefinitions.append(definition)
+            availablePool.removeAll { $0.id == definition.id }
+        }
+
+        enforceCategoryMinimums(into: &selectedDefinitions, availablePool: &availablePool)
+
+        for definition in availablePool.shuffled() {
+            guard selectedDefinitions.count < desiredDailyQuestCount else { break }
+            guard canAddToBoard(definition: definition, existing: selectedDefinitions) else { continue }
+            selectedDefinitions.append(definition)
+        }
+
+        return selectedDefinitions.map { definition in
+            Quest(
+                definition: definition,
+                isCompleted: completedIDs.contains(definition.id),
+                isCoreToday: Self.requiredQuestIDs.contains(definition.id)
+            )
+        }
+    }
+
+    static func canAddToBoard(definition: QuestDefinition, existing: [QuestDefinition]) -> Bool {
+        let timerCount = existing.filter { $0.category == .timer }.count
+        if definition.category == .timer && timerCount >= maxTimerQuests {
+            return false
+        }
+
+        return true
+    }
+
+    static func meetsDailyBoardRules(definitions: [QuestDefinition]) -> Bool {
+        let timerCount = definitions.filter { $0.category == .timer }.count
+        let hasHealthBar = definitions.contains { $0.category == .healthBar }
+        let hasEasyWin = definitions.contains { $0.category == .easyWin }
+        return timerCount <= maxTimerQuests && hasHealthBar && hasEasyWin
+    }
+
+    static func enforceCategoryMinimums(into selected: inout [QuestDefinition], availablePool: inout [QuestDefinition]) {
+        addCategoryRequirement(.healthBar, into: &selected, availablePool: &availablePool)
+        addCategoryRequirement(.easyWin, into: &selected, availablePool: &availablePool)
+    }
+
+    static func addCategoryRequirement(_ category: QuestCategory, into selected: inout [QuestDefinition], availablePool: inout [QuestDefinition]) {
+        guard !selected.contains(where: { $0.category == category }) else { return }
+        guard let candidateIndex = availablePool.firstIndex(where: { $0.category == category }) else { return }
+
+        let candidate = availablePool.remove(at: candidateIndex)
+        if selected.count < desiredDailyQuestCount, canAddToBoard(definition: candidate, existing: selected) {
+            selected.append(candidate)
+            return
+        }
+
+        for index in selected.indices {
+            let existing = selected[index]
+            guard !requiredQuestIDs.contains(existing.id) else { continue }
+            var updated = selected
+            updated.remove(at: index)
+            if canAddToBoard(definition: candidate, existing: updated) {
+                selected = updated
+                selected.append(candidate)
+                return
             }
         }
 
-        let excludedIDs = Set(quests.map { $0.id })
-        let remainingPool = activeDailyQuestPool.filter { !excludedIDs.contains($0.id) }
-        let remainingSlots = max(desiredDailyQuestCount - quests.count, 0)
+        availablePool.append(candidate)
+    }
 
-        quests.append(contentsOf: remainingPool.shuffled().prefix(remainingSlots))
+    func handleTimerCompletion(category: TimerCategory.Kind, durationMinutes: Int, endedAt: Date) {
+        let startOfDay = calendar.startOfDay(for: endedAt)
 
-        quests = quests.map { quest in
-            var updated = quest
-            updated.isCompleted = completedIDs.contains(quest.id)
-            updated.isCoreToday = Self.requiredQuestIDs.contains(quest.id)
-            return updated
+        if isWorkCategory(category) {
+            if durationMinutes >= 15 { completeQuestIfNeeded(id: "DAILY_TIMER_QUICK_WORK") }
+            if durationMinutes >= 40 { completeQuestIfNeeded(id: "DAILY_TIMER_DEEP_WORK") }
+            if durationMinutes >= 60 { completeQuestIfNeeded(id: "DAILY_TIMER_BOSS_BATTLE") }
+            registerWorkTimerProgress(durationMinutes: durationMinutes)
         }
 
-        return quests
+        if isChoresCategory(category) {
+            if durationMinutes >= 3 { completeQuestIfNeeded(id: "DAILY_EASY_TINY_TIDY") }
+            if durationMinutes >= 10 { completeQuestIfNeeded(id: "DAILY_TIMER_CHORES_BURST") }
+            if durationMinutes >= 25 { completeQuestIfNeeded(id: "DAILY_TIMER_HOME_RESET") }
+            registerChoresProgress(durationMinutes: durationMinutes)
+        }
+
+        if isSelfCareCategory(category) {
+            if durationMinutes >= 5 { completeQuestIfNeeded(id: "DAILY_HB_GENTLE_MOVEMENT") }
+            if durationMinutes >= 10 { completeQuestIfNeeded(id: "DAILY_TIMER_MINDFUL_BREAK") }
+            if durationMinutes >= 20 { completeQuestIfNeeded(id: "DAILY_TIMER_SELF_CARE") }
+            registerSelfCareDayIfNeeded(date: startOfDay, durationMinutes: durationMinutes)
+        }
+
+        if isChillCategory(category) {
+            if durationMinutes >= 20 { completeQuestIfNeeded(id: "DAILY_TIMER_CHILL_CHOICE") }
+        }
+
+        if !isChillCategory(category) && durationMinutes >= 20 {
+            completeQuestIfNeeded(id: "DAILY_TIMER_FOCUS_CHAIN")
+        }
+
+        if durationMinutes >= 5 {
+            completeQuestIfNeeded(id: "DAILY_EASY_ONE_NICE_THING")
+        }
+
+        if (isChoresCategory(category) || isSelfCareCategory(category)) && durationMinutes >= 15 {
+            if calendar.component(.hour, from: endedAt) >= 18 {
+                completeQuestIfNeeded(id: "DAILY_TIMER_EVENING_RESET")
+                registerEveningResetDayIfNeeded(date: startOfDay)
+            }
+        }
+
+        registerWeekendTimerIfNeeded(durationMinutes: durationMinutes, date: startOfDay)
+    }
+
+    func isWorkCategory(_ category: TimerCategory.Kind) -> Bool { category == .workSprint || category == .deepFocus }
+    func isChoresCategory(_ category: TimerCategory.Kind) -> Bool { category == .choresSprint }
+    func isSelfCareCategory(_ category: TimerCategory.Kind) -> Bool { category == .selfCare || category == .quickBreak }
+    func isChillCategory(_ category: TimerCategory.Kind) -> Bool { category == .gamingReset }
+
+    func registerWorkTimerProgress(durationMinutes: Int) {
+        if durationMinutes >= 25 {
+            weeklyWorkTimerCount += 1
+        }
+        weeklyWorkMinutes += durationMinutes
+        persistWeeklyTimerProgress()
+        if weeklyWorkTimerCount >= 5 {
+            completeWeeklyQuestIfNeeded(id: "WEEK_WORK_WARRIOR")
+        }
+        if weeklyWorkMinutes >= 200 {
+            completeWeeklyQuestIfNeeded(id: "WEEK_DEEP_WORK")
+        }
+    }
+
+    func registerChoresProgress(durationMinutes: Int) {
+        weeklyChoresMinutes += durationMinutes
+        persistWeeklyTimerProgress()
+        if weeklyChoresMinutes >= 90 {
+            completeWeeklyQuestIfNeeded(id: "WEEK_CLUTTER_CRUSHER")
+        }
+    }
+
+    func registerSelfCareDayIfNeeded(date: Date, durationMinutes: Int) {
+        guard durationMinutes >= 15 else { return }
+        if weeklySelfCareDays.insert(date).inserted {
+            persistSelfCareDays()
+        }
+        if weeklySelfCareDays.count >= 4 {
+            completeWeeklyQuestIfNeeded(id: "WEEK_SELFCARE_CHAMPION")
+        }
+    }
+
+    func registerEveningResetDayIfNeeded(date: Date) {
+        if weeklyEveningResetDays.insert(date).inserted {
+            persistEveningResetDays()
+        }
+
+        if weeklyEveningResetDays.count >= 3 {
+            completeWeeklyQuestIfNeeded(id: "WEEK_EVENING_RESET")
+        }
+    }
+
+    func registerDailySetupDay() {
+        let today = calendar.startOfDay(for: Date())
+        if weeklyDailySetupDays.insert(today).inserted {
+            persistDailySetupDays()
+        }
+
+        if weeklyDailySetupDays.count >= 5 {
+            completeWeeklyQuestIfNeeded(id: "WEEK_DAILY_SETUP_STREAK")
+        }
+    }
+
+    func registerWeekendTimerIfNeeded(durationMinutes: Int, date: Date) {
+        guard calendar.isDateInWeekend(date) else { return }
+        guard durationMinutes >= 20 else { return }
+        if weekendTimerDays.insert(date).inserted {
+            persistWeekendTimerDays()
+        }
+        updateWeekendWarriorProgress()
+    }
+
+    func trackHardQuestCompletion(for quest: Quest) {
+        guard quest.difficulty == .hard else { return }
+        weeklyHardQuestCount += 1
+        persistHardQuestCount()
+        if weeklyHardQuestCount >= 3 {
+            completeWeeklyQuestIfNeeded(id: "WEEK_MINI_BOSS")
+        }
     }
 
     func completedQuestIDs(for date: Date, calendar: Calendar, userDefaults: UserDefaults) -> Set<String> {
@@ -420,6 +679,7 @@ private extension QuestsViewModel {
 
         dailyQuests[index].isCompleted = true
         statsStore.registerQuestCompleted(id: dailyQuests[index].id, xp: dailyQuests[index].xpReward)
+        trackHardQuestCompletion(for: dailyQuests[index])
         updateWeeklyDailyQuestCompletionProgress()
 
         persistCompletions()
@@ -446,27 +706,17 @@ private extension QuestsViewModel {
         let completedIDs = Set(userDefaults.stringArray(forKey: weeklyCompletionKey) ?? [])
         let poolByID = Dictionary(uniqueKeysWithValues: Self.activeWeeklyQuestPool.map { ($0.id, $0) })
 
-        if let storedActiveIDs = userDefaults.stringArray(forKey: weeklyActiveKey) {
-            let storedQuests: [Quest] = storedActiveIDs.compactMap { id in
-                guard var quest = poolByID[id] else { return nil }
-                quest.isCompleted = completedIDs.contains(id)
-                return quest
-            }
-
-            if !storedQuests.isEmpty {
-                weeklyQuests = storedQuests
-                persistWeeklyCompletions()
-                return
-            }
+        let activeIDs = userDefaults.stringArray(forKey: weeklyActiveKey) ?? Array(poolByID.keys)
+        var quests: [Quest] = activeIDs.compactMap { id in
+            guard let definition = poolByID[id] else { return nil }
+            return Quest(definition: definition, isCompleted: completedIDs.contains(id))
         }
 
-        let selected = Array(Self.activeWeeklyQuestPool.shuffled().prefix(Self.desiredWeeklyQuestCount))
-        weeklyQuests = selected.map { quest in
-            var updated = quest
-            updated.isCompleted = completedIDs.contains(quest.id)
-            return updated
+        if quests.isEmpty {
+            quests = Self.activeWeeklyQuestPool.map { Quest(definition: $0, isCompleted: completedIDs.contains($0.id)) }
         }
 
+        weeklyQuests = quests
         userDefaults.set(weeklyQuests.map { $0.id }, forKey: weeklyActiveKey)
         persistWeeklyCompletions()
     }
@@ -483,16 +733,40 @@ private extension QuestsViewModel {
         hydrationGoalDaysThisWeek.insert(startOfDay)
         persistHydrationGoalDays()
         updateWeeklyHydrationQuestCompletion()
+        updateBalancedBarProgress()
     }
 
     func updateWeeklyHydrationQuestCompletion() {
-        guard hydrationGoalDaysThisWeek.count >= Self.weeklyHydrationGoalTarget else { return }
-        completeWeeklyQuestIfNeeded(id: "weekly-hydration-hero")
+        let count = hydrationGoalDaysThisWeek.count
+        if count >= Self.weeklyHydrationGoalTarget {
+            completeWeeklyQuestIfNeeded(id: "weekly-hydration-hero")
+            completeWeeklyQuestIfNeeded(id: "WEEK_HYDRATION_HERO_PLUS")
+        }
+
+        if count >= 6 {
+            completeWeeklyQuestIfNeeded(id: "WEEK_HYDRATION_DEMON")
+        }
     }
 
     func updateWeeklyHPQuestCompletion() {
-        guard hpCheckinDaysThisWeek.count >= Self.weeklyHPCheckinTarget else { return }
-        completeWeeklyQuestIfNeeded(id: "weekly-health-check")
+        let hpDays = hpCheckinDaysThisWeek.count
+        if hpDays >= Self.weeklyHPCheckinTarget {
+            completeWeeklyQuestIfNeeded(id: "weekly-health-check")
+        }
+
+        if hpDays >= 5 {
+            completeWeeklyQuestIfNeeded(id: "WEEK_MOOD_TRACKER")
+            completeWeeklyQuestIfNeeded(id: "WEEK_SLEEP_SENTINEL")
+        }
+
+        updateBalancedBarProgress()
+    }
+
+    func updateBalancedBarProgress() {
+        let balancedDays = hydrationGoalDaysThisWeek.intersection(hpCheckinDaysThisWeek)
+        if balancedDays.count >= 3 {
+            completeWeeklyQuestIfNeeded(id: "WEEK_BALANCED_BAR")
+        }
     }
 
     func registerHPCheckinDayIfNeeded(today: Date = Date()) {
@@ -502,6 +776,7 @@ private extension QuestsViewModel {
         hpCheckinDaysThisWeek.insert(startOfDay)
         persistHPCheckinDays()
         updateWeeklyHPQuestCompletion()
+        updateBalancedBarProgress()
     }
 
     func completeWeeklyFocusMinuteQuestsIfNeeded() {
@@ -514,24 +789,52 @@ private extension QuestsViewModel {
         completeWeeklyQuestIfNeeded(id: "weekly-session-grinder")
     }
 
-    func dailyQuestCompletionsThisWeek() -> Int {
+    func dailyQuestCompletionCountsThisWeek() -> [Date: Int] {
         guard let startOfWeek = calendar.date(from: calendar.dateComponents([.weekOfYear, .yearForWeekOfYear], from: dayReference)) else {
-            return 0
+            return [:]
         }
 
-        return (0..<7).reduce(0) { total, offset in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: startOfWeek) else { return total }
-            if calendar.isDate(date, inSameDayAs: dayReference) {
-                return total + dailyQuests.filter { $0.isCompleted }.count
+        var counts: [Date: Int] = [:]
+        for offset in 0..<7 {
+            guard let date = calendar.date(byAdding: .day, value: offset, to: startOfWeek) else { continue }
+            let dayStart = calendar.startOfDay(for: date)
+            if calendar.isDate(dayStart, inSameDayAs: dayReference) {
+                counts[dayStart] = dailyQuests.filter { $0.isCompleted }.count
+            } else {
+                counts[dayStart] = completedQuestIDs(for: dayStart, calendar: calendar, userDefaults: userDefaults).count
             }
-
-            return total + completedQuestIDs(for: date, calendar: calendar, userDefaults: userDefaults).count
         }
+
+        return counts
+    }
+
+    func dailyQuestCompletionsThisWeek() -> Int {
+        dailyQuestCompletionCountsThisWeek().values.reduce(0, +)
     }
 
     func updateWeeklyDailyQuestCompletionProgress() {
-        guard dailyQuestCompletionsThisWeek() >= Self.weeklyDailyQuestCompletionTarget else { return }
-        completeWeeklyQuestIfNeeded(id: "weekly-daily-quest-slayer")
+        let completionCounts = dailyQuestCompletionCountsThisWeek()
+        if dailyQuestCompletionsThisWeek() >= Self.weeklyDailyQuestCompletionTarget {
+            completeWeeklyQuestIfNeeded(id: "weekly-daily-quest-slayer")
+            completeWeeklyQuestIfNeeded(id: "WEEK_QUEST_FINISHER")
+        }
+
+        let daysMeetingThreshold = completionCounts.values.filter { $0 >= 4 }.count
+        if daysMeetingThreshold >= 3 {
+            completeWeeklyQuestIfNeeded(id: "WEEK_THREE_GOOD_DAYS")
+        }
+
+        updateWeekendWarriorProgress()
+    }
+
+    func updateWeekendWarriorProgress() {
+        let completionCounts = dailyQuestCompletionCountsThisWeek()
+        for (date, count) in completionCounts where calendar.isDateInWeekend(date) {
+            if count >= 2 && weekendTimerDays.contains(date) {
+                completeWeeklyQuestIfNeeded(id: "WEEK_WEEKEND_WARRIOR")
+                return
+            }
+        }
     }
 
     func completeWeeklyQuestIfNeeded(id: String) {
@@ -566,6 +869,32 @@ private extension QuestsViewModel {
         persistHPCheckinDays()
     }
 
+    func loadWeeklyTimerProgress() {
+        weeklyWorkTimerCount = userDefaults.integer(forKey: workTimerCountKey)
+        weeklyWorkMinutes = userDefaults.integer(forKey: workMinutesKey)
+        weeklyChoresMinutes = userDefaults.integer(forKey: choresMinutesKey)
+    }
+
+    func loadSelfCareDays() {
+        let stored = userDefaults.array(forKey: selfCareDaysKey) as? [TimeInterval] ?? []
+        weeklySelfCareDays = Set(stored.map { Date(timeIntervalSince1970: $0) })
+    }
+
+    func loadEveningResetDays() {
+        let stored = userDefaults.array(forKey: eveningResetDaysKey) as? [TimeInterval] ?? []
+        weeklyEveningResetDays = Set(stored.map { Date(timeIntervalSince1970: $0) })
+    }
+
+    func loadDailySetupDays() {
+        let stored = userDefaults.array(forKey: dailySetupDaysKey) as? [TimeInterval] ?? []
+        weeklyDailySetupDays = Set(stored.map { Date(timeIntervalSince1970: $0) })
+    }
+
+    func loadWeekendTimerDays() {
+        let stored = userDefaults.array(forKey: weekendTimerDaysKey) as? [TimeInterval] ?? []
+        weekendTimerDays = Set(stored.map { Date(timeIntervalSince1970: $0) })
+    }
+
     func persistHydrationGoalDays() {
         let intervals = hydrationGoalDaysThisWeek.map { $0.timeIntervalSince1970 }
         userDefaults.set(intervals, forKey: hydrationGoalDaysKey)
@@ -574,6 +903,36 @@ private extension QuestsViewModel {
     func persistHPCheckinDays() {
         let intervals = hpCheckinDaysThisWeek.map { $0.timeIntervalSince1970 }
         userDefaults.set(intervals, forKey: hpCheckinDaysKey)
+    }
+
+    func persistWeeklyTimerProgress() {
+        userDefaults.set(weeklyWorkTimerCount, forKey: workTimerCountKey)
+        userDefaults.set(weeklyWorkMinutes, forKey: workMinutesKey)
+        userDefaults.set(weeklyChoresMinutes, forKey: choresMinutesKey)
+    }
+
+    func persistSelfCareDays() {
+        let intervals = weeklySelfCareDays.map { $0.timeIntervalSince1970 }
+        userDefaults.set(intervals, forKey: selfCareDaysKey)
+    }
+
+    func persistEveningResetDays() {
+        let intervals = weeklyEveningResetDays.map { $0.timeIntervalSince1970 }
+        userDefaults.set(intervals, forKey: eveningResetDaysKey)
+    }
+
+    func persistDailySetupDays() {
+        let intervals = weeklyDailySetupDays.map { $0.timeIntervalSince1970 }
+        userDefaults.set(intervals, forKey: dailySetupDaysKey)
+    }
+
+    func persistWeekendTimerDays() {
+        let intervals = weekendTimerDays.map { $0.timeIntervalSince1970 }
+        userDefaults.set(intervals, forKey: weekendTimerDaysKey)
+    }
+
+    func persistHardQuestCount() {
+        userDefaults.set(weeklyHardQuestCount, forKey: hardQuestCountKey)
     }
 
     static func dateKey(for date: Date, calendar: Calendar) -> String {

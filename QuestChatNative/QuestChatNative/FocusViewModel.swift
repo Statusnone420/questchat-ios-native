@@ -600,6 +600,7 @@ final class SessionStatsStore: ObservableObject {
         shouldShowDailySetup = false
         persistDailyPlan(plan)
         updateDailyProgress(for: today, focusGoalMinutes: plan.focusGoalMinutes)
+        questEventHandler?(.dailySetupCompleted)
     }
 
     func updateDailyQuestsCompleted(_ count: Int, date: Date = Date()) {
@@ -1968,6 +1969,15 @@ final class FocusViewModel: ObservableObject {
                 statsStore.questEventHandler?(.choresTimerCompleted(durationMinutes: durationMinutes))
             }
         }
+        let timerCategory = activeSessionCategory ?? selectedCategory
+        let endDate = currentSession?.endDate ?? Date()
+        statsStore.questEventHandler?(
+            .timerCompleted(
+                category: timerCategory,
+                durationMinutes: recordedDuration / 60,
+                endedAt: endDate
+            )
+        )
         let today = Calendar.current.startOfDay(for: Date())
         if selectedMode == .focus {
             let durationMinutes = recordedDuration / 60
