@@ -101,11 +101,21 @@ struct PlayerCardView: View {
             HStack(alignment: .center, spacing: 16) {
                 ZStack {
                     Circle()
-                        .fill(Color.white.opacity(0.06))
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.cyan.opacity(0.9),
+                                    Color.blue.opacity(0.9)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                         .frame(width: 56, height: 56)
 
-                    Text(playerDisplayName.isEmpty ? "P1" : String(playerDisplayName.prefix(2)))
-                        .font(.headline.weight(.bold))
+                    Image(systemName: "atom")
+                        .font(.title2.weight(.semibold))
+                        .foregroundColor(.white)
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -122,6 +132,8 @@ struct PlayerCardView: View {
 
                             Text(statsViewModel.activeTitle ?? "Choose a title")
                                 .font(.subheadline.weight(.semibold))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
 
                             Image(systemName: "chevron.down")
                                 .font(.caption2)
@@ -144,9 +156,10 @@ struct PlayerCardView: View {
                         title: latest.title,
                         iconName: latest.iconName,
                         isUnlocked: true,
-                        progressFraction: 1.0
+                        progressFraction: 1.0,
+                        isCompact: true
                     )
-                    .frame(width: 52, height: 52)
+                    .frame(width: 44, height: 44)
                 }
             }
 

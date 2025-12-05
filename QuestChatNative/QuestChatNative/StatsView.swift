@@ -295,14 +295,14 @@ struct StatsView: View {
             } else {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
                     ForEach(viewModel.seasonAchievements) { item in
-                        SeasonAchievementBadgeView(
-                            title: item.title,
-                            iconName: item.iconName,
-                            isUnlocked: item.isUnlocked,
-                            progressFraction: item.progressFraction
-                        )
+                            SeasonAchievementBadgeView(
+                                title: item.title,
+                                iconName: item.iconName,
+                                isUnlocked: item.isUnlocked,
+                                progressFraction: CGFloat(item.progressFraction)
+                            )
+                        }
                     }
-                }
                 .padding(.vertical, 8)
             }
         }

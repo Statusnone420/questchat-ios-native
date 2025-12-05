@@ -4,7 +4,22 @@ struct SeasonAchievementBadgeView: View {
     let title: String
     let iconName: String
     let isUnlocked: Bool
-    let progressFraction: Double
+    let progressFraction: CGFloat
+    let isCompact: Bool
+
+    init(
+        title: String,
+        iconName: String,
+        isUnlocked: Bool,
+        progressFraction: CGFloat,
+        isCompact: Bool = false
+    ) {
+        self.title = title
+        self.iconName = iconName
+        self.isUnlocked = isUnlocked
+        self.progressFraction = progressFraction
+        self.isCompact = isCompact
+    }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -21,16 +36,18 @@ struct SeasonAchievementBadgeView: View {
             .frame(width: 64, height: 64)
             .shadow(radius: isUnlocked ? 8 : 0, y: 4)
 
-            Text(title)
-                .font(.caption)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
-                .opacity(isUnlocked ? 1.0 : 0.6)
+            if !isCompact {
+                Text(title)
+                    .font(.caption)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                    .opacity(isUnlocked ? 1.0 : 0.6)
 
-            ProgressView(value: progressFraction)
-                .progressViewStyle(.linear)
-                .opacity(isUnlocked ? 0.8 : 0.4)
+                ProgressView(value: progressFraction)
+                    .progressViewStyle(.linear)
+                    .opacity(isUnlocked ? 0.8 : 0.4)
+            }
         }
     }
 
