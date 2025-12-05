@@ -112,7 +112,17 @@ final class FocusTimerLiveActivityManager {
     func end() {
         Task {
             print("🧹 Ending Live Activity")
-            await activity?.end(dismissalPolicy: .immediate)
+            if #available(iOS 16.2, *) {
+                let finalState = self.currentState ?? FocusTimerAttributes.ContentState(
+                    title: "",
+                    endDate: Date(),
+                    isPaused: true
+                )
+                let content = ActivityContent(state: finalState, staleDate: nil)
+                await activity?.end(content, dismissalPolicy: .immediate)
+            } else {
+                await activity?.end(dismissalPolicy: .immediate)
+            }
             activity = nil
             self.currentState = nil
         }
@@ -121,9 +131,20 @@ final class FocusTimerLiveActivityManager {
     func cancel() {
         Task {
             print("🛑 Cancelling Live Activity")
-            await activity?.end(dismissalPolicy: .immediate)
+            if #available(iOS 16.2, *) {
+                let finalState = self.currentState ?? FocusTimerAttributes.ContentState(
+                    title: "",
+                    endDate: Date(),
+                    isPaused: true
+                )
+                let content = ActivityContent(state: finalState, staleDate: nil)
+                await activity?.end(content, dismissalPolicy: .immediate)
+            } else {
+                await activity?.end(dismissalPolicy: .immediate)
+            }
             activity = nil
             self.currentState = nil
         }
     }
 }
+

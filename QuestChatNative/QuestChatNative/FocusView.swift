@@ -130,10 +130,10 @@ struct FocusView: View {
         .onAppear {
             viewModel.handleScenePhaseChange(scenePhase)
         }
-        .onChange(of: scenePhase) { phase in
-            viewModel.handleScenePhaseChange(phase)
+        .onChange(of: scenePhase) {
+            viewModel.handleScenePhaseChange(scenePhase)
         }
-        .onChange(of: viewModel.selectedCategory) { _ in
+        .onChange(of: viewModel.selectedCategory) {
             heroCardScale = 0.98
             heroCardOpacity = 0.92
             withAnimation(.spring(response: 0.45, dampingFraction: 0.78)) {

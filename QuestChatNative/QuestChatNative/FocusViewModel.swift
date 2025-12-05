@@ -1637,11 +1637,12 @@ final class FocusViewModel: ObservableObject {
                     remainingSeconds: totalDuration,
                     title: title
                 )
+                let content = ActivityContent(state: contentState, staleDate: session.endDate)
 
                 do {
                     let activity = try Activity.request(
                         attributes: attributes,
-                        contentState: contentState,
+                        content: content,
                         pushType: nil
                     )
                     await MainActor.run {
@@ -1845,10 +1846,11 @@ final class FocusViewModel: ObservableObject {
             remainingSeconds: remaining,
             title: title
         )
+        let content = ActivityContent(state: contentState, staleDate: isPaused ? nil : endDate)
 
         Task {
             guard let liveActivity else { return }
-            await liveActivity.update(using: contentState)
+            await liveActivity.update(content)
             print("[FocusLiveActivity] Updated: paused=\(isPaused) remaining=\(remaining)")
         }
     }
