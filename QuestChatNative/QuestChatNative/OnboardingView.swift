@@ -7,38 +7,47 @@ struct OnboardingView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 20) {
-                    switch viewModel.currentStep {
-                    case .welcome:
-                        welcomeStep
-                    case .name:
-                        nameStep
-                    case .hydration:
-                        hydrationStep
-                    case .moodGutSleep:
-                        moodGutSleepStep
-                    case .howItWorks:
-                        howItWorksStep
+            ZStack {
+                Color.black.ignoresSafeArea()
+
+                VStack {
+                    Spacer(minLength: 24)
+
+                    onboardingCard {
+                        switch viewModel.currentStep {
+                        case .welcome:
+                            welcomeStep
+                        case .name:
+                            nameStep
+                        case .hydration:
+                            hydrationStep
+                        case .moodGutSleep:
+                            moodGutSleepStep
+                        case .howItWorks:
+                            howItWorksStep
+                        }
                     }
+                    .padding(.horizontal, 24)
+
+                    Spacer(minLength: 24)
                 }
-                .padding(20)
             }
-            .background(Color.black.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
         }
     }
 
     private var welcomeStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Welcome to QuestChat")
-                .font(.largeTitle.bold())
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Welcome to QuestChat")
+                    .font(.largeTitle.bold())
 
-            Text("Turn your real life into quests and level up your self-care, one small win at a time.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+                Text("Level up your day with quests, focus sessions, and honest habit tracking.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 bulletRow(text: "Start focus sessions for work, chores, and self-care")
                 bulletRow(text: "Track sleep, mood, hydration, and gut health")
                 bulletRow(text: "Earn XP, unlock badges, and fill your Health Bar IRL")
@@ -54,111 +63,118 @@ struct OnboardingView: View {
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
             }
+            .padding(.top, 8)
         }
-        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(cardBackground)
-        .cornerRadius(20)
     }
 
     private var nameStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("What should we call you?")
-                .font(.title.bold())
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("What should we call you?")
+                    .font(.largeTitle.bold())
 
-            Text("This name will show on your Player Card.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+                Text("This name will show on your Player Card.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
 
-            TextField("Player name", text: $viewModel.playerName)
-                .padding()
-                .background(Color.white.opacity(0.06))
-                .cornerRadius(12)
-                .textInputAutocapitalization(.words)
-                .foregroundColor(.white)
+            VStack(spacing: 14) {
+                TextField("Player name", text: $viewModel.playerName)
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 12)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.08)))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                    )
+                    .textInputAutocapitalization(.words)
+                    .foregroundColor(.white)
 
-            primaryButton(title: "Next", isDisabled: viewModel.playerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
-                viewModel.goToNextStep()
+                primaryButton(title: "Next", isDisabled: viewModel.playerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
+                    viewModel.goToNextStep()
+                }
+                .padding(.top, 4)
             }
         }
-        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(cardBackground)
-        .cornerRadius(20)
     }
 
     private var hydrationStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Set your daily water goal")
-                .font(.title.bold())
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Set your daily water goal")
+                    .font(.largeTitle.bold())
 
-            Text("Pick a goal that feels realistic. You can always change this later.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+                Text("Pick a goal that feels realistic. You can always change this later.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
 
-            HStack(spacing: 10) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
                 ForEach(hydrationPresets, id: \.self) { cups in
                     Button {
                         viewModel.selectedHydrationGoalCups = cups
                     } label: {
                         Text("\(cups)")
-                            .font(.headline)
+                            .font(.headline.weight(.semibold))
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
+                            .padding(.vertical, 12)
                             .background(
                                 Capsule()
-                                    .fill(viewModel.selectedHydrationGoalCups == cups ? Color.blue.opacity(0.3) : Color.white.opacity(0.06))
+                                    .fill(viewModel.selectedHydrationGoalCups == cups ? Color.mint : Color.clear)
                             )
                             .overlay(
                                 Capsule()
-                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                                    .stroke(viewModel.selectedHydrationGoalCups == cups ? Color.mint.opacity(0.95) : Color.white.opacity(0.2), lineWidth: 1.2)
                             )
+                            .foregroundColor(viewModel.selectedHydrationGoalCups == cups ? .black : .white)
                     }
-                    .foregroundColor(.white)
                 }
             }
 
             Text("Goal: \(viewModel.selectedHydrationGoalCups) cups per day")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
 
             primaryButton(title: "Next") {
                 viewModel.goToNextStep()
             }
+            .padding(.top, 6)
         }
-        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(cardBackground)
-        .cornerRadius(20)
     }
 
     private var moodGutSleepStep: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 22) {
             Text("How are you feeling today?")
-                .font(.title.bold())
+                .font(.largeTitle.bold())
 
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
                 Text("Mood")
-                    .font(.headline)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
                 moodGutRow(selection: $viewModel.selectedMoodState)
             }
 
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
                 Text("Gut")
-                    .font(.headline)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
                 moodGutRow(selection: $viewModel.selectedGutState)
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
+                HStack(alignment: .center) {
                     Text("Last night's sleep")
-                        .font(.headline)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
                     Spacer()
                     Text(viewModel.selectedSleepValue.label)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.primary)
                 }
 
                 Slider(value: Binding<Double>(
@@ -174,56 +190,56 @@ struct OnboardingView: View {
             primaryButton(title: "Next", isDisabled: viewModel.selectedMoodState == .none || viewModel.selectedGutState == .none) {
                 viewModel.goToNextStep()
             }
+            .padding(.top, 4)
         }
-        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(cardBackground)
-        .cornerRadius(20)
     }
 
     private var howItWorksStep: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 20) {
             Text("You're ready to start")
-                .font(.title.bold())
+                .font(.largeTitle.bold())
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 bulletRow(text: "Quests: complete small quests to earn XP and badges.")
                 bulletRow(text: "Focus: start timers for work, chores, and self-care.")
                 bulletRow(text: "Health Bar IRL: keep your HP honest by updating sleep, mood, and gut each day.")
             }
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 10) {
                 summaryRow(title: "Name", value: viewModel.playerName.isEmpty ? QuestChatStrings.PlayerCard.defaultName : viewModel.playerName)
                 summaryRow(title: "Water goal", value: "\(viewModel.selectedHydrationGoalCups) cups")
                 summaryRow(title: "Mood", value: label(for: viewModel.selectedMoodState))
                 summaryRow(title: "Gut", value: label(for: viewModel.selectedGutState))
                 summaryRow(title: "Sleep", value: viewModel.selectedSleepValue.label)
             }
-            .padding()
-            .background(Color.white.opacity(0.04))
-            .cornerRadius(12)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.06)))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            )
 
             primaryButton(title: "Enter QuestChat") {
                 viewModel.completeOnboarding()
             }
+            .padding(.top, 6)
         }
-        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(cardBackground)
-        .cornerRadius(20)
     }
 
     private func moodGutRow(selection: Binding<MoodStatus>) -> some View {
-        HStack(spacing: 10) {
-            moodOption(title: "Rough", emoji: "😫", status: .bad, selection: selection)
+        HStack(spacing: 12) {
+            moodOption(title: "Rough", emoji: "😣", status: .bad, selection: selection)
             moodOption(title: "Okay", emoji: "😐", status: .neutral, selection: selection)
             moodOption(title: "Good", emoji: "🙂", status: .good, selection: selection)
         }
     }
 
     private func moodGutRow(selection: Binding<GutStatus>) -> some View {
-        HStack(spacing: 10) {
-            gutOption(title: "Rough", emoji: "😫", status: .rough, selection: selection)
+        HStack(spacing: 12) {
+            gutOption(title: "Rough", emoji: "😣", status: .rough, selection: selection)
             gutOption(title: "Okay", emoji: "😐", status: .meh, selection: selection)
             gutOption(title: "Great", emoji: "🙂", status: .great, selection: selection)
         }
@@ -248,18 +264,18 @@ struct OnboardingView: View {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
             .background(
                 Capsule()
-                    .fill(isSelected ? Color.green.opacity(0.3) : Color.white.opacity(0.06))
+                    .fill(isSelected ? Color.mint : Color.white.opacity(0.05))
             )
             .overlay(
                 Capsule()
-                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    .stroke(isSelected ? Color.mint.opacity(0.95) : Color.white.opacity(0.18), lineWidth: 1)
             )
         }
-        .foregroundColor(.white)
+        .foregroundColor(isSelected ? .black : .white)
     }
 
     private func label(for status: MoodStatus) -> String {
@@ -291,7 +307,7 @@ struct OnboardingView: View {
     }
 
     private func bulletRow(text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: 10) {
             Circle()
                 .fill(Color.mint)
                 .frame(width: 8, height: 8)
@@ -306,16 +322,39 @@ struct OnboardingView: View {
             Text(title)
                 .font(.headline.bold())
                 .frame(maxWidth: .infinity)
-                .padding()
-                .background(isDisabled ? Color.white.opacity(0.12) : Color.mint)
-                .foregroundColor(.white)
-                .cornerRadius(14)
+                .frame(height: 52)
+                .background(isDisabled ? Color.white.opacity(0.14) : Color.mint)
+                .foregroundColor(isDisabled ? Color.white.opacity(0.7) : .black)
+                .cornerRadius(16)
         }
+        .padding(.top, 16)
+        .padding(.bottom, 4)
         .disabled(isDisabled)
     }
 
+    private func onboardingCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
+                    content()
+                }
+                .padding(28)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .frame(maxWidth: 500)
+        .background(cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .shadow(color: Color.black.opacity(0.35), radius: 18, y: 10)
+    }
+
     private var cardBackground: some View {
-        Color(uiColor: .secondarySystemBackground).opacity(0.24)
+        RoundedRectangle(cornerRadius: 26, style: .continuous)
+            .fill(Color.white.opacity(0.08))
+            .overlay(
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            )
     }
 }
 
