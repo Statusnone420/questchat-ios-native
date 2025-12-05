@@ -277,13 +277,6 @@ struct FocusView: View {
         }
     }
 
-    private var activeTimerChevron: some View {
-        Image(systemName: viewModel.isActiveTimerExpanded ? "chevron.up" : "chevron.down")
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .padding(10)
-    }
-
     private func collapsedActiveTimer(for category: TimerCategory) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -318,9 +311,6 @@ struct FocusView: View {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
-        .overlay(alignment: .topTrailing) {
-            activeTimerChevron
-        }
         .shadow(color: Color.black.opacity(0.25), radius: 12, x: 0, y: 6)
     }
 
@@ -380,9 +370,6 @@ struct FocusView: View {
                     lineWidth: 1.6
                 )
         )
-        .overlay(alignment: .topTrailing) {
-            activeTimerChevron
-        }
         .shadow(color: Color.black.opacity(0.35), radius: 20, x: 0, y: 12)
         .shadow(color: Color.mint.opacity(0.22), radius: 14, x: 0, y: 8)
         .padding(.top, 4)
