@@ -258,7 +258,7 @@ final class QuestsViewModel: ObservableObject {
         }
 
         statsStore.emitQuestProgressSnapshot()
-        statsStore.updateDailyQuestsCompleted(completedQuestsCount)
+        statsStore.updateDailyQuestsCompleted(completedQuestsCount, totalQuests: dailyQuests.count)
 
         syncQuestProgress()
     }
@@ -330,7 +330,7 @@ final class QuestsViewModel: ObservableObject {
 
         persistCompletions()
         checkQuestChestRewardIfNeeded()
-        statsStore.updateDailyQuestsCompleted(completedQuestsCount)
+        statsStore.updateDailyQuestsCompleted(completedQuestsCount, totalQuests: dailyQuests.count)
 
         syncQuestProgress()
     }
@@ -765,7 +765,7 @@ private extension QuestsViewModel {
 
         persistCompletions()
         checkQuestChestRewardIfNeeded()
-        statsStore.updateDailyQuestsCompleted(completedQuestsCount)
+        statsStore.updateDailyQuestsCompleted(completedQuestsCount, totalQuests: dailyQuests.count)
 
         syncQuestProgress()
     }

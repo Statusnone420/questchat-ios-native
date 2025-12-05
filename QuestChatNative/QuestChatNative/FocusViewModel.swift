@@ -235,8 +235,26 @@ struct DailyProgress: Codable, Equatable, Identifiable {
     var questsCompleted: Int
     var focusMinutes: Int
     var reachedFocusGoal: Bool
+    var totalQuests: Int?
+    var focusGoalMinutes: Int?
 
     var id: Date { date }
+
+    init(
+        date: Date,
+        questsCompleted: Int,
+        focusMinutes: Int,
+        reachedFocusGoal: Bool,
+        totalQuests: Int? = nil,
+        focusGoalMinutes: Int? = nil
+    ) {
+        self.date = date
+        self.questsCompleted = questsCompleted
+        self.focusMinutes = focusMinutes
+        self.reachedFocusGoal = reachedFocusGoal
+        self.totalQuests = totalQuests
+        self.focusGoalMinutes = focusGoalMinutes
+    }
 }
 
 enum EnergyLevel: String, CaseIterable, Identifiable, Codable {
@@ -603,8 +621,13 @@ final class SessionStatsStore: ObservableObject {
         questEventHandler?(.dailySetupCompleted)
     }
 
-    func updateDailyQuestsCompleted(_ count: Int, date: Date = Date()) {
-        updateDailyProgress(for: date, focusGoalMinutes: dailyPlan?.focusGoalMinutes, questsCompleted: count)
+    func updateDailyQuestsCompleted(_ count: Int, totalQuests: Int? = nil, date: Date = Date()) {
+        updateDailyProgress(
+            for: date,
+            focusGoalMinutes: dailyPlan?.focusGoalMinutes,
+            questsCompleted: count,
+            totalQuests: totalQuests
+        )
     }
 
     func recordSessionHistory(mode: FocusTimerMode, duration: Int) {
@@ -809,19 +832,21 @@ final class SessionStatsStore: ObservableObject {
         return try? JSONDecoder().decode(ProgressionState.self, from: data)
     }
 
-    var weeklyGoalProgress: [WeeklyGoalDayStatus] {
+    func weeklyGoalProgress(asOf referenceDate: Date = Date()) -> [WeeklyGoalDayStatus] {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
+        let referenceDay = calendar.startOfDay(for: referenceDate)
 
         let statuses: [WeeklyGoalDayStatus] = stride(from: -6, through: 0, by: 1).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: today) else { return nil }
+            guard let date = calendar.date(byAdding: .day, value: offset, to: referenceDay) else { return nil }
             let progress = progressForDay(date)
-            let isToday = calendar.isDate(date, inSameDayAs: today)
+            let isToday = calendar.isDate(date, inSameDayAs: referenceDay)
             return WeeklyGoalDayStatus(date: date, goalHit: progress.reachedFocusGoal, isToday: isToday)
         }
 
         return statuses
     }
+
+    var weeklyGoalProgress: [WeeklyGoalDayStatus] { weeklyGoalProgress(asOf: Date()) }
 
     func momentumTier(for referenceDate: Date = Date()) -> MomentumTier {
         let calendar = Calendar.current
@@ -1037,7 +1062,12 @@ final class SessionStatsStore: ObservableObject {
             .reduce(0) { $0 + $1.durationSeconds }
     }
 
-    private func updateDailyProgress(for date: Date = Date(), focusGoalMinutes: Int? = nil, questsCompleted: Int? = nil) {
+    private func updateDailyProgress(
+        for date: Date = Date(),
+        focusGoalMinutes: Int? = nil,
+        questsCompleted: Int? = nil,
+        totalQuests: Int? = nil
+    ) {
         let calendar = Calendar.current
         let day = normalizedDate(date)
 
@@ -1056,7 +1086,16 @@ final class SessionStatsStore: ObservableObject {
             progress.questsCompleted = questsCompleted
         }
 
+        if let totalQuests {
+            progress.totalQuests = totalQuests
+        }
+
+        if let focusGoalMinutes {
+            progress.focusGoalMinutes = focusGoalMinutes
+        }
+
         let goalMinutes = focusGoalMinutes
+            ?? progress.focusGoalMinutes
             ?? (dailyPlan.flatMap { Calendar.current.isDate($0.date, inSameDayAs: day) ? $0.focusGoalMinutes : nil })
 
         if let goalMinutes, goalMinutes > 0 {
@@ -1082,7 +1121,9 @@ final class SessionStatsStore: ObservableObject {
             date: day,
             questsCompleted: 0,
             focusMinutes: focusMinutes,
-            reachedFocusGoal: reachedGoal
+            reachedFocusGoal: reachedGoal,
+            totalQuests: nil,
+            focusGoalMinutes: goalMinutes
         )
         dailyProgressHistory.append(progress)
         pruneDailyProgressHistory(referenceDate: day)

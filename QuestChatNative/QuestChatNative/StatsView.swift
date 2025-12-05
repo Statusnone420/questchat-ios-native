@@ -20,31 +20,14 @@ struct StatsView: View {
         return "\(area.icon) \(area.displayName)"
     }
     private var reachedFocusGoal: Bool { store.todayProgress?.reachedFocusGoal ?? false }
-    private var selectedDate: Date {
-        let today = Calendar.current.startOfDay(for: Date())
-        switch selectedScope {
-        case .today:
-            return today
-        case .yesterday:
-            return Calendar.current.date(byAdding: .day, value: -1, to: today) ?? today
-        }
-    }
-    private var selectedProgress: DailyProgress { store.dailyProgress(for: selectedDate) }
     private var scopeTitle: String { selectedScope == .today ? "Today" : "Yesterday" }
-    private var focusMinutesForScope: Int { selectedScope == .today ? focusMinutesToday : selectedProgress.focusMinutes }
-    private var dailyGoalMinutesForScope: Int { selectedScope == .today ? dailyGoalMinutes : defaultGoalMinutes }
-    private var dailyGoalProgressForScope: Int { selectedScope == .today ? dailyGoalProgress : selectedProgress.focusMinutes }
-    private var reachedFocusGoalForScope: Bool { selectedScope == .today ? reachedFocusGoal : selectedProgress.reachedFocusGoal }
-    private var focusAreaLabelForScope: String? { selectedScope == .today ? focusAreaLabel : nil }
-    private var completedQuestsForScope: Int { selectedScope == .today ? questsViewModel.completedQuestsCount : selectedProgress.questsCompleted }
-    private var defaultGoalMinutes: Int { store.todayPlan?.focusGoalMinutes ?? 40 }
-    private var focusGoalLabel: String { selectedScope == .today ? QuestChatStrings.StatsView.todaysFocusGoal : "Yesterday's Focus Goal" }
+    private var dailyGoalMinutesForScope: Int { dailyGoalMinutes }
+    private var dailyGoalProgressForScope: Int { dailyGoalProgress }
+    private var reachedFocusGoalForScope: Bool { reachedFocusGoal }
+    private var focusAreaLabelForScope: String? { focusAreaLabel }
+    private var focusGoalLabel: String { QuestChatStrings.StatsView.todaysFocusGoal }
     private var focusGoalProgressText: String {
-        if selectedScope == .today {
-            return QuestChatStrings.StatsView.dailyGoalProgress(current: dailyGoalProgressForScope, total: dailyGoalMinutesForScope)
-        }
-
-        return "Focus progress: \(dailyGoalProgressForScope) / \(dailyGoalMinutesForScope) min"
+        QuestChatStrings.StatsView.dailyGoalProgress(current: dailyGoalProgressForScope, total: dailyGoalMinutesForScope)
     }
     private var levelProgress: Double {
         if store.level >= 100 { return 1 }
@@ -104,6 +87,47 @@ struct StatsView: View {
         .pickerStyle(.segmented)
     }
 
+    private var todayContent: some View {
+        VStack(spacing: 18) {
+            TodaySummaryView(
+                title: scopeTitle,
+                completedQuests: questsViewModel.completedQuestsCount,
+                totalQuests: questsViewModel.totalQuestsCount,
+                focusMinutes: focusMinutesToday,
+                focusGoalMinutes: dailyGoalMinutes,
+                reachedFocusGoal: reachedFocusGoal,
+                focusAreaLabel: focusAreaLabel,
+                currentStreakDays: store.currentStreakDays
+            )
+
+            dailyGoalCard
+            weeklyPathCard
+            achievementsSection
+            healthBarWeeklySummary
+
+            header
+            summaryTiles
+            sessionBreakdown
+            sessionHistorySection
+
+#if DEBUG
+            Section {
+                Button("Simulate Achievement Unlock") {
+                    viewModel.simulateAchievementUnlock()
+                }
+            }
+#endif
+        }
+    }
+
+    private var yesterdayContent: some View {
+        VStack(spacing: 18) {
+            yesterdaySummaryCard
+            yesterdayStreakCard
+            yesterdayAchievementsSection
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -121,35 +145,11 @@ struct StatsView: View {
                         .padding(.bottom, 12)
 
                         scopePicker
-
-                        TodaySummaryView(
-                            title: scopeTitle,
-                            completedQuests: completedQuestsForScope,
-                            totalQuests: questsViewModel.totalQuestsCount,
-                            focusMinutes: focusMinutesForScope,
-                            focusGoalMinutes: dailyGoalMinutesForScope,
-                            reachedFocusGoal: reachedFocusGoalForScope,
-                            focusAreaLabel: focusAreaLabelForScope,
-                            currentStreakDays: store.currentStreakDays
-                        )
-
-                        dailyGoalCard
-                        weeklyPathCard
-                        achievementsSection
-                        healthBarWeeklySummary
-
-                        header
-                        summaryTiles
-                        sessionBreakdown
-                        sessionHistorySection
-
-#if DEBUG
-                        Section {
-                            Button("Simulate Achievement Unlock") {
-                                viewModel.simulateAchievementUnlock()
-                            }
+                        if selectedScope == .today {
+                            todayContent
+                        } else {
+                            yesterdayContent
                         }
-#endif
                     }
                     .padding(20)
                 }
@@ -234,6 +234,143 @@ struct StatsView: View {
         case .neutral: return "Neutral"
         case .bad: return "Bad"
         case .none: return "—"
+        }
+    }
+
+    private var yesterdaySummaryCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Label("Yesterday", systemImage: "clock.arrow.circlepath")
+                    .font(.headline)
+                    .foregroundStyle(.mint.opacity(0.9))
+                Spacer()
+            }
+
+            if let summary = viewModel.yesterdaySummary {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Quests: \(summary.questsCompleted) / \(summary.totalQuests) completed")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 8) {
+                        Text("Focus: \(summary.focusMinutes) / \(summary.focusGoalMinutes) minutes")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        if summary.reachedFocusGoal {
+                            Text("Goal hit!")
+                                .font(.caption.bold())
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.mint.opacity(0.15))
+                                .foregroundColor(.mint)
+                                .cornerRadius(10)
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Overall progress: \(Int(summary.overallProgress * 100))%")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        ProgressView(value: summary.overallProgress)
+                            .progressViewStyle(.linear)
+                            .tint(.mint.opacity(0.85))
+                    }
+                }
+            } else {
+                Text("No stats for yesterday yet.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.12))
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+    }
+
+    private var yesterdayStreakCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Weekly streak as of yesterday", systemImage: "calendar.badge.clock")
+                .font(.headline)
+                .foregroundStyle(.orange)
+
+            if let maintained = viewModel.wasStreakMaintainedYesterday {
+                Text(maintained ? "Streak: maintained ✅" : "Streak: broken ☠️")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(maintained ? .mint : .red)
+
+                if viewModel.yesterdayStreakDots.isEmpty {
+                    Text("No streak data for yesterday yet.")
+                        .foregroundStyle(.secondary)
+                        .font(.footnote)
+                } else {
+                    compactWeeklyDots(for: viewModel.yesterdayStreakDots)
+                }
+            } else {
+                Text("No streak data for yesterday yet.")
+                    .foregroundStyle(.secondary)
+                    .font(.footnote)
+            }
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
+        .cornerRadius(14)
+    }
+
+    private var yesterdayAchievementsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Season achievements from yesterday")
+                .font(.headline)
+
+            if viewModel.yesterdayUnlockedAchievements.isEmpty {
+                Text("No new achievements yesterday. Today’s a good day to change that.")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+            } else {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
+                    ForEach(viewModel.yesterdayUnlockedAchievements) { item in
+                        SeasonAchievementBadgeView(
+                            title: item.title,
+                            iconName: item.iconName,
+                            isUnlocked: item.isUnlocked,
+                            progressFraction: CGFloat(item.progressFraction)
+                        )
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+        }
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
+        .cornerRadius(16)
+    }
+
+    private func compactWeeklyDots(for days: [SessionStatsStore.WeeklyGoalDayStatus]) -> some View {
+        HStack(spacing: 8) {
+            ForEach(days) { day in
+                ZStack {
+                    Circle()
+                        .fill(day.goalHit ? Color.mint : Color.clear)
+                        .frame(width: 12, height: 12)
+                        .overlay(
+                            Circle()
+                                .stroke(day.goalHit ? Color.mint : Color.secondary.opacity(0.6), lineWidth: 2)
+                        )
+                        .opacity(day.goalHit ? 1 : 0.7)
+
+                    if day.isToday {
+                        Circle()
+                            .stroke(Color.white.opacity(0.35), lineWidth: 3)
+                            .frame(width: 18, height: 18)
+                    }
+                }
+                .accessibilityLabel(day.date.formatted(date: .abbreviated, time: .omitted))
+                .accessibilityValue(day.goalHit ? QuestChatStrings.StatsView.weeklyGoalMet : QuestChatStrings.StatsView.weeklyGoalNotMet)
+            }
         }
     }
 

@@ -17,6 +17,29 @@ final class StatsViewModel: ObservableObject {
         }
     }
 
+    struct DailyStatsSummary {
+        let questsCompleted: Int
+        let totalQuests: Int
+        let focusMinutes: Int
+        let focusGoalMinutes: Int
+        let reachedFocusGoal: Bool
+
+        var questProgress: Double {
+            guard totalQuests > 0 else { return 0 }
+            return Double(questsCompleted) / Double(totalQuests)
+        }
+
+        var focusProgress: Double {
+            guard focusGoalMinutes > 0 else { return 0 }
+            let progress = Double(focusMinutes) / Double(focusGoalMinutes)
+            return min(progress, 1)
+        }
+
+        var overallProgress: Double {
+            (questProgress + focusProgress) / 2
+        }
+    }
+
     @Published private(set) var last7Days: [HealthDaySummary] = []
     @Published var seasonAchievements: [SeasonAchievementItemViewModel] = []
     @Published var unlockedAchievementToShow: SeasonAchievementItemViewModel?
@@ -151,8 +174,54 @@ final class StatsViewModel: ObservableObject {
         statsStore.momentumMultiplier()
     }
 
+    var yesterdaySummary: DailyStatsSummary? {
+        let yesterday = yesterdayDate
+        let progress = statsStore.dailyProgress(for: yesterday)
+        let totalQuests = max(progress.totalQuests ?? progress.questsCompleted, progress.questsCompleted)
+        let focusGoalMinutes = progress.focusGoalMinutes ?? defaultFocusGoalMinutes
+
+        guard hasActivity(on: yesterday, progress: progress) else { return nil }
+
+        return DailyStatsSummary(
+            questsCompleted: progress.questsCompleted,
+            totalQuests: totalQuests,
+            focusMinutes: progress.focusMinutes,
+            focusGoalMinutes: focusGoalMinutes,
+            reachedFocusGoal: progress.reachedFocusGoal
+        )
+    }
+
+    var yesterdayStreakDots: [SessionStatsStore.WeeklyGoalDayStatus] {
+        statsStore.weeklyGoalProgress(asOf: yesterdayDate)
+    }
+
+    var wasStreakMaintainedYesterday: Bool? {
+        let progress = statsStore.dailyProgress(for: yesterdayDate)
+        guard hasActivity(on: yesterdayDate, progress: progress) else { return nil }
+        return progress.reachedFocusGoal
+    }
+
+    var yesterdayUnlockedAchievements: [SeasonAchievementItemViewModel] {
+        seasonAchievements.compactMap { item in
+            guard
+                let progress = seasonAchievementsStore.progressById[item.id],
+                let unlockedAt = progress.unlockedAt,
+                calendar.isDate(unlockedAt, inSameDayAs: yesterdayDate)
+            else { return nil }
+
+            return item
+        }
+    }
+
     func label(for date: Date) -> String {
         weekdayFormatter.string(from: date)
+    }
+
+    private var defaultFocusGoalMinutes: Int { statsStore.todayPlan?.focusGoalMinutes ?? 40 }
+
+    private var yesterdayDate: Date {
+        let today = calendar.startOfDay(for: Date())
+        return calendar.date(byAdding: .day, value: -1, to: today) ?? today
     }
 
     private func refresh() {
@@ -231,6 +300,11 @@ final class StatsViewModel: ObservableObject {
         else { return nil }
 
         return SleepQuality(rawValue: userDefaults.integer(forKey: HealthTrackingStorageKeys.sleepQualityValue))
+    }
+
+    private func hasActivity(on date: Date, progress: DailyProgress) -> Bool {
+        let hasSessions = statsStore.sessionHistory.contains { calendar.isDate($0.date, inSameDayAs: date) }
+        return hasSessions || progress.focusMinutes > 0 || progress.questsCompleted > 0 || progress.reachedFocusGoal
     }
 
     private func clampProgress(_ value: Double) -> Double {
