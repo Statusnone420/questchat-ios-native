@@ -1683,6 +1683,8 @@ final class FocusViewModel: ObservableObject {
         print("[FocusTimer] Paused with \(remaining) seconds left")
         if #available(iOS 17.0, *) {
             updateLiveActivity(isPaused: true, remaining: remaining, title: selectedCategoryData?.id.title ?? selectedMode.title, startDate: Date(), endDate: Date())
+        } else if #available(iOS 16.1, *) {
+            liveActivityManager?.pause()
         }
     }
 
@@ -1725,10 +1727,10 @@ final class FocusViewModel: ObservableObject {
             )
         } else if #available(iOS 16.1, *) {
             let category = selectedCategoryData ?? TimerCategory(id: selectedCategory, durationSeconds: currentDuration)
-            liveActivityManager?.start(
+            liveActivityManager?.update(
+                title: category.id.title,
                 endDate: session.endDate,
-                sessionType: category.id.rawValue,
-                title: category.id.title
+                isPaused: false
             )
         }
     }
@@ -1759,7 +1761,7 @@ final class FocusViewModel: ObservableObject {
                 }
             }
         } else if #available(iOS 16.1, *) {
-            liveActivityManager?.end()
+            liveActivityManager?.cancel()
         }
 
         clearLiveActivityState()
@@ -2406,4 +2408,3 @@ private extension FocusViewModel.HydrationNudgeLevel {
         }
     }
 }
-

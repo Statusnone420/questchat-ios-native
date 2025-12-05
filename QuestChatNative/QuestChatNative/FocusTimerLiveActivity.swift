@@ -19,6 +19,7 @@ final class FocusTimerLiveActivityManager {
     static let shared = FocusTimerLiveActivityManager()
 
     private var activity: Activity<FocusTimerAttributes>?
+    private var currentState: FocusTimerAttributes.ContentState?
 
     private init() {}
 
@@ -42,18 +43,70 @@ final class FocusTimerLiveActivityManager {
             endDate: endDate,
             isPaused: false
         )
+        self.currentState = contentState
 
         do {
             print("🚀 Requesting Live Activity – title:", title, "end:", endDate)
-            activity = try Activity.request(
-                attributes: attributes,
-                contentState: contentState,
-                pushType: nil
-            )
+            if #available(iOS 16.2, *) {
+                let content = ActivityContent(state: contentState, staleDate: endDate)
+                activity = try Activity.request(
+                    attributes: attributes,
+                    content: content,
+                    pushType: nil
+                )
+            } else {
+                activity = try Activity.request(
+                    attributes: attributes,
+                    contentState: contentState,
+                    pushType: nil
+                )
+            }
             print("✅ Live Activity started:", String(describing: activity))
         } catch {
             print("❌ Failed to start Live Activity:", error)
         }
+    }
+
+    /// Update the Live Activity's content state. Pass only the values you want to change.
+    func update(title: String? = nil, endDate: Date? = nil, isPaused: Bool? = nil) {
+        guard let activity = self.activity else {
+            print("ℹ️ No active Live Activity to update")
+            return
+        }
+        guard var state = self.currentState else {
+            print("ℹ️ Missing current state; cannot update")
+            return
+        }
+
+        // Apply changes
+        state.title = title ?? state.title
+        state.endDate = endDate ?? state.endDate
+        state.isPaused = isPaused ?? state.isPaused
+
+        // Save locally
+        self.currentState = state
+
+        if #available(iOS 16.2, *) {
+            let stale = state.isPaused ? nil : state.endDate
+            let content = ActivityContent(state: state, staleDate: stale)
+            Task {
+                await activity.update(content)
+            }
+        } else {
+            Task {
+                await activity.update(using: state)
+            }
+        }
+    }
+
+    /// Convenience: pause the timer
+    func pause() {
+        update(isPaused: true)
+    }
+
+    /// Convenience: resume the timer
+    func resume() {
+        update(isPaused: false)
     }
 
     func end() {
@@ -61,6 +114,7 @@ final class FocusTimerLiveActivityManager {
             print("🧹 Ending Live Activity")
             await activity?.end(dismissalPolicy: .immediate)
             activity = nil
+            self.currentState = nil
         }
     }
 
@@ -69,6 +123,7 @@ final class FocusTimerLiveActivityManager {
             print("🛑 Cancelling Live Activity")
             await activity?.end(dismissalPolicy: .immediate)
             activity = nil
+            self.currentState = nil
         }
     }
 }
