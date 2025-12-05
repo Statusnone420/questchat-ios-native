@@ -962,3 +962,4 @@ private extension QuestsViewModel {
     static let weeklyFocusMinutesTarget = 120
     static let weeklyFocusSessionTarget = 15
 }
+
