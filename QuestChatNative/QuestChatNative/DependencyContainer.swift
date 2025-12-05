@@ -90,7 +90,11 @@ final class DependencyContainer {
     }
 
     func makeHealthBarView() -> HealthBarView {
-        HealthBarView(viewModel: makeHealthBarViewModel())
+        HealthBarView(
+            viewModel: makeHealthBarViewModel(),
+            focusViewModel: focusViewModel,
+            selectedTab: .constant(.health)
+        )
     }
 }
 

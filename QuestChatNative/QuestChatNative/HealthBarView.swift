@@ -2,9 +2,14 @@ import SwiftUI
 
 struct HealthBarView: View {
     @StateObject var viewModel: HealthBarViewModel
+    @ObservedObject var focusViewModel: FocusViewModel
+    @Binding var selectedTab: MainTab
+    @EnvironmentObject var questsViewModel: QuestsViewModel
 
-    init(viewModel: HealthBarViewModel) {
+    init(viewModel: HealthBarViewModel, focusViewModel: FocusViewModel, selectedTab: Binding<MainTab>) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        _focusViewModel = ObservedObject(wrappedValue: focusViewModel)
+        _selectedTab = selectedTab
     }
 
     var body: some View {
@@ -13,6 +18,12 @@ struct HealthBarView: View {
                 VStack(spacing: 20) {
                     healthHeaderCard
                     vitalsCard
+                    PotionsCard(
+                        onHealthTap: { focusViewModel.logComfortBeverageTapped() },
+                        onManaTap: { focusViewModel.logHydrationPillTapped() },
+                        onStaminaTap: { focusViewModel.logStaminaPotionTapped() }
+                    )
+                    todaysQuestCard
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
@@ -24,6 +35,15 @@ struct HealthBarView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.black, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+        }
+    }
+
+    @ViewBuilder
+    private var todaysQuestCard: some View {
+        if let quest = questsViewModel.dailyQuests.first {
+            TodaysQuestCard(quest: quest) {
+                selectedTab = .quests
+            }
         }
     }
 
@@ -162,5 +182,11 @@ struct HealthBarView: View {
 }
 
 #Preview {
-    HealthBarView(viewModel: DependencyContainer.shared.healthBarViewModel)
+    let container = DependencyContainer.shared
+    HealthBarView(
+        viewModel: container.healthBarViewModel,
+        focusViewModel: container.focusViewModel,
+        selectedTab: .constant(.health)
+    )
+    .environmentObject(container.questsViewModel)
 }

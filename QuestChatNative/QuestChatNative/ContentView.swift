@@ -25,8 +25,13 @@ struct ContentView: View {
                 .tabItem { Label("Focus", systemImage: "timer") }
                 .tag(MainTab.focus)
 
-                HealthBarView(viewModel: healthBarViewModel)
-                    .tabItem { Label("Health", systemImage: "heart.fill") }
+                HealthBarView(
+                    viewModel: healthBarViewModel,
+                    focusViewModel: focusViewModel,
+                    selectedTab: $selectedTab
+                )
+                    .environmentObject(questsViewModel)
+                    .tabItem { Label("HP", systemImage: "heart.fill") }
                     .tag(MainTab.health)
 
                 QuestsView(viewModel: questsViewModel)

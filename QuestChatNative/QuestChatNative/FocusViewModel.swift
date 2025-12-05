@@ -1257,6 +1257,7 @@ final class FocusViewModel: ObservableObject {
     @Published private var healthComboXPGrantedToday = false
     @Published var timerState: FocusTimerState = .idle
     @Published var remainingSeconds: Int = 0
+    @Published var isActiveTimerExpanded: Bool = true
 
     var onSessionComplete: (() -> Void)?
 
@@ -1828,6 +1829,7 @@ final class FocusViewModel: ObservableObject {
         clearPersistedSession()
         timerState = .idle
         state = .idle
+        isActiveTimerExpanded = true
         remainingSeconds = 0
         activeSessionCategory = nil
         print("[FocusTimer] Reset timer")
@@ -1862,6 +1864,7 @@ final class FocusViewModel: ObservableObject {
         activeSessionDuration = nil
         state = .idle
         timerState = .idle
+        isActiveTimerExpanded = true
     }
 
     func durationForSelectedCategory() -> Int {
@@ -2025,6 +2028,7 @@ final class FocusViewModel: ObservableObject {
         stopUITimer()
         timerState = .idle
         state = .finished
+        isActiveTimerExpanded = true
         hasFinishedOnce = true
         if let sessionType = currentSession?.type {
             selectedMode = sessionType

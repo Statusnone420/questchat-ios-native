@@ -83,13 +83,11 @@ struct FocusView: View {
             NavigationStack {
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(alignment: .leading, spacing: 20) {
-                        potionsCard
                         compactStatusHeader
-                        todayQuestBanner
                         momentumCard
 
                         if let selectedCategory = viewModel.selectedCategoryData {
-                            heroCard(for: selectedCategory)
+                            activeTimerSection(for: selectedCategory)
                         }
 
                         quickTimersList
@@ -230,14 +228,6 @@ struct FocusView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var potionsCard: some View {
-        PotionsCard(
-            onHealthTap: { viewModel.logComfortBeverageTapped() },
-            onManaTap: { viewModel.logHydrationPillTapped() },
-            onStaminaTap: { viewModel.logStaminaPotionTapped() }
-        )
-    }
-
     private var momentumCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
@@ -264,144 +254,63 @@ struct FocusView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    struct PotionsCard: View {
-        let onHealthTap: () -> Void
-        let onManaTap: () -> Void
-        let onStaminaTap: () -> Void
-
-        var body: some View {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Potions")
-                    .font(.headline.weight(.semibold))
-
-                PotionsRow(
-                    onHealthTap: onHealthTap,
-                    onManaTap: onManaTap,
-                    onStaminaTap: onStaminaTap
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(uiColor: .secondarySystemBackground).opacity(0.45))
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        }
-    }
-
-    private struct PotionsRow: View {
-        let onHealthTap: () -> Void
-        let onManaTap: () -> Void
-        let onStaminaTap: () -> Void
-
-        var body: some View {
-            GeometryReader { geo in
-                let spacing: CGFloat = 12
-                let totalSpacing = spacing * 2
-                let pillWidth = (geo.size.width - totalSpacing) / 3
-
-                HStack(spacing: spacing) {
-                    Button(action: onHealthTap) {
-                        potionPill(label: "Health", systemImage: "cross.case.fill", style: .health)
-                    }
-                    .frame(width: pillWidth)
-                    .buttonStyle(.plain)
-
-                    Button(action: onManaTap) {
-                        potionPill(label: "Mana", systemImage: "drop.fill", style: .mana)
-                    }
-                    .frame(width: pillWidth)
-                    .buttonStyle(.plain)
-
-                    Button(action: onStaminaTap) {
-                        potionPill(label: "Stamina", systemImage: "bolt.fill", style: .stamina)
-                    }
-                    .frame(width: pillWidth)
-                    .buttonStyle(.plain)
-                }
-            }
-            .frame(height: 52)
-        }
-
-        private func potionPill(label: String, systemImage: String, style: PotionStyle) -> some View {
-            Label {
-                Text(label)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .allowsTightening(true)
-            } icon: {
-                Image(systemName: systemImage)
-                    .font(.subheadline.weight(.semibold))
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(style.backgroundColor)
-            .foregroundStyle(Color.white)
-            .clipShape(Capsule())
-        }
-    }
-
-    private enum PotionStyle {
-        case health
-        case mana
-        case stamina
-
-        var backgroundColor: Color {
-            switch self {
-            case .health:
-                return .green
-            case .mana:
-                return .cyan
-            case .stamina:
-                return .orange
-            }
-        }
-    }
-
     @ViewBuilder
-    private var todayQuestBanner: some View {
-        if let quest = questsViewModel.dailyQuests.first {
-            Button {
-                selectedTab = .quests
-            } label: {
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(QuestChatStrings.FocusView.todayQuestLabel)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+    private func activeTimerSection(for category: TimerCategory) -> some View {
+        let isSessionActive = viewModel.timerState != .idle
 
-                        Text(quest.title)
-                            .font(.headline)
-                    }
-
-                    Spacer()
-
-                    if quest.isCompleted {
-                        Label(QuestChatStrings.FocusView.questCompletedLabel, systemImage: "checkmark.circle.fill")
-                            .font(.subheadline.bold())
-                            .foregroundStyle(.mint)
-                    } else {
-                        Text(QuestChatStrings.xpRewardText(quest.xpReward))
-                            .font(.caption.bold())
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(.mint.opacity(0.15))
-                            .foregroundStyle(.mint)
-                            .clipShape(Capsule())
-                    }
+        if isSessionActive && !viewModel.isActiveTimerExpanded {
+            collapsedActiveTimer(for: category)
+                .onTapGesture { toggleActiveTimerExpansion() }
+        } else {
+            heroCard(for: category)
+                .onTapGesture {
+                    guard isSessionActive else { return }
+                    toggleActiveTimerExpansion()
                 }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.ultraThinMaterial.opacity(0.14))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.gray.opacity(0.25), lineWidth: 1)
-                )
-                .cornerRadius(14)
-            }
-            .buttonStyle(.plain)
         }
+    }
+
+    private func toggleActiveTimerExpansion() {
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+            viewModel.isActiveTimerExpanded.toggle()
+        }
+    }
+
+    private func collapsedActiveTimer(for category: TimerCategory) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(category.id.title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    Text(category.id.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Text(formattedTime)
+                    .font(.title3.monospacedDigit().weight(.bold))
+                    .foregroundStyle(.primary)
+            }
+
+            ProgressView(value: viewModel.progress, total: 1)
+                .progressViewStyle(.linear)
+                .tint(.mint)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
+        .cornerRadius(18)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.25), radius: 12, x: 0, y: 6)
     }
 
     private func heroCard(for category: TimerCategory) -> some View {
@@ -1062,14 +971,14 @@ private struct DailySetupSheet: View {
 }
 
 #Preview("Potions – iPhone 15 Pro") {
-    FocusView.PotionsCard(onHealthTap: {}, onManaTap: {}, onStaminaTap: {})
+    PotionsCard(onHealthTap: {}, onManaTap: {}, onStaminaTap: {})
         .padding(20)
         .background(Color.black)
         .previewDevice("iPhone 15 Pro")
 }
 
 #Preview("Potions – iPhone 17 Pro Max") {
-    FocusView.PotionsCard(onHealthTap: {}, onManaTap: {}, onStaminaTap: {})
+    PotionsCard(onHealthTap: {}, onManaTap: {}, onStaminaTap: {})
         .padding(20)
         .background(Color.black)
         .previewDevice("iPhone 17 Pro Max")
