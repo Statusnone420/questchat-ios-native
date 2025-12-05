@@ -67,6 +67,22 @@ enum QuestChatStrings {
         static let hydrateNudgeTitle = "Hydrate + posture check"
     }
 
+    enum Reminders {
+        static let settingsHeader = "Reminders"
+        static let hydrationTitle = "Hydration"
+        static let hydrationDescription = "Water + posture nudges during your day."
+        static let postureTitle = "Posture"
+        static let postureDescription = "Straighten up, unclench, and breathe."
+        static let cadenceLabel = "Cadence"
+        static func cadenceValue(_ minutes: Int) -> String { "\(minutes) min" }
+        static let startHourLabel = "Start"
+        static let endHourLabel = "End"
+        static let focusOnlyLabel = "Only during focus sessions"
+        static let focusOnlyDescription = "Skip posture nudges when the timer isn't running."
+        static let hydrationBody = "Grab water and stretch for a minute."
+        static let postureBody = "Unclench your shoulders and reset your posture."
+    }
+
     enum FocusView {
         static let navigationTitle = "Focus"
 

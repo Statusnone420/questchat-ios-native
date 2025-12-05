@@ -125,7 +125,7 @@ struct FocusView: View {
             viewModel.handleAppear()
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
-        .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)
+        .animation(.easeInOut(duration: 0.35), value: viewModel.activeReminderEvent?.id)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.selectedCategory)
         .onAppear {
             viewModel.handleScenePhaseChange(scenePhase)
@@ -584,8 +584,8 @@ struct FocusView: View {
             }
         }
         .overlay(alignment: .top) {
-            if let nudge = viewModel.activeHydrationNudge {
-                hydrationBanner(nudge: nudge)
+            if let event = viewModel.activeReminderEvent {
+                reminderBanner(event: event)
                     .padding(.horizontal, 12)
                     .padding(.top, -6)
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -836,16 +836,16 @@ struct FocusView: View {
         )
     }
 
-    private func hydrationBanner(nudge: FocusViewModel.HydrationNudge) -> some View {
+    private func reminderBanner(event: ReminderEvent) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "figure.walk")
-                .foregroundStyle(.mint)
+            Image(systemName: viewModel.reminderIconName(for: event.type))
+                .foregroundStyle(event.type == .hydration ? .mint : .purple)
                 .imageScale(.large)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(QuestChatStrings.FocusView.hydrationBannerTitle)
+                Text(viewModel.reminderTitle(for: event.type))
                     .font(.headline)
-                Text(nudge.message)
+                Text(viewModel.activeReminderMessage ?? viewModel.reminderBody(for: event.type))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
