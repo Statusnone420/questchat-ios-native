@@ -159,11 +159,11 @@ struct PlayerCardView: View {
                         progressFraction: 1.0,
                         isCompact: true
                     )
-                    .frame(width: 44, height: 44)
+                    .frame(width: 36, height: 36)
                 }
             }
 
-            Text("Your real-life player card. Track your HP, habits, and streaks here.")
+            Text("Your real-life stats, achivements, badges, and titles.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }

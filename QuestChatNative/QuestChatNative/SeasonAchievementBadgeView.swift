@@ -21,6 +21,18 @@ struct SeasonAchievementBadgeView: View {
         self.isCompact = isCompact
     }
 
+    private var badgeDiameter: CGFloat {
+        isCompact ? 32 : 64
+    }
+
+    private var iconFontSize: CGFloat {
+        isCompact ? 16 : 28
+    }
+
+    private var shadowRadius: CGFloat {
+        isCompact ? 4 : 8
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             ZStack {
@@ -30,11 +42,11 @@ struct SeasonAchievementBadgeView: View {
                     .opacity(isUnlocked ? 1.0 : 0.3)
 
                 iconView
-                    .font(.system(size: 28))
+                    .font(.system(size: iconFontSize))
                     .opacity(isUnlocked ? 1.0 : 0.5)
             }
-            .frame(width: 64, height: 64)
-            .shadow(radius: isUnlocked ? 8 : 0, y: 4)
+            .frame(width: badgeDiameter, height: badgeDiameter)
+            .shadow(radius: isUnlocked ? shadowRadius : 0, y: isCompact ? 2 : 4)
 
             if !isCompact {
                 Text(title)
@@ -46,7 +58,7 @@ struct SeasonAchievementBadgeView: View {
 
                 ProgressView(value: progressFraction)
                     .progressViewStyle(.linear)
-                    .opacity(isUnlocked ? 0.8 : 0.4)
+                    .opacity(isUnlocked ? 1.0 : 0.4)
             }
         }
     }
