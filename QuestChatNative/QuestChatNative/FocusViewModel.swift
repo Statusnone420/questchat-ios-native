@@ -283,10 +283,16 @@ final class SessionStatsStore: ObservableObject {
         var id: Date { date }
     }
 
+    enum MomentumTier {
+        case cold      // 0 active days
+        case warming   // 1–2 active days
+        case rolling   // 3–5 active days
+        case onFire    // 6–7 active days
+    }
+
     @Published private(set) var focusSeconds: Int
     @Published private(set) var selfCareSeconds: Int
     @Published private(set) var sessionsCompleted: Int
-    @Published private(set) var momentum: Double
     @Published private(set) var sessionHistory: [SessionRecord]
     @Published private(set) var totalFocusSecondsToday: Int
     @Published var pendingLevelUp: Int?
@@ -377,10 +383,6 @@ final class SessionStatsStore: ObservableObject {
             sessionHistory = []
         }
 
-        let storedMomentum = userDefaults.double(forKey: Keys.momentum)
-        let clampedMomentum = max(0, min(storedMomentum, 1))
-        momentum = clampedMomentum
-
         let initialProgression: ProgressionState
         if let loadedProgression = Self.loadProgression(from: userDefaults) {
             initialProgression = loadedProgression
@@ -396,13 +398,6 @@ final class SessionStatsStore: ObservableObject {
         let initialTotalXP = initialProgression.totalXP > 0 ? initialProgression.totalXP : playerStateStore.xp
         let computedProgression = Self.computeProgression(totalXP: initialTotalXP, streakDays: initialProgression.streakDays, lastActiveDate: initialProgression.lastActiveDate)
         progression = computedProgression
-
-        lastSessionDate = userDefaults.object(forKey: Keys.lastSessionDate) as? Date
-        let storedLastMomentumUpdate = userDefaults.object(forKey: Keys.lastMomentumUpdate) as? Date
-        lastMomentumUpdate = storedLastMomentumUpdate ?? lastSessionDate
-        if clampedMomentum > 0, lastMomentumUpdate == nil {
-            lastMomentumUpdate = Date()
-        }
 
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -445,7 +440,6 @@ final class SessionStatsStore: ObservableObject {
         }
 
         refreshDailySetupIfNeeded()
-        refreshMomentumIfNeeded()
         evaluateWeeklyGoalBonus()
 
         syncPlayerStateProgress()
@@ -455,7 +449,6 @@ final class SessionStatsStore: ObservableObject {
     @discardableResult
     func recordSession(mode: FocusTimerMode, duration: Int) -> Int {
         refreshDailyTotalsIfNeeded()
-        refreshMomentumIfNeeded()
 
         let now = Date()
         let xpBefore = progression.totalXP
@@ -471,11 +464,12 @@ final class SessionStatsStore: ObservableObject {
         sessionsCompleted += 1
         recordSessionHistory(mode: mode, duration: duration)
 
-        let _ = registerCompletedSession(duration: TimeInterval(duration))
+        let baseXP = xpForCompletedFocusSession(duration: TimeInterval(duration))
+        let momentumMultiplier = momentumMultiplier(for: now)
+        let boostedXP = Int(round(Double(baseXP) * momentumMultiplier))
+        let minutes = Int(duration / 60)
+        _ = grantXP(boostedXP, reason: .focusSession(minutes: minutes))
 
-        momentum = 0
-        lastSessionDate = now
-        lastMomentumUpdate = now
         persist()
         evaluateWeeklyGoalBonus()
 
@@ -519,8 +513,6 @@ final class SessionStatsStore: ObservableObject {
             .reduce(0) { $0 + $1.durationSeconds }
         totalFocusSecondsToday = max(0, totalFocusSecondsToday - focusRemovedToday)
 
-        lastSessionDate = sessionHistory.map { $0.date }.max()
-        lastMomentumUpdate = lastSessionDate
         persist()
     }
 
@@ -669,17 +661,9 @@ final class SessionStatsStore: ObservableObject {
         lastKnownLevel = level
         pendingLevelUp = nil
         sessionHistory = []
-        momentum = 0
-        lastSessionDate = nil
-        lastMomentumUpdate = nil
         lastWeeklyGoalBonusAwardedDate = nil
         lastLevelUp = nil
         persist()
-    }
-
-    var currentMomentum: Double {
-        // Return a computed value without mutating @Published properties to avoid publishing during view updates
-        return computeDecayedMomentum(now: Date())
     }
 
     func xpNeededToLevelUp(from level: Int) -> Int {
@@ -769,29 +753,6 @@ final class SessionStatsStore: ObservableObject {
         return try? JSONDecoder().decode(ProgressionState.self, from: data)
     }
 
-    private func computeDecayedMomentum(now: Date) -> Double {
-        guard let lastUpdate = lastMomentumUpdate else { return momentum }
-        let elapsed = now.timeIntervalSince(lastUpdate)
-        guard elapsed > 0, momentum > 0 else { return momentum }
-        guard momentumDecayDuration > 0 else { return momentum }
-        let decayAmount = elapsed / momentumDecayDuration
-        guard decayAmount > 0 else { return momentum }
-        return max(0, momentum - decayAmount)
-    }
-
-    func refreshMomentumIfNeeded(now: Date = Date()) {
-        let newMomentum = computeDecayedMomentum(now: now)
-        // If nothing changes, still update lastMomentumUpdate and persist asynchronously
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            if newMomentum != self.momentum {
-                self.momentum = newMomentum
-            }
-            self.lastMomentumUpdate = now
-            self.persistMomentum()
-        }
-    }
-
     var weeklyGoalProgress: [WeeklyGoalDayStatus] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -808,14 +769,68 @@ final class SessionStatsStore: ObservableObject {
         return statuses
     }
 
-    private let userDefaults: UserDefaults
-    private var lastSessionDate: Date?
-    private var lastMomentumUpdate: Date?
-    private static let progressionDefaultsKey = "progression_state_v1"
+    func momentumTier(for referenceDate: Date = Date()) -> MomentumTier {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: referenceDate)
 
-    private let momentumIncrement: Double = 0.25
-    private let momentumDecayDuration: TimeInterval = 4 * 60 * 60
-    private let momentumBonusMultiplier: Double = 0.2
+        let activeDayCount: Int = (0...6).reduce(0) { count, offset in
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else { return count }
+            return hasSession(on: date, calendar: calendar) ? count + 1 : count
+        }
+
+        switch activeDayCount {
+        case 0:
+            return .cold
+        case 1...2:
+            return .warming
+        case 3...5:
+            return .rolling
+        default:
+            return .onFire
+        }
+    }
+
+    func momentumMultiplier(for referenceDate: Date = Date()) -> Double {
+        switch momentumTier(for: referenceDate) {
+        case .cold:
+            return 1.0
+        case .warming:
+            return 1.05
+        case .rolling:
+            return 1.10
+        case .onFire:
+            return 1.20
+        }
+    }
+
+    func momentumLabel(for referenceDate: Date = Date()) -> String {
+        switch momentumTier(for: referenceDate) {
+        case .cold:
+            return "Cold start"
+        case .warming:
+            return "Warming up"
+        case .rolling:
+            return "In the zone"
+        case .onFire:
+            return "On fire"
+        }
+    }
+
+    func momentumDescription(for referenceDate: Date = Date()) -> String {
+        switch momentumTier(for: referenceDate) {
+        case .cold:
+            return "Start a session to build Momentum."
+        case .warming:
+            return "You’ve been active lately, keep going."
+        case .rolling:
+            return "You’re in the groove."
+        case .onFire:
+            return "XP bonus for showing up every day."
+        }
+    }
+
+    private let userDefaults: UserDefaults
+    private static let progressionDefaultsKey = "progression_state_v1"
 
     private enum Keys {
         static let focusSeconds = "focusSeconds"
@@ -827,9 +842,6 @@ final class SessionStatsStore: ObservableObject {
         static let totalFocusSecondsToday = "totalFocusSecondsToday"
         static let totalFocusDate = "totalFocusDate"
         static let dailyConfig = "dailyConfig"
-        static let momentum = "momentum"
-        static let lastSessionDate = "lastSessionDate"
-        static let lastMomentumUpdate = "lastMomentumUpdate"
         static let lastWeeklyGoalBonusAwardedDate = "lastWeeklyGoalBonusAwardedDate"
     }
 
@@ -851,7 +863,6 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
         userDefaults.set(Calendar.current.startOfDay(for: Date()), forKey: Keys.totalFocusDate)
         persistWeeklyGoalBonus()
-        persistMomentum()
         persistDailyConfig(dailyConfig)
         persistSessionHistory()
     }
@@ -898,27 +909,17 @@ final class SessionStatsStore: ObservableObject {
 
     var currentStreakDays: Int { progression.streakDays }
 
-    private func persistMomentum() {
-        userDefaults.set(momentum, forKey: Keys.momentum)
-        if let lastSessionDate {
-            userDefaults.set(lastSessionDate, forKey: Keys.lastSessionDate)
-        } else {
-            userDefaults.removeObject(forKey: Keys.lastSessionDate)
-        }
-
-        if let lastMomentumUpdate {
-            userDefaults.set(lastMomentumUpdate, forKey: Keys.lastMomentumUpdate)
-        } else {
-            userDefaults.removeObject(forKey: Keys.lastMomentumUpdate)
-        }
-    }
-
     private func focusSeconds(on day: Date) -> Int {
         let calendar = Calendar.current
         let targetDay = calendar.startOfDay(for: day)
         return sessionHistory
             .filter { calendar.isDate($0.date, inSameDayAs: targetDay) }
             .reduce(0) { $0 + $1.durationSeconds }
+    }
+
+    private func hasSession(on day: Date, calendar: Calendar = .current) -> Bool {
+        let targetDay = calendar.startOfDay(for: day)
+        return sessionHistory.contains { calendar.isDate($0.date, inSameDayAs: targetDay) }
     }
 
     private var focusSecondsThisWeek: Int {

@@ -29,6 +29,7 @@ final class StatsViewModel: ObservableObject {
     private let hydrationSettingsStore: HydrationSettingsStore
     private let seasonAchievementsStore: SeasonAchievementsStore
     private let playerTitleStore: PlayerTitleStore
+    private let statsStore: SessionStatsStore
     private let weekdayFormatter: DateFormatter
     private let userDefaults: UserDefaults
     private let calendar = Calendar.current
@@ -39,12 +40,14 @@ final class StatsViewModel: ObservableObject {
         hydrationSettingsStore: HydrationSettingsStore,
         seasonAchievementsStore: SeasonAchievementsStore,
         playerTitleStore: PlayerTitleStore,
+        statsStore: SessionStatsStore,
         userDefaults: UserDefaults = .standard
     ) {
         self.healthStore = healthStore
         self.hydrationSettingsStore = hydrationSettingsStore
         self.seasonAchievementsStore = seasonAchievementsStore
         self.playerTitleStore = playerTitleStore
+        self.statsStore = statsStore
         self.userDefaults = userDefaults
         weekdayFormatter = DateFormatter()
         weekdayFormatter.locale = .current
@@ -134,6 +137,18 @@ final class StatsViewModel: ObservableObject {
         }()
 
         return clampProgress(value)
+    }
+
+    var momentumLabel: String {
+        statsStore.momentumLabel()
+    }
+
+    var momentumDescription: String {
+        statsStore.momentumDescription()
+    }
+
+    var momentumMultiplier: Double {
+        statsStore.momentumMultiplier()
     }
 
     func label(for date: Date) -> String {

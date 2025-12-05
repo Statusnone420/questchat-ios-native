@@ -32,18 +32,11 @@ struct StatsView: View {
         return QuestChatStrings.StatsView.levelProgress(current: store.xpIntoCurrentLevel, total: store.xpTotalThisLevel)
     }
 
-    private var momentumStatusText: String {
-        let value = store.currentMomentum
-        switch value {
-        case let value where value >= 1.0:
-            return QuestChatStrings.StatsView.momentumReady
-        case let value where value >= 0.5:
-            return QuestChatStrings.StatsView.momentumAlmost
-        case let value where value > 0:
-            return QuestChatStrings.StatsView.momentumCharging
-        default:
-            return QuestChatStrings.StatsView.momentumStart
-        }
+    private var momentumLabel: String { viewModel.momentumLabel }
+    private var momentumDescription: String { viewModel.momentumDescription }
+    private var momentumProgress: Double {
+        let normalized = (viewModel.momentumMultiplier - 1.0) / 0.20
+        return min(max(normalized, 0), 1)
     }
 
     private var recentSessions: [SessionStatsStore.SessionRecord] {
@@ -120,9 +113,6 @@ struct StatsView: View {
                         healthBarViewModel: healthBarViewModel,
                         focusViewModel: focusViewModel
                     )
-                }
-                .onAppear {
-                    store.refreshMomentumIfNeeded()
                 }
 
                 if let unlocked = viewModel.unlockedAchievementToShow {
@@ -223,14 +213,18 @@ struct StatsView: View {
                         .font(.subheadline.bold())
                         .foregroundStyle(.yellow)
                         Spacer()
-                        Text(momentumStatusText)
+                        Text(momentumLabel)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
 
-                    ProgressView(value: store.currentMomentum, total: 1)
+                    ProgressView(value: momentumProgress, total: 1)
                         .tint(.yellow)
                         .progressViewStyle(.linear)
+
+                    Text(momentumDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding()
