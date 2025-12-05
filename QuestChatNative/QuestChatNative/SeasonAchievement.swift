@@ -2,13 +2,13 @@ import Foundation
 
 enum SeasonAchievementConditionType: String, Hashable {
     case hydrationDaysReached
-    case deepFocusSessions
-    case focusStreakDays
+    case focusSessionsLong
+    case dailyFocusMinutesStreak
     case hpAboveThresholdDays
-    case questsTabOpenedStreak
+    case questsTabOpenedDaysStreak
     case choreBlitzSessions
-    case moodAboveThresholdStreak
-    case balancedRealmsStreak
+    case moodAboveMehDaysStreak
+    case fourRealmsWeek
 }
 
 struct SeasonAchievement: Identifiable, Hashable {
@@ -55,7 +55,7 @@ extension SeasonAchievement {
             title: "Deep Focus Diver",
             subtitle: "Complete 25 focus sessions of at least 40 minutes in one season.",
             iconName: "brain.head.profile",
-            conditionType: .deepFocusSessions,
+            conditionType: .focusSessionsLong,
             threshold: 25,
             seasonId: currentSeasonId,
             xpReward: 800,
@@ -66,7 +66,7 @@ extension SeasonAchievement {
             title: "Distraction Dodger",
             subtitle: "Do 7 days in a row with at least 60 focus minutes.",
             iconName: "shield.fill",
-            conditionType: .focusStreakDays,
+            conditionType: .dailyFocusMinutesStreak,
             threshold: 7,
             seasonId: currentSeasonId,
             xpReward: 900,
@@ -88,7 +88,7 @@ extension SeasonAchievement {
             title: "Daily Questkeeper",
             subtitle: "Open the Quests tab 7 days in a row.",
             iconName: "list.bullet.rectangle",
-            conditionType: .questsTabOpenedStreak,
+            conditionType: .questsTabOpenedDaysStreak,
             threshold: 7,
             seasonId: currentSeasonId,
             xpReward: 400,
@@ -110,7 +110,7 @@ extension SeasonAchievement {
             title: "Ray of Sunshine",
             subtitle: "Keep your mood above ‘meh’ for 3 days in a row.",
             iconName: "sun.max.fill",
-            conditionType: .moodAboveThresholdStreak,
+            conditionType: .moodAboveMehDaysStreak,
             threshold: 3,
             seasonId: currentSeasonId,
             xpReward: 350,
@@ -121,8 +121,8 @@ extension SeasonAchievement {
             title: "Four Realms Explorer",
             subtitle: "Every day for a week, run at least one Work, Home, Health, and Chill session of 30+ minutes.",
             iconName: "globe.asia.australia.fill",
-            conditionType: .balancedRealmsStreak,
-            threshold: 7,
+            conditionType: .fourRealmsWeek,
+            threshold: 1,
             seasonId: currentSeasonId,
             xpReward: 1000,
             isSecret: false

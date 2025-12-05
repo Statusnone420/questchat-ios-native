@@ -3,6 +3,7 @@ import SwiftUI
 struct QuestsView: View {
     @ObservedObject var viewModel: QuestsViewModel
     @ObservedObject private var statsStore = DependencyContainer.shared.sessionStatsStore
+    private let seasonAchievementsStore = DependencyContainer.shared.seasonAchievementsStore
     @State private var bouncingQuestIDs: Set<String> = []
     @State private var showingXPBoostIDs: Set<String> = []
     @State private var showingRerollPicker = false
@@ -135,6 +136,12 @@ private extension QuestsView {
         }
         .onAppear {
             viewModel.handleQuestLogOpenedIfNeeded()
+            let today = Calendar.current.startOfDay(for: Date())
+            seasonAchievementsStore.applyProgress(
+                conditionType: .questsTabOpenedDaysStreak,
+                amount: 1,
+                date: today
+            )
         }
         .confirmationDialog(QuestChatStrings.QuestsView.rerollDialogTitle, isPresented: $showingRerollPicker, titleVisibility: .visible) {
             let incompleteQuests = viewModel.incompleteQuests

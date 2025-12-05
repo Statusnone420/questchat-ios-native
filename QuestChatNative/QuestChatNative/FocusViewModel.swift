@@ -1781,6 +1781,40 @@ final class FocusViewModel: ObservableObject {
                 statsStore.questEventHandler?(.choresTimerCompleted(durationMinutes: durationMinutes))
             }
         }
+        let today = Calendar.current.startOfDay(for: Date())
+        if selectedMode == .focus {
+            let durationMinutes = recordedDuration / 60
+            if durationMinutes >= 40 {
+                seasonAchievementsStore.applyProgress(
+                    conditionType: .focusSessionsLong,
+                    amount: 1,
+                    date: today
+                )
+            }
+
+            if durationMinutes >= 30, let category = activeSessionCategory {
+                seasonAchievementsStore.recordFourRealmsSessionCompletion(
+                    mode: category,
+                    date: today
+                )
+            }
+
+            if activeSessionCategory == .choresSprint, durationMinutes >= 10 {
+                seasonAchievementsStore.applyProgress(
+                    conditionType: .choreBlitzSessions,
+                    amount: 1,
+                    date: today
+                )
+            }
+        }
+        let totalFocusMinutesToday = statsStore.totalFocusSecondsToday / 60
+        if totalFocusMinutesToday >= 60 {
+            seasonAchievementsStore.applyProgress(
+                conditionType: .dailyFocusMinutesStreak,
+                amount: 1,
+                date: today
+            )
+        }
         let streakLevelUp = statsStore.registerActiveToday()
         let totalXPGained = statsStore.totalXP - xpBefore
         if streakLevelUp != nil {
@@ -2009,6 +2043,7 @@ final class FocusViewModel: ObservableObject {
                 self?.syncPlayerHP()
                 self?.evaluateHealthXPBonuses()
                 self?.checkHPCheckinQuestEvent()
+                self?.evaluateWellnessAchievements()
             }
             .store(in: &cancellables)
     }
@@ -2088,13 +2123,43 @@ final class FocusViewModel: ObservableObject {
             userDefaults.set(startOfDay, forKey: HealthTrackingStorageKeys.hydrationGoalQuestDate)
             statsStore.questEventHandler?(.hydrationGoalReached)
             statsStore.questEventHandler?(.hydrationGoalDayCompleted)
-            seasonAchievementsStore.applyProgress(for: .hydrationDaysReached)
+            seasonAchievementsStore.applyProgress(
+                conditionType: .hydrationDaysReached,
+                amount: 1,
+                date: startOfDay
+            )
         }
 
         if healthComboIsComplete && !healthComboXPGrantedToday {
             statsStore.grantXP(10, reason: .healthCombo)
             healthComboXPGrantedToday = true
             userDefaults.set(Calendar.current.startOfDay(for: today), forKey: HealthTrackingStorageKeys.healthComboAwardDate)
+        }
+    }
+
+    private func evaluateWellnessAchievements(today: Date = Date()) {
+        let calendar = Calendar.current
+        let day = calendar.startOfDay(for: today)
+
+        guard let todaySummary = healthStatsStore.days.first(where: { calendar.isDate($0.date, inSameDayAs: day) }) else {
+            return
+        }
+
+        let averageHPFraction = todaySummary.averageHP / Double(healthStatsStore.maxHP)
+        if averageHPFraction >= 0.70 {
+            seasonAchievementsStore.applyProgress(
+                conditionType: .hpAboveThresholdDays,
+                amount: 1,
+                date: day
+            )
+        }
+
+        if todaySummary.lastMood == .good {
+            seasonAchievementsStore.applyProgress(
+                conditionType: .moodAboveMehDaysStreak,
+                amount: 1,
+                date: day
+            )
         }
     }
 
