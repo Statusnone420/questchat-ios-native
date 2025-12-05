@@ -540,7 +540,7 @@ private extension QuestsViewModel {
 
         return selectedDefinitions.map { definition in
             assert(definition.completionMode == .automatic, "Generator should never surface manualDebug quest \(definition.id)")
-            Quest(
+            return Quest(
                 definition: definition,
                 isCompleted: completedIDs.contains(definition.id),
                 isCoreToday: Self.requiredQuestIDs.contains(definition.id)
@@ -1126,4 +1126,3 @@ private extension QuestsViewModel {
     static let weeklyFocusMinutesTarget = 120
     static let weeklyFocusSessionTarget = 15
 }
-
