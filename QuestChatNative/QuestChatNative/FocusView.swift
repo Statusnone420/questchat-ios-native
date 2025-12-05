@@ -126,9 +126,6 @@ struct FocusView: View {
         .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.selectedCategory)
         .onAppear {
-            statsStore.refreshMomentumIfNeeded()
-        }
-        .onAppear {
             viewModel.handleScenePhaseChange(scenePhase)
         }
         .onChange(of: scenePhase) { phase in

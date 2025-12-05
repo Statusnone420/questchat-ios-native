@@ -42,7 +42,8 @@ final class DependencyContainer {
             healthStore: healthStatsStore,
             hydrationSettingsStore: hydrationSettingsStore,
             seasonAchievementsStore: seasonAchievementsStore,
-            playerTitleStore: playerTitleStore
+            playerTitleStore: playerTitleStore,
+            statsStore: sessionStatsStore
         )
         moreViewModel = MoreViewModel(hydrationSettingsStore: hydrationSettingsStore)
 
