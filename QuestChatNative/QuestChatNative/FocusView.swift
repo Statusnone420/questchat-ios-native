@@ -86,11 +86,12 @@ struct FocusView: View {
                         }
                         
                         quickTimersList
-                        
+
                         reminderCard
                     }
-                    .padding(.vertical, 24)
-                    .padding(.horizontal, 16)
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .background(Color.black.ignoresSafeArea())
                 .navigationTitle(QuestChatStrings.FocusView.navigationTitle)
@@ -366,8 +367,15 @@ struct FocusView: View {
 
     private func potionButton(title: String, systemImage: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.subheadline.weight(.semibold))
+            Label {
+                Text(title)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .allowsTightening(true)
+            } icon: {
+                Image(systemName: systemImage)
+            }
+            .font(.subheadline.weight(.semibold))
         }
         .buttonStyle(HealthPotionButtonStyle(color: color))
     }
@@ -377,7 +385,7 @@ struct FocusView: View {
             Text("Potions")
                 .font(.headline.weight(.semibold))
 
-            HStack(spacing: 10) {
+            HStack(spacing: 12) {
                 potionButton(title: "Health", systemImage: "cross.case.fill", color: .green) {
                     viewModel.logComfortBeverageTapped()
                 }
@@ -390,6 +398,7 @@ struct FocusView: View {
                     viewModel.logStaminaPotionTapped()
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.45))
@@ -1008,7 +1017,7 @@ private struct DailySetupSheet: View {
     }
 }
 
-#Preview {
+#Preview("Focus – iPhone 15 Pro") {
     let container = DependencyContainer.shared
     let focusVM = container.focusViewModel
     let healthBarVM = HealthBarViewModel()
@@ -1018,4 +1027,18 @@ private struct DailySetupSheet: View {
         selectedTab: .constant(.focus)
     )
     .environmentObject(QuestsViewModel(statsStore: container.sessionStatsStore))
+    .previewDevice(.init(rawValue: "iPhone 15 Pro"))
+}
+
+#Preview("Focus – iPhone 13 mini") {
+    let container = DependencyContainer.shared
+    let focusVM = container.focusViewModel
+    let healthBarVM = HealthBarViewModel()
+    FocusView(
+        viewModel: focusVM,
+        healthBarViewModel: healthBarVM,
+        selectedTab: .constant(.focus)
+    )
+    .environmentObject(QuestsViewModel(statsStore: container.sessionStatsStore))
+    .previewDevice(.init(rawValue: "iPhone 13 mini"))
 }

@@ -101,12 +101,13 @@ struct HealthPotionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(.subheadline, design: .rounded).weight(.semibold))
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
             .background(color)
             .clipShape(Capsule())
             .shadow(color: color.opacity(0.35), radius: 8, x: 0, y: 3)
             .scaleEffect(configuration.isPressed ? 0.94 : 1)
+            .fixedSize(horizontal: false, vertical: true)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
