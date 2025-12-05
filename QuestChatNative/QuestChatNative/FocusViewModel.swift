@@ -1627,7 +1627,17 @@ final class FocusViewModel: ObservableObject {
         healthBarViewModel.logHydration()
 
         updateWaterIntakeTotals()
-        statsStore.questEventHandler?(.hydrationIntakeLogged(totalOuncesToday: totalWaterOuncesToday))
+        let mlPerOunce = 29.57
+        let amountMl = Int((Double(hydrationSettingsStore.ouncesPerWaterTap) * mlPerOunce).rounded())
+        let totalMl = Int((Double(totalWaterOuncesToday) * mlPerOunce).rounded())
+        let percentOfGoal = waterGoalToday > 0 ? Double(totalWaterOuncesToday) / Double(waterGoalToday) : 0
+        statsStore.questEventHandler?(
+            .hydrationLogged(
+                amountMl: amountMl,
+                totalMlToday: totalMl,
+                percentOfGoal: percentOfGoal
+            )
+        )
         healthStatsStore.update(from: healthBarViewModel.inputs)
         syncPlayerHP()
         evaluateHealthXPBonuses()
@@ -2533,6 +2543,13 @@ final class FocusViewModel: ObservableObject {
         lastReminderFiredAt[type] = date
         userDefaults.set(date, forKey: Self.reminderLastFiredKey(for: type))
         reminderEventsStore.log(event: event)
+
+        switch type {
+        case .hydration:
+            statsStore.questEventHandler?(.hydrationReminderFired)
+        case .posture:
+            statsStore.questEventHandler?(.postureReminderFired)
+        }
 
         presentInAppReminder(event: event, message: message ?? reminderBody(for: type))
         scheduleLocalNotification(for: type, message: message)

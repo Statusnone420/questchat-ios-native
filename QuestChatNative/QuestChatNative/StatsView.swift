@@ -140,6 +140,9 @@ struct StatsView: View {
                         healthBarViewModel: healthBarViewModel,
                         focusViewModel: focusViewModel
                     )
+                    .onAppear {
+                        questsViewModel.handleQuestEvent(.playerCardViewed)
+                    }
                 }
 
                 if let unlocked = viewModel.unlockedAchievementToShow {

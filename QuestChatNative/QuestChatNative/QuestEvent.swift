@@ -14,9 +14,12 @@ enum QuestEvent {
     case focusSessionsUpdated(totalSessionsToday: Int)
     case choresTimerCompleted(durationMinutes: Int)
     case hpCheckinCompleted
-    case hydrationIntakeLogged(totalOuncesToday: Int)
+    case hydrationLogged(amountMl: Int, totalMlToday: Int, percentOfGoal: Double)
     case hydrationGoalReached
     case hydrationGoalDayCompleted
     case dailySetupCompleted
     case statsViewed(scope: StatsScope)
+    case hydrationReminderFired
+    case postureReminderFired
+    case playerCardViewed
 }

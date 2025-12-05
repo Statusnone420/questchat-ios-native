@@ -25,6 +25,11 @@ enum QuestDifficulty {
     case big
 }
 
+enum QuestCompletionMode {
+    case automatic
+    case manualDebug
+}
+
 struct QuestDefinition {
     let id: String
     let type: QuestType
@@ -35,6 +40,31 @@ struct QuestDefinition {
     let subtitle: String
     let isOncePerDay: Bool
     let tier: Quest.Tier
+    let completionMode: QuestCompletionMode
+
+    init(
+        id: String,
+        type: QuestType,
+        category: QuestCategory,
+        difficulty: QuestDifficulty,
+        xpReward: Int,
+        title: String,
+        subtitle: String,
+        isOncePerDay: Bool,
+        tier: Quest.Tier,
+        completionMode: QuestCompletionMode = .automatic
+    ) {
+        self.id = id
+        self.type = type
+        self.category = category
+        self.difficulty = difficulty
+        self.xpReward = xpReward
+        self.title = title
+        self.subtitle = subtitle
+        self.isOncePerDay = isOncePerDay
+        self.tier = tier
+        self.completionMode = completionMode
+    }
 }
 
 
@@ -302,7 +332,8 @@ enum QuestCatalog {
             title: "Adjust Your Goals",
             subtitle: "Change ≥ 1 daily goal slider.",
             isOncePerDay: true,
-            tier: .habit
+            tier: .habit,
+            completionMode: .manualDebug
         ),
         QuestDefinition(
             id: "DAILY_META_REVIEW_YESTERDAY",
@@ -583,7 +614,8 @@ enum QuestCatalog {
             title: "Digital dust buster",
             subtitle: "Clear a digital cobweb on 3 days this week.",
             isOncePerDay: false,
-            tier: .habit
+            tier: .habit,
+            completionMode: .manualDebug
         )
     ]
 
