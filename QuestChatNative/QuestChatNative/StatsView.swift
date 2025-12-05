@@ -33,17 +33,7 @@ struct StatsView: View {
     }
 
     private var momentumStatusText: String {
-        let value = store.currentMomentum
-        switch value {
-        case let value where value >= 1.0:
-            return QuestChatStrings.StatsView.momentumReady
-        case let value where value >= 0.5:
-            return QuestChatStrings.StatsView.momentumAlmost
-        case let value where value > 0:
-            return QuestChatStrings.StatsView.momentumCharging
-        default:
-            return QuestChatStrings.StatsView.momentumStart
-        }
+        store.momentumStatusText(for: store.currentMomentum)
     }
 
     private var recentSessions: [SessionStatsStore.SessionRecord] {
