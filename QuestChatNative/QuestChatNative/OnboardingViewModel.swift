@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 final class OnboardingViewModel: ObservableObject {
     enum OnboardingStep {
@@ -52,10 +53,10 @@ final class OnboardingViewModel: ObservableObject {
         }
 
         let gut = healthBarViewModel.inputs.gutStatus
-        selectedGutState = gut == .none ? .neutral : gut
+        selectedGutState = gut == .none ? .none : gut
 
         let mood = healthBarViewModel.inputs.moodStatus
-        selectedMoodState = mood == .none ? .neutral : mood
+        selectedMoodState = mood == .none ? .none : mood
 
         selectedSleepValue = focusViewModel.sleepQuality
         hasCompletedOnboarding = userDefaults.bool(forKey: Keys.hasCompletedOnboarding)

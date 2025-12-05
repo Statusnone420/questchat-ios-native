@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 /// Coordinates top-level view construction using the dependency container.
 final class AppCoordinator: ObservableObject {
@@ -12,17 +13,12 @@ final class AppCoordinator: ObservableObject {
         hasCompletedOnboarding = userDefaults.bool(forKey: OnboardingViewModel.Keys.hasCompletedOnboarding)
     }
 
+    @ViewBuilder
     func makeRootView() -> some View {
-        Group {
-            if hasCompletedOnboarding {
-                ContentView()
-            } else {
-                let viewModel = onboardingViewModel ?? container.makeOnboardingViewModel(onCompletion: { [weak self] in
-                    self?.markOnboardingComplete()
-                })
-                onboardingViewModel = viewModel
-                OnboardingView(viewModel: viewModel)
-            }
+        if self.hasCompletedOnboarding {
+            ContentView()
+        } else {
+            OnboardingView(viewModel: self.resolveOnboardingViewModel())
         }
     }
 
@@ -34,7 +30,16 @@ final class AppCoordinator: ObservableObject {
         )
     }
 
+    private func resolveOnboardingViewModel() -> OnboardingViewModel {
+        let viewModel = onboardingViewModel ?? container.makeOnboardingViewModel(onCompletion: { [weak self] in
+            self?.markOnboardingComplete()
+        })
+        onboardingViewModel = viewModel
+        return viewModel
+    }
+
     private func markOnboardingComplete() {
         hasCompletedOnboarding = true
     }
 }
+
