@@ -74,7 +74,7 @@ struct FocusView: View {
         ZStack {
             NavigationStack {
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 20) {
+                    LazyVStack(alignment: .leading, spacing: 20) {
                         healthHeaderCard
                         vitalsCard
                         potionsCard
@@ -93,6 +93,7 @@ struct FocusView: View {
                     .padding(.vertical, 16)
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
+                .scrollBounceBehavior(.basedOnSize)
                 .background(Color.black.ignoresSafeArea())
                 .navigationTitle(QuestChatStrings.FocusView.navigationTitle)
                 .navigationBarTitleDisplayMode(.inline)
