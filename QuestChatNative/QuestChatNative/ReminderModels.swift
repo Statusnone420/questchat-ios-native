@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 enum ReminderType: String, Codable, CaseIterable {
     case hydration
