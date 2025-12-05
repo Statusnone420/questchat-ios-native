@@ -44,6 +44,14 @@ final class QuestEngine: ObservableObject {
         self.generateDummyQuests(for: now)
     }
 
+    func updateDailyQuests(_ instances: [QuestInstance]) {
+        dailyQuests = instances.map { normalizeStatus(for: $0) }
+    }
+
+    func updateWeeklyQuests(_ instances: [QuestInstance]) {
+        weeklyQuests = instances.map { normalizeStatus(for: $0) }
+    }
+
     private func generateDummyQuests(for date: Date) {
         let dailyInstances = allDefinitions
             .filter { $0.type == .daily }
@@ -71,5 +79,19 @@ final class QuestEngine: ObservableObject {
 
         self.dailyQuests = dailyInstances
         self.weeklyQuests = weeklyInstances
+    }
+
+    private func normalizeStatus(for instance: QuestInstance) -> QuestInstance {
+        var updated = instance
+        if updated.progress >= updated.target {
+            updated.status = .completed
+        } else if updated.progress > 0 {
+            updated.status = .inProgress
+        } else if updated.status == .completed {
+            updated.status = .completed
+        } else {
+            updated.status = .pending
+        }
+        return updated
     }
 }

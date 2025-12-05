@@ -381,6 +381,14 @@ private struct QuestCardView: View {
                             Text(quest.detail)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
+
+                            if shouldShowProgressBar {
+                                QuestProgressView(
+                                    fraction: quest.progressFraction,
+                                    label: "\(quest.progress) / \(quest.target)"
+                                )
+                                .padding(.top, 4)
+                            }
                         }
                     }
                 }
@@ -456,6 +464,30 @@ private struct QuestCardView: View {
             .padding(.vertical, 4)
             .background(Capsule().fill(Color.secondary.opacity(0.25)))
             .foregroundStyle(.secondary)
+    }
+
+    private var shouldShowProgressBar: Bool {
+        if quest.type == .weekly {
+            return quest.target > 1
+        }
+
+        return quest.hasProgress
+    }
+}
+
+private struct QuestProgressView: View {
+    let fraction: Double
+    let label: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ProgressView(value: fraction)
+                .progressViewStyle(.linear)
+                .tint(.mint)
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

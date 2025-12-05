@@ -23,11 +23,15 @@ struct Quest: Identifiable, Equatable {
     let definition: QuestDefinition
     var isCompleted: Bool
     var isCoreToday: Bool = false
+    var progress: Int
+    var target: Int
 
-    init(definition: QuestDefinition, isCompleted: Bool = false, isCoreToday: Bool = false) {
+    init(definition: QuestDefinition, isCompleted: Bool = false, isCoreToday: Bool = false, progress: Int = 0, target: Int = 1) {
         self.definition = definition
         self.isCompleted = isCompleted
         self.isCoreToday = isCoreToday
+        self.progress = progress
+        self.target = target
     }
 
     var id: String { definition.id }
@@ -39,6 +43,22 @@ struct Quest: Identifiable, Equatable {
     var difficulty: QuestDifficulty { definition.difficulty }
     var type: QuestType { definition.type }
     var isOncePerDay: Bool { definition.isOncePerDay }
+
+    var progressFraction: Double {
+        guard target > 0 else { return 0 }
+        return min(Double(progress) / Double(target), 1.0)
+    }
+
+    var hasProgress: Bool {
+        target > 1 && status != .completed
+    }
+
+    var status: QuestStatus {
+        if isCompleted || progress >= target {
+            return .completed
+        }
+        return progress > 0 ? .inProgress : .pending
+    }
 }
 
 extension Quest {
@@ -54,6 +74,7 @@ final class QuestsViewModel: ObservableObject {
     @Published var hasQuestChestReady: Bool = false
 
     private let statsStore: SessionStatsStore
+    private let questEngine: QuestEngine
     private let userDefaults: UserDefaults
     private let calendar: Calendar
     private let dayReference: Date
@@ -200,10 +221,12 @@ final class QuestsViewModel: ObservableObject {
 
     init(
         statsStore: SessionStatsStore = DependencyContainer.shared.sessionStatsStore,
+        questEngine: QuestEngine = DependencyContainer.shared.questEngine,
         userDefaults: UserDefaults = .standard,
         calendar: Calendar = .current
     ) {
         self.statsStore = statsStore
+        self.questEngine = questEngine
         self.userDefaults = userDefaults
         self.calendar = calendar
         dayReference = calendar.startOfDay(for: Date())
@@ -231,10 +254,13 @@ final class QuestsViewModel: ObservableObject {
 
         statsStore.questEventHandler = { [weak self] event in
             self?.handleQuestEvent(event)
+            self?.syncQuestProgress()
         }
 
         statsStore.emitQuestProgressSnapshot()
         statsStore.updateDailyQuestsCompleted(completedQuestsCount)
+
+        syncQuestProgress()
     }
 
     var completedQuestsCount: Int {
@@ -305,6 +331,8 @@ final class QuestsViewModel: ObservableObject {
         persistCompletions()
         checkQuestChestRewardIfNeeded()
         statsStore.updateDailyQuestsCompleted(completedQuestsCount)
+
+        syncQuestProgress()
     }
 
     func handleQuestEvent(_ event: QuestEvent) {
@@ -363,12 +391,34 @@ final class QuestsViewModel: ObservableObject {
                 completeQuestIfNeeded(id: "DAILY_META_REVIEW_YESTERDAY")
             }
         }
+
+        syncQuestProgress()
     }
 
     func handleQuestLogOpenedIfNeeded() {
         guard !userDefaults.bool(forKey: questLogOpenedKey) else { return }
         userDefaults.set(true, forKey: questLogOpenedKey)
         handleQuestEvent(.questsTabOpened)
+    }
+
+    func syncQuestProgress() {
+        dailyQuests = dailyQuests.map { quest in
+            var updated = quest
+            updated.target = 1
+            updated.progress = quest.isCompleted ? updated.target : 0
+            return updated
+        }
+
+        weeklyQuests = weeklyQuests.map { quest in
+            let progressInfo = weeklyProgress(for: quest)
+            var updated = quest
+            updated.target = progressInfo.target
+            updated.progress = min(progressInfo.progress, progressInfo.target)
+            return updated
+        }
+
+        questEngine.updateDailyQuests(dailyQuests.map { questInstance(from: $0) })
+        questEngine.updateWeeklyQuests(weeklyQuests.map { questInstance(from: $0) })
     }
 
     func isEventDrivenQuest(_ quest: Quest) -> Bool {
@@ -391,6 +441,8 @@ final class QuestsViewModel: ObservableObject {
         }
 
         persistWeeklyCompletions()
+
+        syncQuestProgress()
     }
 
     func reroll(quest: Quest) {
@@ -440,6 +492,8 @@ final class QuestsViewModel: ObservableObject {
         if let focusArea = statsStore.todayPlan?.focusArea, !statsStore.shouldShowDailySetup {
             markCoreQuests(for: focusArea)
         }
+
+        syncQuestProgress()
     }
 
     func claimQuestChest() {
@@ -624,6 +678,8 @@ private extension QuestsViewModel {
         if weeklyWorkMinutes >= 200 {
             completeWeeklyQuestIfNeeded(id: "WEEK_DEEP_WORK")
         }
+
+        syncQuestProgress()
     }
 
     func registerChoresProgress(durationMinutes: Int) {
@@ -632,6 +688,8 @@ private extension QuestsViewModel {
         if weeklyChoresMinutes >= 90 {
             completeWeeklyQuestIfNeeded(id: "WEEK_CLUTTER_CRUSHER")
         }
+
+        syncQuestProgress()
     }
 
     func registerSelfCareDayIfNeeded(date: Date, durationMinutes: Int) {
@@ -642,6 +700,8 @@ private extension QuestsViewModel {
         if weeklySelfCareDays.count >= 4 {
             completeWeeklyQuestIfNeeded(id: "WEEK_SELFCARE_CHAMPION")
         }
+
+        syncQuestProgress()
     }
 
     func registerEveningResetDayIfNeeded(date: Date) {
@@ -652,6 +712,8 @@ private extension QuestsViewModel {
         if weeklyEveningResetDays.count >= 3 {
             completeWeeklyQuestIfNeeded(id: "WEEK_EVENING_RESET")
         }
+
+        syncQuestProgress()
     }
 
     func registerDailySetupDay() {
@@ -663,6 +725,8 @@ private extension QuestsViewModel {
         if weeklyDailySetupDays.count >= 5 {
             completeWeeklyQuestIfNeeded(id: "WEEK_DAILY_SETUP_STREAK")
         }
+
+        syncQuestProgress()
     }
 
     func registerWeekendTimerIfNeeded(durationMinutes: Int, date: Date) {
@@ -672,6 +736,8 @@ private extension QuestsViewModel {
             persistWeekendTimerDays()
         }
         updateWeekendWarriorProgress()
+
+        syncQuestProgress()
     }
 
     func trackHardQuestCompletion(for quest: Quest) {
@@ -700,6 +766,8 @@ private extension QuestsViewModel {
         persistCompletions()
         checkQuestChestRewardIfNeeded()
         statsStore.updateDailyQuestsCompleted(completedQuestsCount)
+
+        syncQuestProgress()
     }
 
     func persistCompletions() {
@@ -749,6 +817,8 @@ private extension QuestsViewModel {
         persistHydrationGoalDays()
         updateWeeklyHydrationQuestCompletion()
         updateBalancedBarProgress()
+
+        syncQuestProgress()
     }
 
     func updateWeeklyHydrationQuestCompletion() {
@@ -792,16 +862,22 @@ private extension QuestsViewModel {
         persistHPCheckinDays()
         updateWeeklyHPQuestCompletion()
         updateBalancedBarProgress()
+
+        syncQuestProgress()
     }
 
     func completeWeeklyFocusMinuteQuestsIfNeeded() {
         guard statsStore.totalFocusMinutesThisWeek >= Self.weeklyFocusMinutesTarget else { return }
         completeWeeklyQuestIfNeeded(id: "weekly-focus-marathon")
+
+        syncQuestProgress()
     }
 
     func completeWeeklyFocusSessionQuestsIfNeeded() {
         guard statsStore.totalFocusSessionsThisWeek >= Self.weeklyFocusSessionTarget else { return }
         completeWeeklyQuestIfNeeded(id: "weekly-session-grinder")
+
+        syncQuestProgress()
     }
 
     func dailyQuestCompletionCountsThisWeek() -> [Date: Int] {
@@ -840,6 +916,8 @@ private extension QuestsViewModel {
         }
 
         updateWeekendWarriorProgress()
+
+        syncQuestProgress()
     }
 
     func updateWeekendWarriorProgress() {
@@ -850,6 +928,8 @@ private extension QuestsViewModel {
                 return
             }
         }
+
+        syncQuestProgress()
     }
 
     func completeWeeklyQuestIfNeeded(id: String) {
@@ -859,6 +939,8 @@ private extension QuestsViewModel {
         weeklyQuests[index].isCompleted = true
         statsStore.registerQuestCompleted(id: weeklyQuests[index].id, xp: weeklyQuests[index].xpReward)
         persistWeeklyCompletions()
+
+        syncQuestProgress()
     }
 
     func loadHydrationGoalDays() {
@@ -908,6 +990,84 @@ private extension QuestsViewModel {
     func loadWeekendTimerDays() {
         let stored = userDefaults.array(forKey: weekendTimerDaysKey) as? [TimeInterval] ?? []
         weekendTimerDays = Set(stored.map { Date(timeIntervalSince1970: $0) })
+    }
+
+    func weeklyProgress(for quest: Quest) -> (progress: Int, target: Int) {
+        let current: (progress: Int, target: Int) = {
+            switch quest.id {
+            case "weekly-hydration-hero":
+                return (hydrationGoalDaysThisWeek.count, Self.weeklyHydrationGoalTarget)
+            case "WEEK_HYDRATION_HERO_PLUS":
+                return (hydrationGoalDaysThisWeek.count, Self.weeklyHydrationGoalTarget)
+            case "WEEK_HYDRATION_DEMON":
+                return (hydrationGoalDaysThisWeek.count, 6)
+            case "weekly-health-check":
+                return (hpCheckinDaysThisWeek.count, Self.weeklyHPCheckinTarget)
+            case "WEEK_MOOD_TRACKER":
+                return (hpCheckinDaysThisWeek.count, 5)
+            case "WEEK_SLEEP_SENTINEL":
+                return (hpCheckinDaysThisWeek.count, 5)
+            case "WEEK_BALANCED_BAR":
+                return (balancedDaysCount, 3)
+            case "weekly-focus-marathon":
+                return (statsStore.totalFocusMinutesThisWeek, Self.weeklyFocusMinutesTarget)
+            case "weekly-session-grinder":
+                return (statsStore.totalFocusSessionsThisWeek, Self.weeklyFocusSessionTarget)
+            case "weekly-daily-quest-slayer", "WEEK_QUEST_FINISHER":
+                return (dailyQuestCompletionsThisWeek(), Self.weeklyDailyQuestCompletionTarget)
+            case "WEEK_MINI_BOSS":
+                return (weeklyHardQuestCount, 3)
+            case "WEEK_THREE_GOOD_DAYS":
+                return (threeGoodDaysCount, 3)
+            case "WEEK_WEEKEND_WARRIOR":
+                return (weekendWarriorAchieved ? 1 : 0, 1)
+            case "WEEK_WORK_WARRIOR":
+                return (weeklyWorkTimerCount, 5)
+            case "WEEK_DEEP_WORK":
+                return (weeklyWorkMinutes, 200)
+            case "WEEK_CLUTTER_CRUSHER":
+                return (weeklyChoresMinutes, 90)
+            case "WEEK_SELFCARE_CHAMPION":
+                return (weeklySelfCareDays.count, 4)
+            case "WEEK_EVENING_RESET":
+                return (weeklyEveningResetDays.count, 3)
+            case "WEEK_DAILY_SETUP_STREAK":
+                return (weeklyDailySetupDays.count, 5)
+            default:
+                return (quest.isCompleted ? 1 : 0, 1)
+            }
+        }()
+
+        let normalizedProgress = quest.isCompleted ? max(current.progress, current.target) : current.progress
+        return (normalizedProgress, current.target)
+    }
+
+    var balancedDaysCount: Int {
+        hydrationGoalDaysThisWeek.intersection(hpCheckinDaysThisWeek).count
+    }
+
+    var threeGoodDaysCount: Int {
+        dailyQuestCompletionCountsThisWeek().values.filter { $0 >= 4 }.count
+    }
+
+    var weekendWarriorAchieved: Bool {
+        let completionCounts = dailyQuestCompletionCountsThisWeek()
+        for (date, count) in completionCounts where calendar.isDateInWeekend(date) {
+            if count >= 2 && weekendTimerDays.contains(date) {
+                return true
+            }
+        }
+        return false
+    }
+
+    func questInstance(from quest: Quest) -> QuestInstance {
+        QuestInstance(
+            definitionId: quest.id,
+            createdAt: dayReference,
+            status: quest.status,
+            progress: quest.progress,
+            target: quest.target
+        )
     }
 
     func persistHydrationGoalDays() {
