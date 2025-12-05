@@ -1278,6 +1278,7 @@ final class FocusViewModel: ObservableObject {
     let reminderSettingsStore: ReminderSettingsStore
     let reminderEventsStore: ReminderEventsStore
     let seasonAchievementsStore: SeasonAchievementsStore
+    let sleepHistoryStore: SleepHistoryStore
     private var cancellables = Set<AnyCancellable>()
     private var healthBarViewModel: HealthBarViewModel?
 
@@ -1321,6 +1322,7 @@ final class FocusViewModel: ObservableObject {
         reminderSettingsStore: ReminderSettingsStore = ReminderSettingsStore(),
         reminderEventsStore: ReminderEventsStore = ReminderEventsStore(),
         seasonAchievementsStore: SeasonAchievementsStore = DependencyContainer.shared.seasonAchievementsStore,
+        sleepHistoryStore: SleepHistoryStore = DependencyContainer.shared.sleepHistoryStore,
         initialMode: FocusTimerMode = .focus
     ) {
         // Assign non-dependent stored properties first
@@ -1333,6 +1335,7 @@ final class FocusViewModel: ObservableObject {
         self.reminderSettingsStore = reminderSettingsStore
         self.reminderEventsStore = reminderEventsStore
         self.seasonAchievementsStore = seasonAchievementsStore
+        self.sleepHistoryStore = sleepHistoryStore
         self.currentHP = healthStatsStore.currentHP
         hpCheckinQuestSentDate = userDefaults.object(forKey: HealthTrackingStorageKeys.hpCheckinQuestDate) as? Date
         // Defer syncing player HP until after initialization completes to avoid using self too early.
@@ -2356,6 +2359,7 @@ final class FocusViewModel: ObservableObject {
         userDefaults.set(today, forKey: HealthTrackingStorageKeys.sleepQualityDate)
         userDefaults.set(today, forKey: HealthTrackingStorageKeys.sleepQualityLogged)
         hasLoggedSleepQualityToday = true
+        sleepHistoryStore.record(quality: sleepQuality, date: today)
         checkHPCheckinQuestEvent()
     }
 

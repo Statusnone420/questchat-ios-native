@@ -9,9 +9,11 @@
 /* Begin PBXBuildFile section */
 		1B7E1189235249C2ACB10CF1 /* SeasonAchievementsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A1BDF6F83A546F0B90DA4A3 /* SeasonAchievementsStore.swift */; };
 		338792A9E2C5427181113F47 /* SeasonAchievement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76CAEBCF8CD8432DA6BB0E0E /* SeasonAchievement.swift */; };
+		399C54D99232406C91BC2260 /* QuestCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */; };
 		62AF60BC4FB94EEE88C1F25F /* SeasonAchievementBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */; };
 		D80A60BD2EE1397D003C5262 /* QuestEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80A60BC2EE1397D003C5262 /* QuestEngine.swift */; };
 		D80A60E12EE13C6D003C5262 /* PlayerProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */; };
+		D83AE0022EE38504000217E6 /* SleepHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83AE0012EE38504000217E6 /* SleepHistoryStore.swift */; };
 		D87C18822EDFA74B00438C3A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D87C182B2EDF9B6F00438C3A /* WidgetKit.framework */; };
 		D87C18832EDFA74B00438C3A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D87C182D2EDF9B6F00438C3A /* SwiftUI.framework */; };
 		D87C18942EDFA74C00438C3A /* QuestChatLiveActivityExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D87C18812EDFA74B00438C3A /* QuestChatLiveActivityExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -40,9 +42,8 @@
 		D8A200152EDE07B400A6A001 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0152EDE07B400A6A015 /* ContentView.swift */; };
 		D8A200162EDE07B400A6A001 /* TodaySummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0162EDE07B400A6A016 /* TodaySummaryView.swift */; };
 		D8A200172EDE07B400A6A001 /* AboutHealthBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0172EDE07B400A6A017 /* AboutHealthBarView.swift */; };
-                D8A200182EDE07B400A6A001 /* HealthBarIRLStatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0182EDE07B400A6A018 /* HealthBarIRLStatsStore.swift */; };
-                D8A200192EDE07B400A6A001 /* HydrationSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0192EDE07B400A6A019 /* HydrationSettingsStore.swift */; };
-                D8F1B0012F0A2F1B00D6C8E9 /* ReminderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */; };
+		D8A200182EDE07B400A6A001 /* HealthBarIRLStatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0182EDE07B400A6A018 /* HealthBarIRLStatsStore.swift */; };
+		D8A200192EDE07B400A6A001 /* HydrationSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0192EDE07B400A6A019 /* HydrationSettingsStore.swift */; };
 		D8A2001A2EDE07B400A6A001 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01A2EDE07B400A6A01A /* StatsView.swift */; };
 		D8A2001B2EDE07B400A6A001 /* DurationWheelPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */; };
 		D8A2001C2EDE07B400A6A001 /* FocusViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A01C2EDE07B400A6A01C /* FocusViewModel.swift */; };
@@ -54,10 +55,10 @@
 		D8A200222EDE07B400A6A001 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0222EDE07B400A6A022 /* OnboardingView.swift */; };
 		D8A200232EDE07B400A6A001 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0232EDE07B400A6A023 /* OnboardingViewModel.swift */; };
 		D8ABE41B2EE23E2400813C61 /* AchievementUnlockOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8ABE41A2EE23E2400813C61 /* AchievementUnlockOverlayView.swift */; };
-                D8ABE41D2EE2411600813C61 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8ABE41C2EE2410C00813C61 /* ConfettiView.swift */; };
-                D8E9D6532EE1017A00EF0582 /* PlayerStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E9D6522EE1017A00EF0582 /* PlayerStateStore.swift */; };
-                D8EDD5292EE1F14B00922DCF /* QuestEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */; };
-                399C54D99232406C91BC2260 /* QuestCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */; };
+		D8ABE41D2EE2411600813C61 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8ABE41C2EE2410C00813C61 /* ConfettiView.swift */; };
+		D8E9D6532EE1017A00EF0582 /* PlayerStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E9D6522EE1017A00EF0582 /* PlayerStateStore.swift */; };
+		D8EDD5292EE1F14B00922DCF /* QuestEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */; };
+		D8F1B0012F0A2F1B00D6C8E9 /* ReminderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -86,11 +87,12 @@
 
 /* Begin PBXFileReference section */
 		2A1BDF6F83A546F0B90DA4A3 /* SeasonAchievementsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievementsStore.swift; sourceTree = "<group>"; };
-                3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievementBadgeView.swift; sourceTree = "<group>"; };
-                76CAEBCF8CD8432DA6BB0E0E /* SeasonAchievement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievement.swift; sourceTree = "<group>"; };
-                D80A60BC2EE1397D003C5262 /* QuestEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestEngine.swift; sourceTree = "<group>"; };
-                7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestCatalog.swift; sourceTree = "<group>"; };
-                D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProgress.swift; sourceTree = "<group>"; };
+		3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievementBadgeView.swift; sourceTree = "<group>"; };
+		76CAEBCF8CD8432DA6BB0E0E /* SeasonAchievement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievement.swift; sourceTree = "<group>"; };
+		7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestCatalog.swift; sourceTree = "<group>"; };
+		D80A60BC2EE1397D003C5262 /* QuestEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestEngine.swift; sourceTree = "<group>"; };
+		D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProgress.swift; sourceTree = "<group>"; };
+		D83AE0012EE38504000217E6 /* SleepHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHistoryStore.swift; sourceTree = "<group>"; };
 		D87C182B2EDF9B6F00438C3A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		D87C182D2EDF9B6F00438C3A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		D87C18812EDFA74B00438C3A /* QuestChatLiveActivityExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QuestChatLiveActivityExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -120,11 +122,10 @@
 		D8A1A0152EDE07B400A6A015 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D8A1A0162EDE07B400A6A016 /* TodaySummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodaySummaryView.swift; sourceTree = "<group>"; };
 		D8A1A0172EDE07B400A6A017 /* AboutHealthBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutHealthBarView.swift; sourceTree = "<group>"; };
-                D8A1A0182EDE07B400A6A018 /* HealthBarIRLStatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthBarIRLStatsStore.swift; sourceTree = "<group>"; };
-                D8A1A0192EDE07B400A6A019 /* HydrationSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HydrationSettingsStore.swift; sourceTree = "<group>"; };
-                D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderModels.swift; sourceTree = "<group>"; };
-                D8A1A01A2EDE07B400A6A01A /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
-                D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationWheelPickerView.swift; sourceTree = "<group>"; };
+		D8A1A0182EDE07B400A6A018 /* HealthBarIRLStatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthBarIRLStatsStore.swift; sourceTree = "<group>"; };
+		D8A1A0192EDE07B400A6A019 /* HydrationSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HydrationSettingsStore.swift; sourceTree = "<group>"; };
+		D8A1A01A2EDE07B400A6A01A /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationWheelPickerView.swift; sourceTree = "<group>"; };
 		D8A1A01C2EDE07B400A6A01C /* FocusViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusViewModel.swift; sourceTree = "<group>"; };
 		D8A1A01D2EDE07B400A6A01D /* QuestsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestsView.swift; sourceTree = "<group>"; };
 		D8A1A01E2EDE07B400A6A01E /* QuestChatNativeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestChatNativeApp.swift; sourceTree = "<group>"; };
@@ -137,6 +138,7 @@
 		D8ABE41C2EE2410C00813C61 /* ConfettiView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfettiView.swift; sourceTree = "<group>"; };
 		D8E9D6522EE1017A00EF0582 /* PlayerStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerStateStore.swift; sourceTree = "<group>"; };
 		D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestEvent.swift; sourceTree = "<group>"; };
+		D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderModels.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -237,13 +239,13 @@
 				D8A1A0182EDE07B400A6A018 /* HealthBarIRLStatsStore.swift */,
 				D8A1A0022EDE07B400A6A002 /* HealthBarModels.swift */,
 				D8A1A00C2EDE07B400A6A00C /* HealthBarStorage.swift */,
-                                D8A1A00A2EDE07B400A6A00A /* HealthBarViewModel.swift */,
-                                D8A1A0102EDE07B400A6A010 /* HealthTrackingStorageKeys.swift */,
-                                D8A1A0192EDE07B400A6A019 /* HydrationSettingsStore.swift */,
-                                D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */,
-                                D8A1A00E2EDE07B400A6A00E /* LevelUpModalView.swift */,
-                                D8A1A0072EDE07B400A6A007 /* MoreView.swift */,
-                                D8A1A0052EDE07B400A6A005 /* MoreViewModel.swift */,
+				D8A1A00A2EDE07B400A6A00A /* HealthBarViewModel.swift */,
+				D8A1A0102EDE07B400A6A010 /* HealthTrackingStorageKeys.swift */,
+				D8A1A0192EDE07B400A6A019 /* HydrationSettingsStore.swift */,
+				D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */,
+				D8A1A00E2EDE07B400A6A00E /* LevelUpModalView.swift */,
+				D8A1A0072EDE07B400A6A007 /* MoreView.swift */,
+				D8A1A0052EDE07B400A6A005 /* MoreViewModel.swift */,
 				D8A1A0222EDE07B400A6A022 /* OnboardingView.swift */,
 				D8A1A0232EDE07B400A6A023 /* OnboardingViewModel.swift */,
 				D8A1A0132EDE07B400A6A013 /* PlayerCardView.swift */,
@@ -252,12 +254,12 @@
 				D899A6D12EDF6D6500F90F46 /* PlayerStatusBarsView.swift */,
 				D8A1A0212EDE07B400A6A021 /* PlayerTitleStore.swift */,
 				D8A1A01E2EDE07B400A6A01E /* QuestChatNativeApp.swift */,
-                                D8A1A0112EDE07B400A6A011 /* QuestChatStrings.swift */,
-                                D80A60BC2EE1397D003C5262 /* QuestEngine.swift */,
-                                7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */,
-                                D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */,
-                                D8A1A01D2EDE07B400A6A01D /* QuestsView.swift */,
-                                D8A1A0082EDE07B400A6A008 /* QuestsViewModel.swift */,
+				D8A1A0112EDE07B400A6A011 /* QuestChatStrings.swift */,
+				D80A60BC2EE1397D003C5262 /* QuestEngine.swift */,
+				7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */,
+				D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */,
+				D8A1A01D2EDE07B400A6A01D /* QuestsView.swift */,
+				D8A1A0082EDE07B400A6A008 /* QuestsViewModel.swift */,
 				D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */,
 				76CAEBCF8CD8432DA6BB0E0E /* SeasonAchievement.swift */,
 				3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */,
@@ -267,6 +269,7 @@
 				D8A1A01A2EDE07B400A6A01A /* StatsView.swift */,
 				D8A1A00F2EDE07B400A6A00F /* StatsViewModel.swift */,
 				D8A1A0162EDE07B400A6A016 /* TodaySummaryView.swift */,
+				D83AE0012EE38504000217E6 /* SleepHistoryStore.swift */,
 			);
 			path = QuestChatNative;
 			sourceTree = "<group>";
@@ -395,14 +398,14 @@
 				D8A200182EDE07B400A6A001 /* HealthBarIRLStatsStore.swift in Sources */,
 				D8A200172EDE07B400A6A001 /* AboutHealthBarView.swift in Sources */,
 				D899A6D22EDF6D6500F90F46 /* PlayerStatusBarsView.swift in Sources */,
-                                D8A200162EDE07B400A6A001 /* TodaySummaryView.swift in Sources */,
-                                D8A200152EDE07B400A6A001 /* ContentView.swift in Sources */,
-                                D8A200142EDE07B400A6A001 /* HealthBarCalculator.swift in Sources */,
-                                D8A200132EDE07B400A6A001 /* PlayerCardView.swift in Sources */,
-                                D8ABE41B2EE23E2400813C61 /* AchievementUnlockOverlayView.swift in Sources */,
-                                D8F1B0012F0A2F1B00D6C8E9 /* ReminderModels.swift in Sources */,
-                                D8A200122EDE07B400A6A001 /* FocusTimerLiveActivity.swift in Sources */,
-                                D8A200112EDE07B400A6A001 /* QuestChatStrings.swift in Sources */,
+				D8A200162EDE07B400A6A001 /* TodaySummaryView.swift in Sources */,
+				D8A200152EDE07B400A6A001 /* ContentView.swift in Sources */,
+				D8A200142EDE07B400A6A001 /* HealthBarCalculator.swift in Sources */,
+				D8A200132EDE07B400A6A001 /* PlayerCardView.swift in Sources */,
+				D8ABE41B2EE23E2400813C61 /* AchievementUnlockOverlayView.swift in Sources */,
+				D8F1B0012F0A2F1B00D6C8E9 /* ReminderModels.swift in Sources */,
+				D8A200122EDE07B400A6A001 /* FocusTimerLiveActivity.swift in Sources */,
+				D8A200112EDE07B400A6A001 /* QuestChatStrings.swift in Sources */,
 				D8A200102EDE07B400A6A001 /* HealthTrackingStorageKeys.swift in Sources */,
 				D8A200212EDE07B400A6A001 /* PlayerTitleStore.swift in Sources */,
 				D8A200222EDE07B400A6A001 /* OnboardingView.swift in Sources */,
@@ -413,10 +416,10 @@
 				D80A60E12EE13C6D003C5262 /* PlayerProgress.swift in Sources */,
 				D8A2000D2EDE07B400A6A001 /* GameDataResetter.swift in Sources */,
 				D8A2000C2EDE07B400A6A001 /* HealthBarStorage.swift in Sources */,
-                                D8A2000B2EDE07B400A6A001 /* SettingsView.swift in Sources */,
-                                D80A60BD2EE1397D003C5262 /* QuestEngine.swift in Sources */,
-                                399C54D99232406C91BC2260 /* QuestCatalog.swift in Sources */,
-                                D8A2000A2EDE07B400A6A001 /* HealthBarViewModel.swift in Sources */,
+				D8A2000B2EDE07B400A6A001 /* SettingsView.swift in Sources */,
+				D80A60BD2EE1397D003C5262 /* QuestEngine.swift in Sources */,
+				399C54D99232406C91BC2260 /* QuestCatalog.swift in Sources */,
+				D8A2000A2EDE07B400A6A001 /* HealthBarViewModel.swift in Sources */,
 				D8A200092EDE07B400A6A001 /* AppCoordinator.swift in Sources */,
 				D8A200082EDE07B400A6A001 /* QuestsViewModel.swift in Sources */,
 				D8A200072EDE07B400A6A001 /* MoreView.swift in Sources */,
@@ -430,6 +433,7 @@
 				D87C18BC2EDFB72100438C3A /* FocusLiveActivityManager.swift in Sources */,
 				D8EDD5292EE1F14B00922DCF /* QuestEvent.swift in Sources */,
 				338792A9E2C5427181113F47 /* SeasonAchievement.swift in Sources */,
+				D83AE0022EE38504000217E6 /* SleepHistoryStore.swift in Sources */,
 				1B7E1189235249C2ACB10CF1 /* SeasonAchievementsStore.swift in Sources */,
 				62AF60BC4FB94EEE88C1F25F /* SeasonAchievementBadgeView.swift in Sources */,
 			);

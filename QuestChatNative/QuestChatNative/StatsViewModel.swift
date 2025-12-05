@@ -24,6 +24,13 @@ final class StatsViewModel: ObservableObject {
         let focusGoalMinutes: Int
         let reachedFocusGoal: Bool
 
+        let mood: MoodStatus?
+        let sleepQuality: SleepQuality?
+        let hydrationOunces: Int
+        let hydrationGoalOunces: Int
+        let gutStatus: GutStatus?
+        let averageHP: Int?
+
         var questProgress: Double {
             guard totalQuests > 0 else { return 0 }
             return Double(questsCompleted) / Double(totalQuests)
@@ -33,6 +40,11 @@ final class StatsViewModel: ObservableObject {
             guard focusGoalMinutes > 0 else { return 0 }
             let progress = Double(focusMinutes) / Double(focusGoalMinutes)
             return min(progress, 1)
+        }
+
+        var hydrationProgress: Double {
+            guard hydrationGoalOunces > 0 else { return 0 }
+            return min(1.0, Double(hydrationOunces) / Double(hydrationGoalOunces))
         }
 
         var overallProgress: Double {
@@ -53,6 +65,7 @@ final class StatsViewModel: ObservableObject {
     private let seasonAchievementsStore: SeasonAchievementsStore
     private let playerTitleStore: PlayerTitleStore
     private let statsStore: SessionStatsStore
+    private let sleepHistoryStore: SleepHistoryStore
     private let weekdayFormatter: DateFormatter
     private let userDefaults: UserDefaults
     private let calendar = Calendar.current
@@ -64,6 +77,7 @@ final class StatsViewModel: ObservableObject {
         seasonAchievementsStore: SeasonAchievementsStore,
         playerTitleStore: PlayerTitleStore,
         statsStore: SessionStatsStore,
+        sleepHistoryStore: SleepHistoryStore,
         userDefaults: UserDefaults = .standard
     ) {
         self.healthStore = healthStore
@@ -71,6 +85,7 @@ final class StatsViewModel: ObservableObject {
         self.seasonAchievementsStore = seasonAchievementsStore
         self.playerTitleStore = playerTitleStore
         self.statsStore = statsStore
+        self.sleepHistoryStore = sleepHistoryStore
         self.userDefaults = userDefaults
         weekdayFormatter = DateFormatter()
         weekdayFormatter.locale = .current
@@ -182,12 +197,27 @@ final class StatsViewModel: ObservableObject {
 
         guard hasActivity(on: yesterday, progress: progress) else { return nil }
 
+        let daySummary = healthStore.days.first { calendar.isDate($0.date, inSameDayAs: yesterday) }
+        let hydrationCount = daySummary?.hydrationCount ?? 0
+        let hydrationOunces = hydrationCount * hydrationSettingsStore.ouncesPerWaterTap
+        let hydrationGoalOunces = hydrationSettingsStore.dailyWaterGoalOunces
+        let mood = daySummary?.lastMood
+        let sleepQuality = yesterdaysSleepQuality
+        let averageHP = daySummary.flatMap { Int($0.averageHP.rounded()) }
+        let gutStatus = daySummary?.lastGut
+
         return DailyStatsSummary(
             questsCompleted: progress.questsCompleted,
             totalQuests: totalQuests,
             focusMinutes: progress.focusMinutes,
             focusGoalMinutes: focusGoalMinutes,
-            reachedFocusGoal: progress.reachedFocusGoal
+            reachedFocusGoal: progress.reachedFocusGoal,
+            mood: mood,
+            sleepQuality: sleepQuality,
+            hydrationOunces: hydrationOunces,
+            hydrationGoalOunces: hydrationGoalOunces,
+            gutStatus: gutStatus,
+            averageHP: averageHP
         )
     }
 
@@ -222,6 +252,16 @@ final class StatsViewModel: ObservableObject {
     private var yesterdayDate: Date {
         let today = calendar.startOfDay(for: Date())
         return calendar.date(byAdding: .day, value: -1, to: today) ?? today
+    }
+
+    private var yesterdaysSleepQuality: SleepQuality? {
+        let date = yesterdayDate
+        if let quality = sleepHistoryStore.quality(on: date) { return quality }
+        guard
+            let storedDate = userDefaults.object(forKey: HealthTrackingStorageKeys.sleepQualityDate) as? Date,
+            calendar.isDate(storedDate, inSameDayAs: date)
+        else { return nil }
+        return SleepQuality(rawValue: userDefaults.integer(forKey: HealthTrackingStorageKeys.sleepQualityValue))
     }
 
     private func refresh() {

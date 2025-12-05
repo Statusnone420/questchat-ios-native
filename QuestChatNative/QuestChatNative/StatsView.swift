@@ -273,7 +273,78 @@ struct StatsView: View {
                             .foregroundStyle(.secondary)
                         ProgressView(value: summary.overallProgress)
                             .progressViewStyle(.linear)
-                            .tint(.mint.opacity(0.85))
+                            .tint(.mint)
+                    }
+
+                    Divider().padding(.vertical, 6)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        // Hydration
+                        HStack(spacing: 8) {
+                            Image(systemName: "drop.fill").foregroundStyle(.cyan)
+                            let goalText = summary.hydrationGoalOunces > 0 ? " / \(summary.hydrationGoalOunces) oz" : " oz"
+                            Text("Hydration: \(summary.hydrationOunces)\(goalText)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        if summary.hydrationGoalOunces > 0 {
+                            ProgressView(value: summary.hydrationProgress)
+                                .progressViewStyle(.linear)
+                                .tint(.cyan)
+                        }
+
+                        // Sleep
+                        HStack(spacing: 8) {
+                            Image(systemName: "moon.fill").foregroundStyle(.purple)
+                            Text("Sleep: \(summary.sleepQuality?.label ?? "—")")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        // Mood
+                        HStack(spacing: 8) {
+                            Image(systemName: "face.smiling").foregroundStyle(.green)
+                            let moodLabel: String = {
+                                switch summary.mood ?? .none {
+                                case .good: return "Good"
+                                case .neutral: return "Neutral"
+                                case .bad: return "Bad"
+                                case .none: return "—"
+                                }
+                            }()
+                            Text("Mood: \(moodLabel)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    // Gut and HP
+                    Divider().padding(.vertical, 6)
+
+                    HStack(spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "heart.text.square").foregroundStyle(.orange)
+                            let gutLabel: String = {
+                                switch summary.gutStatus ?? .none {
+                                case .great: return "Great"
+                                case .meh: return "Meh"
+                                case .rough: return "Rough"
+                                case .none: return "—"
+                                }
+                            }()
+                            Text("Gut: \(gutLabel)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        HStack(spacing: 6) {
+                            Image(systemName: "cross.case.fill").foregroundStyle(.red)
+                            Text("Avg HP: \(summary.averageHP.map(String.init) ?? "—")")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             } else {
