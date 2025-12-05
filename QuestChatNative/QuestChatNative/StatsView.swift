@@ -115,13 +115,11 @@ struct StatsView: View {
                     }
                     .padding(20)
                 }
-                .background(Color.black.ignoresSafeArea())
-                .navigationTitle(QuestChatStrings.StatsView.navigationTitle)
-                .toolbarBackground(Color.black, for: .navigationBar)
-                .toolbarColorScheme(.dark, for: .navigationBar)
-                .sheet(isPresented: $showPlayerCard) {
-                    PlayerCardView(
-                        store: store,
+            .background(Color.black.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: $showPlayerCard) {
+                PlayerCardView(
+                    store: store,
                         statsViewModel: viewModel,
                         healthBarViewModel: healthBarViewModel,
                         focusViewModel: focusViewModel
@@ -200,7 +198,7 @@ struct StatsView: View {
             showPlayerCard = true
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "person.crop.circle")
+                Image(systemName: "atom")
                     .font(.headline)
                 Text("Player Card")
                     .font(.subheadline.weight(.semibold))
