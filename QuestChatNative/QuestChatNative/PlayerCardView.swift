@@ -123,6 +123,10 @@ struct PlayerCardView: View {
                         .font(.title2.weight(.bold))
                         .textFieldStyle(.plain)
 
+                    Text("Level \(store.level)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
                     Button {
                         isTitlePickerPresented = true
                     } label: {

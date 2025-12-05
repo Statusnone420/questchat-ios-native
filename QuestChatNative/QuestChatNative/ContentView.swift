@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum MainTab: Hashable {
-    case focus, quests, stats, more
+    case focus, health, quests, stats, more
 }
 
 struct ContentView: View {
@@ -24,6 +24,10 @@ struct ContentView: View {
                 .environmentObject(questsViewModel)
                 .tabItem { Label("Focus", systemImage: "timer") }
                 .tag(MainTab.focus)
+
+                HealthBarView(viewModel: healthBarViewModel)
+                    .tabItem { Label("Health", systemImage: "heart.fill") }
+                    .tag(MainTab.health)
 
                 QuestsView(viewModel: questsViewModel)
                     .tabItem { Label("Quests", systemImage: "list.bullet.rectangle") }

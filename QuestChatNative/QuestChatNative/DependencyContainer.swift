@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 final class DependencyContainer {
     static let shared = DependencyContainer()
@@ -35,7 +36,12 @@ final class DependencyContainer {
         questEngine = QuestEngine()
 
         // View models that depend on stores
-        healthBarViewModel = HealthBarViewModel()
+        healthBarViewModel = HealthBarViewModel(
+            statsStore: healthStatsStore,
+            sessionStatsStore: sessionStatsStore,
+            hydrationSettingsStore: hydrationSettingsStore,
+            sleepHistoryStore: sleepHistoryStore
+        )
         focusViewModel = FocusViewModel(
             statsStore: sessionStatsStore,
             playerStateStore: playerStateStore,
@@ -77,6 +83,14 @@ final class DependencyContainer {
             focusViewModel: focusViewModel,
             onCompletion: onCompletion
         )
+    }
+
+    func makeHealthBarViewModel() -> HealthBarViewModel {
+        healthBarViewModel
+    }
+
+    func makeHealthBarView() -> HealthBarView {
+        HealthBarView(viewModel: makeHealthBarViewModel())
     }
 }
 

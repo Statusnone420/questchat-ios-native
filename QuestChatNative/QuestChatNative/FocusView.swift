@@ -14,7 +14,6 @@ struct FocusView: View {
     @State private var resetButtonScale: CGFloat = 1
     @State private var heroCardScale: CGFloat = 0.98
     @State private var heroCardOpacity: Double = 0.92
-    @State private var selectedStatusEffect: StatusEffect?
 
     @Namespace private var categoryAnimation
 
@@ -59,6 +58,15 @@ struct FocusView: View {
         return QuestChatStrings.FocusView.streakProgress(days: days)
     }
 
+    private var momentumLabel: String { statsStore.momentumLabel() }
+
+    private var momentumDescription: String { statsStore.momentumDescription() }
+
+    private var momentumProgress: Double {
+        let normalized = (statsStore.momentumMultiplier() - 1.0) / 0.20
+        return min(max(normalized, 0), 1)
+    }
+
     init(viewModel: FocusViewModel, healthBarViewModel: HealthBarViewModel, selectedTab: Binding<MainTab>) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _healthBarViewModel = ObservedObject(wrappedValue: healthBarViewModel)
@@ -75,11 +83,10 @@ struct FocusView: View {
             NavigationStack {
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(alignment: .leading, spacing: 20) {
-                        healthHeaderCard
-                        vitalsCard
                         potionsCard
                         compactStatusHeader
                         todayQuestBanner
+                        momentumCard
 
                         if let selectedCategory = viewModel.selectedCategoryData {
                             heroCard(for: selectedCategory)
@@ -223,177 +230,38 @@ struct FocusView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func statusEffectIcon(for effect: StatusEffect) -> some View {
-        let tint: Color = effect.kind == .buff ? .green : .red
-
-        return VStack(spacing: 6) {
-            Image(systemName: effect.systemImageName)
-                .font(.subheadline.weight(.bold))
-                .frame(width: 32, height: 32)
-                .foregroundStyle(.black)
-                .background(tint)
-                .clipShape(Circle())
-                .shadow(color: tint.opacity(0.35), radius: 6, x: 0, y: 3)
-
-            Text(effect.title)
-                .font(.caption2.weight(.semibold))
-                .lineLimit(1)
-        }
-        .padding(10)
-        .frame(minWidth: 90)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.3))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(tint.opacity(0.5), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-
-    private func statusEffectDetail(for effect: StatusEffect) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(effect.title, systemImage: effect.systemImageName)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(effect.kind == .buff ? .green : .red)
-
-            Text(effect.description)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            if !effect.affectedStats.isEmpty {
-                HStack(spacing: 6) {
-                    Image(systemName: "wand.and.stars")
-                        .foregroundStyle(.yellow)
-                    Text(effect.affectedStats.joined(separator: ", "))
-                        .font(.caption.bold())
-                }
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.4))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .transition(.opacity.combined(with: .scale))
-    }
-
-    private var healthHeaderCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("HealthBar IRL")
-                    .font(.headline.weight(.semibold))
-                Spacer()
-                Text("\(viewModel.currentHP) / 100 HP")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-
-            RPGStatBar(
-                iconName: "heart.fill",
-                label: "HP",
-                color: .red,
-                progress: viewModel.hpProgress,
-                segments: 12
-            )
-
-            if !viewModel.activeEffects.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(viewModel.activeEffects) { effect in
-                                Button {
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                        if selectedStatusEffect?.id == effect.id {
-                                            selectedStatusEffect = nil
-                                        } else {
-                                            selectedStatusEffect = effect
-                                        }
-                                    }
-                                } label: {
-                                    statusEffectIcon(for: effect)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-
-                    if let selectedStatusEffect {
-                        statusEffectDetail(for: selectedStatusEffect)
-                    }
-                }
-            }
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.65))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
-    private var vitalsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .lastTextBaseline) {
-                Text("Vitals")
-                    .font(.headline.weight(.semibold))
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(viewModel.hydrationSummaryText)
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
-                    if let cups = viewModel.hydrationCupsText {
-                        Text(cups)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            StatusBarRow(
-                iconName: "drop.fill",
-                label: "Hydration",
-                tint: .blue,
-                progress: viewModel.hydrationProgress,
-                segments: 10,
-                detailText: viewModel.hydrationSummaryText
-            )
-
-            StatusBarRow(
-                iconName: "moon.fill",
-                label: "Sleep",
-                tint: .purple,
-                progress: viewModel.sleepProgress,
-                segments: 8,
-                detailText: viewModel.sleepQualityLabel
-            )
-
-            StatusBarRow(
-                iconName: "face.smiling",
-                label: "Mood",
-                tint: .green,
-                progress: viewModel.moodProgress,
-                segments: 8,
-                detailText: viewModel.moodStatusLabel
-            )
-
-            StatusBarRow(
-                iconName: "bolt.fill",
-                label: "Stamina",
-                tint: .orange,
-                progress: viewModel.staminaProgress,
-                segments: 8,
-                detailText: viewModel.staminaLabel
-            )
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.45))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
     private var potionsCard: some View {
         PotionsCard(
             onHealthTap: { viewModel.logComfortBeverageTapped() },
             onManaTap: { viewModel.logHydrationPillTapped() },
             onStaminaTap: { viewModel.logStaminaPotionTapped() }
         )
+    }
+
+    private var momentumCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Label(QuestChatStrings.StatsView.momentumLabel, systemImage: "bolt.fill")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.yellow)
+                Spacer()
+                Text(momentumLabel)
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+            }
+
+            ProgressView(value: momentumProgress, total: 1)
+                .tint(.yellow)
+                .progressViewStyle(.linear)
+
+            Text(momentumDescription)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.45))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     struct PotionsCard: View {

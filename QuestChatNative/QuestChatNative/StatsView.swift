@@ -29,27 +29,6 @@ struct StatsView: View {
     private var focusGoalProgressText: String {
         QuestChatStrings.StatsView.dailyGoalProgress(current: dailyGoalProgressForScope, total: dailyGoalMinutesForScope)
     }
-    private var levelProgress: Double {
-        if store.level >= 100 { return 1 }
-        let total = Double(store.xpTotalThisLevel)
-        guard total > 0 else { return 0 }
-        return Double(store.xpIntoCurrentLevel) / total
-    }
-
-    private var levelProgressText: String {
-        if store.level >= 100 {
-            return "QuestChat Master"
-        }
-        return QuestChatStrings.StatsView.levelProgress(current: store.xpIntoCurrentLevel, total: store.xpTotalThisLevel)
-    }
-
-    private var momentumLabel: String { viewModel.momentumLabel }
-    private var momentumDescription: String { viewModel.momentumDescription }
-    private var momentumProgress: Double {
-        let normalized = (viewModel.momentumMultiplier - 1.0) / 0.20
-        return min(max(normalized, 0), 1)
-    }
-
     private var recentSessions: [SessionStatsStore.SessionRecord] {
         Array(store.sessionHistory.suffix(5).reversed())
     }
@@ -105,7 +84,6 @@ struct StatsView: View {
             achievementsSection
             healthBarWeeklySummary
 
-            header
             summaryTiles
             sessionBreakdown
             sessionHistorySection
@@ -464,57 +442,6 @@ struct StatsView: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(.primary)
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(QuestChatStrings.StatsView.headerTitle)
-                .font(.title2.bold())
-            Text(QuestChatStrings.StatsView.headerSubtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .lastTextBaseline, spacing: 8) {
-                    Text(QuestChatStrings.StatsView.levelLabel)
-                        .font(.headline)
-                        .foregroundStyle(.mint)
-                    Text("\(store.level)")
-                        .font(.largeTitle.bold())
-                }
-
-                ProgressView(value: min(max(levelProgress, 0), 1))
-                    .progressViewStyle(.linear)
-                    .tint(.mint)
-
-                Text(levelProgressText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                    Label(QuestChatStrings.StatsView.momentumLabel, systemImage: "bolt.fill")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.yellow)
-                        Spacer()
-                        Text(momentumLabel)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    ProgressView(value: momentumProgress, total: 1)
-                        .tint(.yellow)
-                        .progressViewStyle(.linear)
-
-                    Text(momentumDescription)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding()
-            .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
-            .cornerRadius(14)
-        }
     }
 
     private var summaryTiles: some View {
