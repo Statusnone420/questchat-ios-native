@@ -64,7 +64,7 @@ private func progress(
 ) -> Double {
     let total = max(context.attributes.totalSeconds, max(context.state.remainingSeconds, 1))
     let remaining = remainingSeconds(for: context, at: date)
-    return 1 - (Double(remaining) / Double(total))
+    return Double(remaining) / Double(total)
 }
 
 @available(iOS 17.0, *)
@@ -309,8 +309,8 @@ struct FocusSessionLiveActivityWidget: Widget {
                                         .monospacedDigit()
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.9)
-                                        .frame(width: 36, alignment: .center)
-                                        .offset(x: 2.8)
+                                        .padding(.horizontal, 2)
+                                        .frame(width: 40, alignment: .center)
                                 }
                                 .frame(width: 40, height: 40)
                                 .padding(2)
@@ -335,8 +335,8 @@ struct FocusSessionLiveActivityWidget: Widget {
                                     .monospacedDigit()
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.9)
-                                    .frame(width: 36, alignment: .center)
-                                    .offset(x: 2.8)
+                                    .padding(.horizontal, 3)
+                                    .frame(width: 40, alignment: .center)
                                 }
                                 .frame(width: 40, height: 40)
                                 .padding(2)
