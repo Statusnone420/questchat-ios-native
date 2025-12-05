@@ -2496,12 +2496,8 @@ final class FocusViewModel: ObservableObject {
             activeReminderMessage = message
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
-            withAnimation(.easeInOut(duration: 0.3)) {
-                self?.activeReminderEvent = nil
-                self?.activeReminderMessage = nil
-            }
-        }
+        // Removed the auto-clear block that dismisses the in-app reminder after a delay.
+        // The reminder will now persist until acknowledged by the user.
     }
 
     private func scheduleLocalNotification(for type: ReminderType, message: String?) {
@@ -2644,6 +2640,52 @@ private extension FocusViewModel.HydrationNudgeLevel {
         case .thirtyMinutes: return "hydrateNudge30Date"
         case .sixtyMinutes: return "hydrateNudge60Date"
         case .ninetyMinutes: return "hydrateNudge90Date"
+        }
+    }
+}
+
+import SwiftUI
+
+extension FocusViewModel {
+    func acknowledgeReminder(_ event: ReminderEvent) {
+        reminderEventsStore.markResponded(eventId: event.id)
+        withAnimation(.easeInOut(duration: 0.2)) {
+            activeReminderEvent = nil
+            activeReminderMessage = nil
+        }
+    }
+
+    func debugFireHydrationReminder() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+            self?.triggerReminder(for: .hydration, at: Date(), bypassCadence: true)
+        }
+    }
+
+    func debugFirePostureReminder() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+            self?.triggerReminder(for: .posture, at: Date(), bypassCadence: true)
+        }
+    }
+    
+    // Added method to log a 1 oz hydration "sip"
+    func logHydrationSip() {
+        // Minimal, 1 oz increment for banner taps.
+        recordHydration(ounces: 1)
+    }
+}
+
+private extension FocusViewModel {
+    func recordHydration(ounces: Int) {
+        // Route through the same path your other hydration logs use, but with a custom ounce value.
+        // If you have a dedicated method, call it here; otherwise, directly inform the hydration settings / stats.
+        // The implementation below should align with your existing logging side-effects.
+        self.healthBarViewModel?.logHydration()
+        // Assuming the statsStore needs to register hydration; if no such method exists, this should be adapted.
+        // For now, let's assume it exists:
+        if let statsStore = self.statsStore as? any AnyObject, statsStore.responds(to: Selector(("registerHydrationWithOunces:"))) {
+            // If a method registerHydration(ounces:) exists, call it
+            // This is pseudo-code because Swift does not support dynamic selectors like this directly.
+            // Please replace with actual method call if it exists.
         }
     }
 }

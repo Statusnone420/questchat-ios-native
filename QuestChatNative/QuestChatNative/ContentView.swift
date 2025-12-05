@@ -14,7 +14,7 @@ struct ContentView: View {
     @StateObject private var moreViewModel = DependencyContainer.shared.moreViewModel
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             TabView(selection: $selectedTab) {
                 FocusView(
                     viewModel: focusViewModel,
@@ -46,6 +46,50 @@ struct ContentView: View {
             .preferredColorScheme(.dark)
             .tint(.mint)
             .background(Color.black)
+
+            if let event = focusViewModel.activeReminderEvent,
+               let message = focusViewModel.activeReminderMessage {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: focusViewModel.reminderIconName(for: event.type))
+                        .imageScale(.large)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(focusViewModel.reminderTitle(for: event.type))
+                            .font(.headline)
+                        Text(message)
+                            .font(.subheadline)
+                    }
+
+                    Spacer()
+
+                    if event.type == .hydration {
+                        Button("Took a sip") {
+                            focusViewModel.logHydrationSip()
+                            focusViewModel.acknowledgeReminder(event)
+                        }
+                    } else {
+                        Button("Fixed it") {
+                            focusViewModel.acknowledgeReminder(event)
+                        }
+                    }
+                }
+                .padding(12)
+                .background(Color(uiColor: .secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .shadow(radius: 8)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .zIndex(1)
+                .animation(.spring(), value: focusViewModel.activeReminderEvent != nil)
+                .gesture(
+                    DragGesture().onEnded { value in
+                        if value.translation.height < -20 {
+                            focusViewModel.acknowledgeReminder(event)
+                        }
+                    }
+                )
+            }
         }
     }
 }

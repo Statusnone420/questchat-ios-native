@@ -71,7 +71,7 @@ struct FocusView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             NavigationStack {
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVStack(alignment: .leading, spacing: 20) {
@@ -88,6 +88,17 @@ struct FocusView: View {
                         quickTimersList
 
                         reminderCard
+
+                        #if DEBUG
+                        VStack(spacing: 8) {
+                            Button("Test hydration nudge") {
+                                viewModel.debugFireHydrationReminder()
+                            }
+                            Button("Test posture nudge") {
+                                viewModel.debugFirePostureReminder()
+                            }
+                        }
+                        #endif
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
@@ -120,12 +131,21 @@ struct FocusView: View {
                 }
                 .zIndex(3)
             }
+            
+            if let event = viewModel.activeReminderEvent,
+               let message = viewModel.activeReminderMessage {
+                reminderBanner(event: event, message: message)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(1)
+            }
         }
         .onAppear {
             viewModel.handleAppear()
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
-        .animation(.easeInOut(duration: 0.35), value: viewModel.activeReminderEvent?.id)
+        .animation(.spring(), value: viewModel.activeReminderEvent != nil)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.selectedCategory)
         .onAppear {
             viewModel.handleScenePhaseChange(scenePhase)
@@ -583,14 +603,6 @@ struct FocusView: View {
                 heroCardOpacity = 1
             }
         }
-        .overlay(alignment: .top) {
-            if let event = viewModel.activeReminderEvent {
-                reminderBanner(event: event)
-                    .padding(.horizontal, 12)
-                    .padding(.top, -6)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
     }
 
     private var quickTimersList: some View {
@@ -836,27 +848,36 @@ struct FocusView: View {
         )
     }
 
-    private func reminderBanner(event: ReminderEvent) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+    @ViewBuilder
+    private func reminderBanner(event: ReminderEvent, message: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
             Image(systemName: viewModel.reminderIconName(for: event.type))
-                .foregroundStyle(event.type == .hydration ? .mint : .purple)
                 .imageScale(.large)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(viewModel.reminderTitle(for: event.type))
                     .font(.headline)
-                Text(viewModel.activeReminderMessage ?? viewModel.reminderBody(for: event.type))
+                Text(message)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
             }
 
-            Spacer(minLength: 0)
+            Spacer()
+
+            if event.type == .hydration {
+                Button("Took a sip") {
+                    viewModel.logHydrationSip()
+                    viewModel.acknowledgeReminder(event)
+                }
+            } else {
+                Button("Fixed it") {
+                    viewModel.acknowledgeReminder(event)
+                }
+            }
         }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .background(.ultraThinMaterial.opacity(0.85))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 6)
+        .padding(12)
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(radius: 8)
     }
 
     private func statPill(title: String, value: String) -> some View {
@@ -1185,4 +1206,3 @@ private struct DailySetupSheet: View {
         .background(Color.black)
         .previewDevice("iPhone 17 Pro Max")
 }
-
