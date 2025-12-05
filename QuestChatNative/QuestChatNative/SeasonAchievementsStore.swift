@@ -12,7 +12,7 @@ final class SeasonAchievementsStore: ObservableObject {
     private var streaks: [SeasonAchievementConditionType: Int] = [:]
     private var lastProgressDates: [SeasonAchievementConditionType: Date] = [:]
 
-    private enum FourRealmsCategory: String, CaseIterable {
+    enum FourRealmsCategory: String, CaseIterable {
         case work
         case home
         case health
@@ -106,7 +106,7 @@ final class SeasonAchievementsStore: ObservableObject {
         })
     }
 
-    func recordFourRealmsCategoryCompletion(
+    private func recordFourRealmsCategoryCompletion(
         category: FourRealmsCategory,
         date: Date
     ) {
@@ -123,7 +123,7 @@ final class SeasonAchievementsStore: ObservableObject {
         mode: TimerCategory.Kind,
         date: Date
     ) {
-        guard let category = FourRealmsCategory(fromSessionMode: mode) else { return }
+        guard let category = FourRealmsCategory(kind: mode) else { return }
         recordFourRealmsCategoryCompletion(category: category, date: date)
     }
 
@@ -193,7 +193,7 @@ final class SeasonAchievementsStore: ObservableObject {
 }
 
 private extension SeasonAchievementsStore.FourRealmsCategory {
-    init?(fromSessionMode mode: TimerCategory.Kind) {
+    init?(kind mode: TimerCategory.Kind) {
         switch mode {
         case .deepFocus, .workSprint:
             self = .work
@@ -206,4 +206,3 @@ private extension SeasonAchievementsStore.FourRealmsCategory {
         }
     }
 }
-
