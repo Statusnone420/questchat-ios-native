@@ -74,6 +74,17 @@ struct StatsView: View {
             ZStack {
                 ScrollView (.vertical, showsIndicators: false) {
                     VStack(spacing: 18) {
+                        HStack {
+                            Text("Stats")
+                                .font(.largeTitle.bold())
+                                .foregroundColor(.white)
+                            Spacer()
+                            playerCardButton
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, 12)
+
                         TodaySummaryView(
                             completedQuests: questsViewModel.completedQuestsCount,
                             totalQuests: questsViewModel.totalQuestsCount,
@@ -104,13 +115,11 @@ struct StatsView: View {
                     }
                     .padding(20)
                 }
-                .background(Color.black.ignoresSafeArea())
-                .navigationTitle(QuestChatStrings.StatsView.navigationTitle)
-                .toolbarBackground(Color.black, for: .navigationBar)
-                .toolbarColorScheme(.dark, for: .navigationBar)
-                .sheet(isPresented: $showPlayerCard) {
-                    PlayerCardView(
-                        store: store,
+            .background(Color.black.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
+            .sheet(isPresented: $showPlayerCard) {
+                PlayerCardView(
+                    store: store,
                         statsViewModel: viewModel,
                         healthBarViewModel: healthBarViewModel,
                         focusViewModel: focusViewModel
@@ -184,6 +193,27 @@ struct StatsView: View {
         }
     }
 
+    private var playerCardButton: some View {
+        Button {
+            showPlayerCard = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "atom")
+                    .font(.headline)
+                Text("Player Card")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                Capsule()
+                    .fill(Color.white.opacity(0.08))
+            )
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.primary)
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(QuestChatStrings.StatsView.headerTitle)
@@ -232,26 +262,6 @@ struct StatsView: View {
             .padding()
             .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
             .cornerRadius(14)
-        }
-        .overlay(alignment: .topTrailing) {
-            Button {
-                showPlayerCard = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "person.crop.circle")
-                        .font(.headline)
-                    Text("Player Card")
-                        .font(.subheadline.weight(.semibold))
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(
-                    Capsule()
-                        .fill(Color.white.opacity(0.08))
-                )
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.primary)
         }
     }
 
