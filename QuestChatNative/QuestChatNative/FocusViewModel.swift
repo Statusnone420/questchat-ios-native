@@ -455,9 +455,10 @@ final class SessionStatsStore: ObservableObject {
     @discardableResult
     func recordSession(mode: FocusTimerMode, duration: Int) -> Int {
         refreshDailyTotalsIfNeeded()
-        refreshMomentumIfNeeded()
 
         let now = Date()
+        refreshMomentumIfNeeded(now: now)
+
         let xpBefore = progression.totalXP
 
         switch mode {
@@ -473,9 +474,9 @@ final class SessionStatsStore: ObservableObject {
 
         let _ = registerCompletedSession(duration: TimeInterval(duration))
 
-        momentum = 0
+        applyMomentumGain(for: TimeInterval(duration), now: now)
+
         lastSessionDate = now
-        lastMomentumUpdate = now
         persist()
         evaluateWeeklyGoalBonus()
 
@@ -616,10 +617,12 @@ final class SessionStatsStore: ObservableObject {
 
     @discardableResult
     func registerCompletedSession(duration: TimeInterval) -> LevelUpResult? {
-        let xpAward = xpForCompletedFocusSession(duration: duration)
-        guard xpAward > 0 else { return nil }
+        let baseXP = xpForCompletedFocusSession(duration: duration)
+        guard baseXP > 0 else { return nil }
         let minutes = Int(duration / 60)
-        return grantXP(xpAward, reason: .focusSession(minutes: minutes))
+        let multiplier = xpMultiplier(for: momentum)
+        let finalXP = Int(round(Double(baseXP) * multiplier))
+        return grantXP(finalXP, reason: .focusSession(minutes: minutes))
     }
 
     @discardableResult
@@ -682,8 +685,40 @@ final class SessionStatsStore: ObservableObject {
         return computeDecayedMomentum(now: Date())
     }
 
+    func momentumStatusText(for momentum: Double) -> String {
+        switch momentum {
+        case 1.0:
+            return "on fire"
+        case 0.75..<1.0:
+            return "locked in"
+        case 0.25..<0.75:
+            return "in the zone"
+        case 0:
+            return "start a session"
+        case 0..<0.25:
+            return "charging"
+        default:
+            return "start a session"
+        }
+    }
+
     func xpNeededToLevelUp(from level: Int) -> Int {
         return 100
+    }
+
+    func xpMultiplier(for momentum: Double) -> Double {
+        switch momentum {
+        case ..<0.25:
+            return 1.0
+        case 0.25..<0.75:
+            return 1.10
+        case 0.75..<1.0:
+            return 1.25
+        case 1.0:
+            return 1.50
+        default:
+            return 1.0
+        }
     }
 
     private func reduceTotalXP(by amount: Int) {
@@ -774,22 +809,44 @@ final class SessionStatsStore: ObservableObject {
         let elapsed = now.timeIntervalSince(lastUpdate)
         guard elapsed > 0, momentum > 0 else { return momentum }
         guard momentumDecayDuration > 0 else { return momentum }
-        let decayAmount = elapsed / momentumDecayDuration
-        guard decayAmount > 0 else { return momentum }
-        return max(0, momentum - decayAmount)
+        if elapsed >= momentumDecayDuration { return 0 }
+
+        let decayRatio = elapsed / momentumDecayDuration
+        let decayed = momentum * max(0, 1 - decayRatio)
+        return max(0, decayed)
+    }
+
+    private func momentumGain(for duration: TimeInterval) -> Double {
+        let minutes = duration / 60
+        switch minutes {
+        case ..<10:
+            return 0
+        case 10..<25:
+            return 0.20
+        case 25..<40:
+            return 0.35
+        default:
+            return 0.50
+        }
+    }
+
+    private func applyMomentumGain(for duration: TimeInterval, now: Date) {
+        let gain = momentumGain(for: duration)
+        if gain > 0 {
+            let newMomentum = max(0, min(1, momentum + gain))
+            momentum = newMomentum
+        }
+        lastMomentumUpdate = now
+        persistMomentum()
     }
 
     func refreshMomentumIfNeeded(now: Date = Date()) {
         let newMomentum = computeDecayedMomentum(now: now)
-        // If nothing changes, still update lastMomentumUpdate and persist asynchronously
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            if newMomentum != self.momentum {
-                self.momentum = newMomentum
-            }
-            self.lastMomentumUpdate = now
-            self.persistMomentum()
+        if newMomentum != momentum {
+            momentum = newMomentum
         }
+        lastMomentumUpdate = now
+        persistMomentum()
     }
 
     var weeklyGoalProgress: [WeeklyGoalDayStatus] {
@@ -813,9 +870,7 @@ final class SessionStatsStore: ObservableObject {
     private var lastMomentumUpdate: Date?
     private static let progressionDefaultsKey = "progression_state_v1"
 
-    private let momentumIncrement: Double = 0.25
     private let momentumDecayDuration: TimeInterval = 4 * 60 * 60
-    private let momentumBonusMultiplier: Double = 0.2
 
     private enum Keys {
         static let focusSeconds = "focusSeconds"
