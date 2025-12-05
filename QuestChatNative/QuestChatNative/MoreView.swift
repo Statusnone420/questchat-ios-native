@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct MoreView: View {
     @ObservedObject var viewModel: MoreViewModel
@@ -8,11 +9,11 @@ struct MoreView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    hydrationSection
+                    remindersCard
 
-                    reminderSection
+                    hydrationSettingsCard
 
-                    LegacyMoreContentView()
+                    moreComingTeaser
                 }
                 .padding()
                 .frame(maxWidth: .infinity)
@@ -35,68 +36,28 @@ struct MoreView: View {
         }
     }
 
-    private var hydrationSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Hydration")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-
-            VStack(spacing: 12) {
-                Stepper(value: $viewModel.ouncesPerWaterTap, in: 1...64) {
-                    HStack {
-                        Text("Water per tap")
-                        Spacer()
-                        Text("\(viewModel.ouncesPerWaterTap) oz")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Stepper(value: $viewModel.ouncesPerComfortTap, in: 1...64) {
-                    HStack {
-                        Text("Comfort beverage per tap")
-                        Spacer()
-                        Text("\(viewModel.ouncesPerComfortTap) oz")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Stepper(value: $viewModel.dailyWaterGoalOunces, in: 8...256) {
-                    HStack {
-                        Text("Daily water goal")
-                        Spacer()
-                        Text("\(viewModel.dailyWaterGoalOunces) oz")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(uiColor: .secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    private var reminderSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    private var remindersCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
             Text(QuestChatStrings.Reminders.settingsHeader)
                 .font(.headline)
                 .foregroundStyle(.secondary)
 
-            VStack(spacing: 12) {
-                reminderSettingsCard(
-                    title: QuestChatStrings.Reminders.hydrationTitle,
-                    description: QuestChatStrings.Reminders.hydrationDescription,
-                    settings: $viewModel.hydrationReminderSettings,
-                    showFocusOnly: false
-                )
+            reminderSection(
+                title: QuestChatStrings.Reminders.hydrationTitle,
+                subtitle: QuestChatStrings.Reminders.hydrationDescription,
+                settings: $viewModel.hydrationReminderSettings,
+                showFocusOnly: false
+            )
 
-                reminderSettingsCard(
-                    title: QuestChatStrings.Reminders.postureTitle,
-                    description: QuestChatStrings.Reminders.postureDescription,
-                    settings: $viewModel.postureReminderSettings,
-                    showFocusOnly: true
-                )
-            }
+            Divider()
+                .padding(.vertical, 8)
+
+            reminderSection(
+                title: QuestChatStrings.Reminders.postureTitle,
+                subtitle: QuestChatStrings.Reminders.postureDescription,
+                settings: $viewModel.postureReminderSettings,
+                showFocusOnly: true
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -104,18 +65,18 @@ struct MoreView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private func reminderSettingsCard(
+    private func reminderSection(
         title: String,
-        description: String,
+        subtitle: String,
         settings: Binding<ReminderSettings>,
         showFocusOnly: Bool
     ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.headline)
-                    Text(description)
+                    Text(subtitle)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -125,46 +86,32 @@ struct MoreView: View {
                 }
                 .labelsHidden()
                 .tint(.mint)
+                .onChange(of: settings.enabled.wrappedValue) { _ in
+                    HapticsService.lightImpact()
+                }
             }
 
-            Divider()
-
             VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(QuestChatStrings.Reminders.cadenceLabel)
-                    Spacer()
-                    Picker("Cadence", selection: settings.cadenceMinutes) {
-                        ForEach(cadenceOptions, id: \.self) { minutes in
-                            Text(QuestChatStrings.Reminders.cadenceValue(minutes))
-                                .tag(minutes)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                }
+                reminderPickerRow(
+                    label: QuestChatStrings.Reminders.everyLabel,
+                    selection: settings.cadenceMinutes,
+                    options: cadenceOptions,
+                    titleForOption: QuestChatStrings.Reminders.everyValue
+                )
 
-                HStack {
-                    Text(QuestChatStrings.Reminders.startHourLabel)
-                    Spacer()
-                    Picker("Start", selection: settings.activeStartHour) {
-                        ForEach(hourOptions, id: \.self) { hour in
-                            Text(hourLabel(hour))
-                                .tag(hour)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                }
+                reminderPickerRow(
+                    label: QuestChatStrings.Reminders.startHourLabel,
+                    selection: settings.activeStartHour,
+                    options: hourOptions,
+                    titleForOption: hourLabel
+                )
 
-                HStack {
-                    Text(QuestChatStrings.Reminders.endHourLabel)
-                    Spacer()
-                    Picker("End", selection: settings.activeEndHour) {
-                        ForEach(hourOptions, id: \.self) { hour in
-                            Text(hourLabel(hour))
-                                .tag(hour)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                }
+                reminderPickerRow(
+                    label: QuestChatStrings.Reminders.endHourLabel,
+                    selection: settings.activeEndHour,
+                    options: hourOptions,
+                    titleForOption: hourLabel
+                )
 
                 if showFocusOnly {
                     Toggle(isOn: settings.onlyDuringFocusSessions) {
@@ -183,6 +130,92 @@ struct MoreView: View {
         }
     }
 
+    private func reminderPickerRow(
+        label: String,
+        selection: Binding<Int>,
+        options: [Int],
+        titleForOption: @escaping (Int) -> String
+    ) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            Picker(label, selection: selection) {
+                ForEach(options, id: \.self) { value in
+                    Text(titleForOption(value))
+                        .tag(value)
+                }
+            }
+            .pickerStyle(.menu)
+        }
+        .onChange(of: selection.wrappedValue) { _ in
+            HapticsService.selectionChanged()
+        }
+    }
+
+    private var hydrationSettingsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(QuestChatStrings.MoreView.hydrationSettingsTitle)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Text(QuestChatStrings.MoreView.hydrationSettingsSubtitle)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            VStack(spacing: 12) {
+                Stepper(value: $viewModel.ouncesPerWaterTap, in: 1...64) {
+                    HStack {
+                        Text("Water per tap")
+                        Spacer()
+                        Text("\(viewModel.ouncesPerWaterTap) oz")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Stepper(value: $viewModel.ouncesPerComfortTap, in: 1...64) {
+                    HStack {
+                        Text("Comfort drink per tap")
+                        Spacer()
+                        Text("\(viewModel.ouncesPerComfortTap) oz")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Stepper(value: $viewModel.dailyWaterGoalOunces, in: 8...256) {
+                    HStack {
+                        Text("Daily water goal")
+                        Spacer()
+                        Text("\(viewModel.dailyWaterGoalOunces) oz")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .font(.subheadline)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var moreComingTeaser: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "ellipsis.circle")
+                .foregroundStyle(.mint)
+                .imageScale(.large)
+            Text(QuestChatStrings.MoreView.moreComing)
+                .font(.title3)
+                .foregroundStyle(.secondary)
+            Text(QuestChatStrings.MoreView.moreComingSubtitle)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+    }
+
     private var cadenceOptions: [Int] { [30, 45, 60, 90] }
     private var hourOptions: [Int] { Array(0...23) }
 
@@ -197,54 +230,13 @@ struct MoreView: View {
     }
 }
 
-struct LegacyMoreContentView: View {
-    @Environment(\.openURL) private var openURL
+private enum HapticsService {
+    static func lightImpact() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
 
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "ellipsis.circle")
-                .foregroundStyle(.mint)
-                .imageScale(.large)
-            Text(QuestChatStrings.MoreView.moreComing)
-                .font(.title3)
-                .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(QuestChatStrings.MoreView.timerDurationsTitle)
-                        .foregroundStyle(.secondary)
-                    Text(QuestChatStrings.MoreView.timerDurationsDescription)
-                        .font(.headline)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .background(Color(uiColor: .secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-
-            VStack(alignment: .leading, spacing: 0) {
-                NavigationLink {
-                    AboutHealthBarView()
-                } label: {
-                    HStack {
-                        Label("About HealthBar IRL", systemImage: "info.circle")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 8)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .background(Color(uiColor: .secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-
-        }
-        .frame(maxWidth: .infinity)
+    static func selectionChanged() {
+        UISelectionFeedbackGenerator().selectionChanged()
     }
 }
 

@@ -70,15 +70,15 @@ enum QuestChatStrings {
     enum Reminders {
         static let settingsHeader = "Reminders"
         static let hydrationTitle = "Hydration"
-        static let hydrationDescription = "Water + posture nudges during your day."
+        static let hydrationDescription = "Quick reminders to drink water during your day."
         static let postureTitle = "Posture"
         static let postureDescription = "Straighten up, unclench, and breathe."
-        static let cadenceLabel = "Cadence"
-        static func cadenceValue(_ minutes: Int) -> String { "\(minutes) min" }
+        static let everyLabel = "Every"
+        static func everyValue(_ minutes: Int) -> String { "\(minutes) min" }
         static let startHourLabel = "Start"
         static let endHourLabel = "End"
         static let focusOnlyLabel = "Only during focus sessions"
-        static let focusOnlyDescription = "Skip posture nudges when the timer isn't running."
+        static let focusOnlyDescription = "Skip posture nudges when the Focus timer isn’t running."
         static let hydrationBody = "Grab water and stretch for a minute."
         static let postureBody = "Unclench your shoulders and reset your posture."
     }
@@ -313,10 +313,9 @@ enum QuestChatStrings {
 
     enum MoreView {
         static let moreComing = "More coming soon"
-        static let timerDurationsTitle = "Timer durations"
-        static let timerDurationsDescription = "Adjust each category directly from the Focus tab."
-        static let hydrationToggleTitle = "Hydrate + posture nudges"
-        static let hydrationToggleDescription = "In-app banners and local notifications when you cross focus milestones."
+        static let moreComingSubtitle = "New reminders and tiny superpowers will live here."
+        static let hydrationSettingsTitle = "Hydration settings"
+        static let hydrationSettingsSubtitle = "These control how much water gets logged when you tap on the HP tab."
     }
 
     enum PlayerCard {
