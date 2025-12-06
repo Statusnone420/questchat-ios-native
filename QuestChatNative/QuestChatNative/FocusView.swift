@@ -837,9 +837,7 @@ private struct DailySetupSheet: View {
     }
 
     var body: some View {
-        VStack {
-            Spacer()
-
+        VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 16) {
                 header
 
@@ -881,7 +879,7 @@ private struct DailySetupSheet: View {
             .padding(.top, 8)
             .padding(.bottom, 16)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.black.opacity(0.6).ignoresSafeArea())
     }
 
@@ -920,15 +918,33 @@ private struct DailySetupSheet: View {
 
     private var energySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(QuestChatStrings.FocusView.energyLevelLabel)
+            Text("Energy level")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .padding(.top, 12)
 
             HStack(spacing: 8) {
-                chip(for: .low)
-                chip(for: .medium)
-                chip(for: .high)
+                ForEach(EnergyLevel.allCases) { level in
+                    let details = energyDetails(for: level)
+                    EnergyLevelChip(
+                        systemImageName: details.icon,
+                        title: details.label,
+                        isSelected: selectedEnergy == level
+                    ) {
+                        selectedEnergy = level
+                    }
+                }
             }
+        }
+    }
+
+    private func energyDetails(for level: EnergyLevel) -> (icon: String, label: String) {
+        switch level {
+        case .low:
+            return ("moon.zzz.fill", "Low – 20 min")
+        case .medium:
+            return ("cloud.sun.fill", "Medium – 40 min")
+        case .high:
+            return ("sun.max.fill", "High – 60 min")
         }
     }
 
@@ -945,28 +961,30 @@ private struct DailySetupSheet: View {
         }
     }
 
-    private func chip(for level: EnergyLevel) -> some View {
-        Button {
-            selectedEnergy = level
-        } label: {
-            HStack(spacing: 6) {
-                Text(level.emoji)
-                Text(level.label)
+    private struct EnergyLevelChip: View {
+        let systemImageName: String
+        let title: String
+        let isSelected: Bool
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                HStack(spacing: 6) {
+                    Image(systemName: systemImageName)
+                    Text(title)
+                }
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 12)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? Color.accentColor.opacity(0.25) : Color(.secondarySystemBackground))
+                )
             }
-            .font(.subheadline)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(level == selectedEnergy ? Color.white.opacity(0.15) : Color.white.opacity(0.05))
-            )
-            .overlay(
-                Capsule()
-                    .stroke(Color.white.opacity(level == selectedEnergy ? 0.3 : 0.15), lineWidth: 1)
-            )
-            .foregroundColor(.white)
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
 }
 
