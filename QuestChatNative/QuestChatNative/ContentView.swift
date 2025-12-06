@@ -27,6 +27,7 @@ enum MainTab: Hashable {
 }
 
 struct ContentView: View {
+    @EnvironmentObject private var appCoordinator: AppCoordinator
     @State private var selectedTab: MainTab = .focus
     @StateObject private var statsStore = DependencyContainer.shared.sessionStatsStore
     @StateObject private var healthStatsViewModel = DependencyContainer.shared.statsViewModel
@@ -34,7 +35,6 @@ struct ContentView: View {
     @StateObject private var focusViewModel = DependencyContainer.shared.focusViewModel
     @StateObject private var questsViewModel = DependencyContainer.shared.questsViewModel
     @StateObject private var moreViewModel = DependencyContainer.shared.moreViewModel
-    @StateObject private var talentsViewModel = DependencyContainer.shared.makeTalentsViewModel()
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -77,7 +77,7 @@ struct ContentView: View {
                     .tabItem { Label("More", systemImage: "ellipsis.circle") }
                     .tag(MainTab.more)
 
-                TalentsView(viewModel: talentsViewModel)
+                appCoordinator.makeTalentsView()
                     .tabItem { Label("Talents", systemImage: "wand.and.stars") }
                     .tag(MainTab.talents)
             }
@@ -143,4 +143,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(AppCoordinator())
 }

@@ -17,6 +17,7 @@ final class AppCoordinator: ObservableObject {
     func makeRootView() -> some View {
         if self.hasCompletedOnboarding {
             ContentView()
+                .environmentObject(self)
         } else {
             OnboardingView(viewModel: self.resolveOnboardingViewModel())
         }
