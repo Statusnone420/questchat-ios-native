@@ -124,6 +124,13 @@ private extension QuestsView {
                 .textCase(nil)
                 .listSectionSeparator(.hidden)
 
+                Section {
+                    aboutWeeklyQuestCard
+                }
+                .textCase(nil)
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 24, trailing: 20))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             }
         }
         .listStyle(.plain)
@@ -286,6 +293,37 @@ private extension QuestsView {
                 _ = showingXPBoostIDs.remove(quest.id)
             }
         }
+    }
+
+    private var aboutWeeklyQuestCard: some View {
+        NavigationLink {
+            AboutHealthBarView()
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: "questionmark.circle")
+                    .font(.title3)
+                    .imageScale(.medium)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("What is WeeklyQuest?")
+                        .font(.headline)
+                    Text("Learn how the weekly questline works.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.2))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     func tierColor(for tier: Quest.Tier) -> Color {
