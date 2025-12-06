@@ -55,12 +55,12 @@
 		D8A200222EDE07B400A6A001 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0222EDE07B400A6A022 /* OnboardingView.swift */; };
 		D8A200232EDE07B400A6A001 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8A1A0232EDE07B400A6A023 /* OnboardingViewModel.swift */; };
 		D8ABE41B2EE23E2400813C61 /* AchievementUnlockOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8ABE41A2EE23E2400813C61 /* AchievementUnlockOverlayView.swift */; };
-                D8ABE41D2EE2411600813C61 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8ABE41C2EE2410C00813C61 /* ConfettiView.swift */; };
-                D8E9D6532EE1017A00EF0582 /* PlayerStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E9D6522EE1017A00EF0582 /* PlayerStateStore.swift */; };
-                D8EDD5292EE1F14B00922DCF /* QuestEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */; };
-                D8F1A0022F1234567890ABCD /* HealthBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F1A0012F1234567890ABCD /* HealthBarView.swift */; };
-                D8F1B0012F0A2F1B00D6C8E9 /* ReminderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */; };
-                D8F1C0032F0A2F1B00D6C8EA /* FocusSharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F1C0022F0A2F1B00D6C8EA /* FocusSharedComponents.swift */; };
+		D8ABE41D2EE2411600813C61 /* ConfettiView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8ABE41C2EE2410C00813C61 /* ConfettiView.swift */; };
+		D8E9D6532EE1017A00EF0582 /* PlayerStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8E9D6522EE1017A00EF0582 /* PlayerStateStore.swift */; };
+		D8EDD5292EE1F14B00922DCF /* QuestEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */; };
+		D8F1A0022F1234567890ABCD /* HealthBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F1A0012F1234567890ABCD /* HealthBarView.swift */; };
+		D8F1B0012F0A2F1B00D6C8E9 /* ReminderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */; };
+		D8F1C0032F0A2F1B00D6C8EA /* FocusSharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F1C0022F0A2F1B00D6C8EA /* FocusSharedComponents.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -134,15 +134,15 @@
 		D8A1A01F2EDE07B400A6A01F /* SettingsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModel.swift; sourceTree = "<group>"; };
 		D8A1A0202EDE07B400A6A020 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D8A1A0212EDE07B400A6A021 /* PlayerTitleStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerTitleStore.swift; sourceTree = "<group>"; };
-            D8A1A0222EDE07B400A6A022 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-            D8A1A0232EDE07B400A6A023 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
-            D8ABE41A2EE23E2400813C61 /* AchievementUnlockOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementUnlockOverlayView.swift; sourceTree = "<group>"; };
-            D8ABE41C2EE2410C00813C61 /* ConfettiView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfettiView.swift; sourceTree = "<group>"; };
-            D8E9D6522EE1017A00EF0582 /* PlayerStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerStateStore.swift; sourceTree = "<group>"; };
-            D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestEvent.swift; sourceTree = "<group>"; };
-            D8F1A0012F1234567890ABCD /* HealthBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthBarView.swift; sourceTree = "<group>"; };
-            D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderModels.swift; sourceTree = "<group>"; };
-            D8F1C0022F0A2F1B00D6C8EA /* FocusSharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusSharedComponents.swift; sourceTree = "<group>"; };
+		D8A1A0222EDE07B400A6A022 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		D8A1A0232EDE07B400A6A023 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
+		D8ABE41A2EE23E2400813C61 /* AchievementUnlockOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementUnlockOverlayView.swift; sourceTree = "<group>"; };
+		D8ABE41C2EE2410C00813C61 /* ConfettiView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfettiView.swift; sourceTree = "<group>"; };
+		D8E9D6522EE1017A00EF0582 /* PlayerStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerStateStore.swift; sourceTree = "<group>"; };
+		D8EDD5282EE1F14B00922DCF /* QuestEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestEvent.swift; sourceTree = "<group>"; };
+		D8F1A0012F1234567890ABCD /* HealthBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthBarView.swift; sourceTree = "<group>"; };
+		D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderModels.swift; sourceTree = "<group>"; };
+		D8F1C0022F0A2F1B00D6C8EA /* FocusSharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusSharedComponents.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -234,12 +234,12 @@
 				D8A1A0062EDE07B400A6A006 /* DependencyContainer.swift */,
 				D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */,
 				D87C18BB2EDFB72100438C3A /* FocusLiveActivityManager.swift */,
-                                D8A1A0122EDE07B400A6A012 /* FocusTimerLiveActivity.swift */,
-                                D8A1A0032EDE07B400A6A003 /* FocusView.swift */,
-                                D8A1A01C2EDE07B400A6A01C /* FocusViewModel.swift */,
-                                D8F1C0022F0A2F1B00D6C8EA /* FocusSharedComponents.swift */,
-                                D8A1A00D2EDE07B400A6A00D /* GameDataResetter.swift */,
-                                D8A1A0142EDE07B400A6A014 /* HealthBarCalculator.swift */,
+				D8A1A0122EDE07B400A6A012 /* FocusTimerLiveActivity.swift */,
+				D8A1A0032EDE07B400A6A003 /* FocusView.swift */,
+				D8A1A01C2EDE07B400A6A01C /* FocusViewModel.swift */,
+				D8F1C0022F0A2F1B00D6C8EA /* FocusSharedComponents.swift */,
+				D8A1A00D2EDE07B400A6A00D /* GameDataResetter.swift */,
+				D8A1A0142EDE07B400A6A014 /* HealthBarCalculator.swift */,
 				D8A1A0042EDE07B400A6A004 /* HealthBarCardView.swift */,
 				D8A1A0182EDE07B400A6A018 /* HealthBarIRLStatsStore.swift */,
 				D8A1A0022EDE07B400A6A002 /* HealthBarModels.swift */,
@@ -429,13 +429,13 @@
 				D8F1A0022F1234567890ABCD /* HealthBarView.swift in Sources */,
 				D8A200092EDE07B400A6A001 /* AppCoordinator.swift in Sources */,
 				D8A200082EDE07B400A6A001 /* QuestsViewModel.swift in Sources */,
-                                D8A200072EDE07B400A6A001 /* MoreView.swift in Sources */,
-                                D8A200062EDE07B400A6A001 /* DependencyContainer.swift in Sources */,
-                                D8A200052EDE07B400A6A001 /* MoreViewModel.swift in Sources */,
-                                D8ABE41D2EE2411600813C61 /* ConfettiView.swift in Sources */,
-                                D8F1C0032F0A2F1B00D6C8EA /* FocusSharedComponents.swift in Sources */,
-                                D8A200042EDE07B400A6A001 /* HealthBarCardView.swift in Sources */,
-                                D8A200032EDE07B400A6A001 /* FocusView.swift in Sources */,
+				D8A200072EDE07B400A6A001 /* MoreView.swift in Sources */,
+				D8A200062EDE07B400A6A001 /* DependencyContainer.swift in Sources */,
+				D8A200052EDE07B400A6A001 /* MoreViewModel.swift in Sources */,
+				D8ABE41D2EE2411600813C61 /* ConfettiView.swift in Sources */,
+				D8F1C0032F0A2F1B00D6C8EA /* FocusSharedComponents.swift in Sources */,
+				D8A200042EDE07B400A6A001 /* HealthBarCardView.swift in Sources */,
+				D8A200032EDE07B400A6A001 /* FocusView.swift in Sources */,
 				D8A200022EDE07B400A6A001 /* HealthBarModels.swift in Sources */,
 				D8A200012EDE07B400A6A001 /* RPGStatBar.swift in Sources */,
 				D87C18BC2EDFB72100438C3A /* FocusLiveActivityManager.swift in Sources */,
@@ -476,7 +476,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.statusnone.QuestChatNative.QuestChatLiveActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -507,7 +507,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.statusnone.QuestChatNative.QuestChatLiveActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -663,7 +663,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.statusnone.QuestChatNative;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -698,7 +698,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4;
+				MARKETING_VERSION = 1.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.statusnone.QuestChatNative;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
