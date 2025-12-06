@@ -15,6 +15,7 @@ final class DependencyContainer {
     let activityHistoryStore: ActivityHistoryStore
     let dailyHealthRatingsStore: DailyHealthRatingsStore
     let seasonAchievementsStore: SeasonAchievementsStore
+    let talentTreeStore: TalentTreeStore
     let questEngine: QuestEngine
 
     let focusViewModel: FocusViewModel
@@ -37,6 +38,7 @@ final class DependencyContainer {
         activityHistoryStore = ActivityHistoryStore()
         dailyHealthRatingsStore = DailyHealthRatingsStore()
         seasonAchievementsStore = SeasonAchievementsStore()
+        talentTreeStore = TalentTreeStore()
         questEngine = QuestEngine()
 
         // View models that depend on stores
