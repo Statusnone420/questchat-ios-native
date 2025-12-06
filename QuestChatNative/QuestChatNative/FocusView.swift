@@ -987,7 +987,7 @@ private struct FocusModeRow: View {
 
                     Image(systemName: systemImageName)
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(.accentColor)
+                        .foregroundStyle(Color.accentColor)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
