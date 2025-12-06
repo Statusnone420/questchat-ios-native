@@ -206,6 +206,10 @@ struct FocusView: View {
         .onAppear {
             statsStore.refreshDailySetupIfNeeded()
         }
+        .overlay(alignment: .bottomTrailing) {
+            settingsGearButton
+                .padding(20)
+        }
     }
 
     @ViewBuilder
@@ -232,19 +236,19 @@ struct FocusView: View {
                     lineWidth: 1
                 )
         )
-        .overlay(alignment: .bottomTrailing) {
-            Button {
-                isShowingSettings = true
-            } label: {
-                Image(systemName: "gearshape.fill")
-                    .font(.title3)
-                    .padding(10)
-                    .background(Color(uiColor: .secondarySystemBackground))
-                    .clipShape(Circle())
-            }
-            .foregroundStyle(.mint)
-            .padding(10)
+    }
+
+    private var settingsGearButton: some View {
+        Button {
+            isShowingSettings = true
+        } label: {
+            Image(systemName: "gearshape.fill")
+                .font(.title3)
+                .padding(10)
+                .background(Color(uiColor: .secondarySystemBackground))
+                .clipShape(Circle())
         }
+        .foregroundStyle(.mint)
     }
 
     private func headerItem(title: String, value: String, icon: String, tint: Color) -> some View {
