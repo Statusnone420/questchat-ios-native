@@ -542,13 +542,6 @@ struct FocusView: View {
                     .monospacedDigit()
             }
             .frame(width: 220, height: 220)
-
-            Text(viewModel.timerStatusText)
-                .font(.footnote)
-                .foregroundColor(.white.opacity(0.75))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-                .lineLimit(2)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
@@ -595,16 +588,16 @@ struct FocusView: View {
             }
 
             Text("Focus minutes turn into XP. For life too.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .padding(.top, 4)
 
             HStack {
                 Text("\(QuestChatStrings.FocusView.sessionsLabel): \(statsStore.sessionsCompleted)")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.primary)
 
                 Spacer()
 
@@ -612,15 +605,13 @@ struct FocusView: View {
                     ToggleChip(
                         title: "Hydrate",
                         systemImage: "drop.fill",
-                        isOn: viewModel.notificationAuthorized && viewModel.hydrationNudgesEnabled,
-                        action: { viewModel.toggleHydrationNudges() }
+                        isOn: viewModel.notificationAuthorized && viewModel.hydrationNudgesEnabled
                     )
 
                     ToggleChip(
                         title: "Posture",
                         systemImage: "figure.stand",
-                        isOn: viewModel.notificationAuthorized && viewModel.postureRemindersEnabled,
-                        action: { viewModel.togglePostureReminders() }
+                        isOn: viewModel.notificationAuthorized && viewModel.postureRemindersEnabled
                     )
                 }
             }
@@ -737,23 +728,19 @@ struct FocusView: View {
         let title: String
         let systemImage: String
         let isOn: Bool
-        let action: () -> Void
 
         var body: some View {
-            Button(action: action) {
-                HStack(spacing: 4) {
-                    Image(systemName: systemImage)
-                        .font(.caption2)
-                    Text(title)
-                        .font(.caption)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(isOn ? Color.teal.opacity(0.2) : Color.secondary.opacity(0.15))
-                .foregroundStyle(isOn ? Color.teal : .secondary)
-                .clipShape(Capsule())
+            HStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.caption2)
+                Text(title)
+                    .font(.caption)
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(isOn ? Color.teal.opacity(0.2) : Color.secondary.opacity(0.15))
+            .foregroundStyle(isOn ? Color.teal : .secondary)
+            .clipShape(Capsule())
         }
     }
 
