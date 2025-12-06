@@ -36,6 +36,11 @@ enum HealthRatingMapper {
     }
 
     static func moodStatus(for rating: Int?) -> MoodStatus {
+        // Collapse 5-point rating into 3 HP buckets:
+        // nil → .none (ignored for HP)
+        // 1–2 → .bad
+        // 3   → .neutral
+        // 4–5 → .good
         guard let rating else { return .none }
 
         switch rating {
@@ -46,6 +51,7 @@ enum HealthRatingMapper {
         case 4, 5:
             return .good
         default:
+            // Any out-of-range value is treated as not set
             return .none
         }
     }
@@ -64,6 +70,11 @@ enum HealthRatingMapper {
     }
 
     static func gutStatus(for rating: Int?) -> GutStatus {
+        // Collapse 5-point rating into 3 HP buckets:
+        // nil → .none (ignored for HP)
+        // 1–2 → .rough
+        // 3   → .meh
+        // 4–5 → .great
         guard let rating else { return .none }
 
         switch rating {
@@ -74,6 +85,7 @@ enum HealthRatingMapper {
         case 4, 5:
             return .great
         default:
+            // Any out-of-range value is treated as not set
             return .none
         }
     }
@@ -92,6 +104,9 @@ enum HealthRatingMapper {
     }
 
     static func sleepQuality(for rating: Int) -> SleepQuality? {
+        // Collapse 5-point rating into 3 HP buckets:
+        // 1–2 → .awful, 3 → .okay, 4–5 → .great
+        // Note: callers should pass nil ratings as nil and treat them as ignored for HP.
         switch rating {
         case 1, 2:
             return .awful
@@ -100,6 +115,7 @@ enum HealthRatingMapper {
         case 4, 5:
             return .great
         default:
+            // Any out-of-range or placeholder value yields no quality
             return nil
         }
     }

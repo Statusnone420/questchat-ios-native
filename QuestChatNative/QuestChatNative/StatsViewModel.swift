@@ -157,28 +157,21 @@ final class StatsViewModel: ObservableObject {
     }
 
     var sleepProgress: Double {
+        // Visual-only: map the 1–5 slider directly to 0.0–1.0 so 5 shows full, 4 is slightly less, etc.
+        // HP backend still uses bucketed SleepQuality via HealthRatingMapper elsewhere.
         let rating = dailyRatingsStore.ratings().sleep
-        guard let rating, let quality = HealthRatingMapper.sleepQuality(for: rating) else { return 0 }
-        let normalized = Double(quality.rawValue) / Double(SleepQuality.allCases.count - 1)
+        guard let rating else { return 0 }
+        let normalized = (Double(rating) - 1.0) / 4.0
         return clampProgress(normalized)
     }
 
     var moodProgress: Double {
-        let mood = HealthRatingMapper.moodStatus(for: dailyRatingsStore.ratings().mood)
-        let value: Double = {
-            switch mood {
-            case .none:
-                return 0
-            case .bad:
-                return 0.25
-            case .neutral:
-                return 0.5
-            case .good:
-                return 1
-            }
-        }()
-
-        return clampProgress(value)
+        // Visual-only: map the 1–5 slider directly to 0.0–1.0 so 5 shows full, 4 is slightly less, etc.
+        // HP backend still uses bucketed MoodStatus via HealthRatingMapper elsewhere.
+        let rating = dailyRatingsStore.ratings().mood
+        guard let rating else { return 0 }
+        let normalized = (Double(rating) - 1.0) / 4.0
+        return clampProgress(normalized)
     }
 
     var momentumLabel: String {

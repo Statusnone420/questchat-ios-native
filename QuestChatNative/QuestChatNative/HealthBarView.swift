@@ -148,7 +148,7 @@ struct HealthBarView: View {
                 iconName: "moon.fill",
                 label: "Sleep",
                 tint: .purple,
-                progress: viewModel.sleepProgress,
+                progress: sleepProgressVisual,
                 segments: 8,
                 detailText: viewModel.sleepStatusText
             )
@@ -157,7 +157,7 @@ struct HealthBarView: View {
                 iconName: "face.smiling",
                 label: "Mood",
                 tint: .green,
-                progress: viewModel.moodProgress,
+                progress: moodProgressVisual,
                 segments: 8,
                 detailText: viewModel.moodStatusText
             )
@@ -195,6 +195,22 @@ struct HealthBarView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.35))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+    
+    private var moodProgressVisual: Double {
+        // Visual-only: map the 1–5 slider directly to 0.0–1.0 so 5 shows full, 4 is slightly less, etc.
+        let rating = dailyRatingsStore.ratings().mood
+        guard let rating else { return 0 }
+        let normalized = (Double(rating) - 1.0) / 4.0
+        return min(max(normalized, 0), 1)
+    }
+    
+    private var sleepProgressVisual: Double {
+        // Visual-only: map the 1–5 slider directly to 0.0–1.0 so 5 shows full, 4 is slightly less, etc.
+        let rating = dailyRatingsStore.ratings().sleep
+        guard let rating else { return 0 }
+        let normalized = (Double(rating) - 1.0) / 4.0
+        return min(max(normalized, 0), 1)
     }
 }
 
