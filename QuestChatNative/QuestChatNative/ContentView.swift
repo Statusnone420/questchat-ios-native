@@ -79,6 +79,16 @@ struct ContentView: View {
             .preferredColorScheme(.dark)
             .tint(.mint)
             .background(Color.black)
+            
+            if let levelUp = statsStore.pendingLevelUp {
+                LevelUpModalView(level: levelUp) {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        statsStore.pendingLevelUp = nil
+                    }
+                }
+                .zIndex(100)
+                .transition(.opacity.combined(with: .scale))
+            }
         }
         .safeAreaInset(edge: .top) {
             if let event = focusViewModel.activeReminderEvent,

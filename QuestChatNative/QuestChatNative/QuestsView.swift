@@ -17,15 +17,6 @@ struct QuestsView: View {
     var body: some View {
         ZStack {
             questsContent
-
-            if let levelUp = statsStore.pendingLevelUp {
-                LevelUpModalView(level: levelUp) {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        statsStore.pendingLevelUp = nil
-                    }
-                }
-                .zIndex(2)
-            }
         }
     }
 }

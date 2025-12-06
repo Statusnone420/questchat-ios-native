@@ -146,15 +146,6 @@ struct FocusView: View {
                     .zIndex(2)
             }
             
-            if let levelUp = statsStore.pendingLevelUp {
-                LevelUpModalView(level: levelUp) {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        statsStore.pendingLevelUp = nil
-                    }
-                }
-                .zIndex(3)
-            }
-            
             /*
             if let event = viewModel.activeReminderEvent,
                let message = viewModel.activeReminderMessage {
