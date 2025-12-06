@@ -8,6 +8,7 @@ struct HealthBarView: View {
     @Binding var selectedTab: MainTab
     @EnvironmentObject var questsViewModel: QuestsViewModel
     @ObservedObject var dailyRatingsStore: DailyHealthRatingsStore = DependencyContainer.shared.dailyHealthRatingsStore
+    @State private var showPlayerCard = false
 
     init(viewModel: HealthBarViewModel, focusViewModel: FocusViewModel, statsStore: SessionStatsStore, statsViewModel: StatsViewModel, selectedTab: Binding<MainTab>) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -44,6 +45,39 @@ struct HealthBarView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color.black, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showPlayerCard = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "atom")
+                                .font(.headline)
+                            Text("Player Card")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(Color.white.opacity(0.08))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.primary)
+                }
+            }
+            .sheet(isPresented: $showPlayerCard) {
+                PlayerCardView(
+                    store: statsStore,
+                    statsViewModel: statsViewModel,
+                    healthBarViewModel: viewModel,
+                    focusViewModel: focusViewModel
+                )
+                .onAppear {
+                    questsViewModel.handleQuestEvent(.playerCardViewed)
+                }
+            }
         }
     }
 
@@ -59,7 +93,7 @@ struct HealthBarView: View {
     private var healthHeaderCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
-                Text("HealthBar IRL")
+                Text("IRL HealthBar")
                     .font(.headline.weight(.semibold))
                 Spacer()
                 Text("Level \(viewModel.level)")

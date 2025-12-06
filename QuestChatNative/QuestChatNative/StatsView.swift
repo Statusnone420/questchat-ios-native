@@ -6,7 +6,6 @@ struct StatsView: View {
     @ObservedObject var questsViewModel: QuestsViewModel
     @ObservedObject var healthBarViewModel: HealthBarViewModel
     @ObservedObject var focusViewModel: FocusViewModel
-    @State private var showPlayerCard = false
     @State private var selectedScope: StatsScope = .today
 
     private var focusMinutes: Int { store.focusSeconds / 60 }
@@ -116,7 +115,6 @@ struct StatsView: View {
                                 .font(.largeTitle.bold())
                                 .foregroundColor(.white)
                             Spacer()
-                            playerCardButton
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 8)
@@ -133,17 +131,6 @@ struct StatsView: View {
                 }
             .background(Color.black.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $showPlayerCard) {
-                PlayerCardView(
-                    store: store,
-                        statsViewModel: viewModel,
-                        healthBarViewModel: healthBarViewModel,
-                        focusViewModel: focusViewModel
-                    )
-                    .onAppear {
-                        questsViewModel.handleQuestEvent(.playerCardViewed)
-                    }
-                }
 
                 if let unlocked = viewModel.unlockedAchievementToShow {
                     AchievementUnlockOverlayView(
@@ -424,27 +411,6 @@ struct StatsView: View {
                 .accessibilityValue(day.goalHit ? QuestChatStrings.StatsView.weeklyGoalMet : QuestChatStrings.StatsView.weeklyGoalNotMet)
             }
         }
-    }
-
-    private var playerCardButton: some View {
-        Button {
-            showPlayerCard = true
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "atom")
-                    .font(.headline)
-                Text("Player Card")
-                    .font(.subheadline.weight(.semibold))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
-                Capsule()
-                    .fill(Color.white.opacity(0.08))
-            )
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(.primary)
     }
 
     private var summaryTiles: some View {
