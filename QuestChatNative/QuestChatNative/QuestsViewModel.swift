@@ -504,7 +504,7 @@ private extension QuestsViewModel {
     }
 
     static var activeWeeklyQuestPool: [QuestDefinition] {
-        QuestCatalog.allWeeklyQuests.filter { !disabledWeeklyQuestIDs.contains($0.id) && $0.completionMode == .automatic }
+        QuestCatalog.activeWeeklyQuestPool.filter { !disabledWeeklyQuestIDs.contains($0.id) && $0.completionMode == .automatic }
     }
 
     static let coreQuestIDs: [FocusArea: [String]] = [
@@ -771,21 +771,75 @@ private extension QuestsViewModel {
     }
 
     func seedWeeklyQuestsIfNeeded() {
-        let completedIDs = Set(userDefaults.stringArray(forKey: weeklyCompletionKey) ?? [])
-        let poolByID = Dictionary(uniqueKeysWithValues: Self.activeWeeklyQuestPool.map { ($0.id, $0) })
+        let weeklyBoardTargetCount = 10
+        let weeklyMaxTimerQuests = 3
+        let weeklyMinHealthBarQuests = 3
+        let weeklyMinMetaQuests = 2
 
-        let activeIDs = userDefaults.stringArray(forKey: weeklyActiveKey) ?? Array(poolByID.keys)
-        var quests: [Quest] = activeIDs.compactMap { id in
+        let completedIDs = Set(userDefaults.stringArray(forKey: weeklyCompletionKey) ?? [])
+        let pool = Self.activeWeeklyQuestPool
+        let poolByID = Dictionary(uniqueKeysWithValues: pool.map { ($0.id, $0) })
+
+        if let activeIDs = userDefaults.stringArray(forKey: weeklyActiveKey) {
+            let quests: [Quest] = activeIDs.compactMap { id in
+                guard let definition = poolByID[id] else { return nil }
+                assert(definition.completionMode == .automatic, "Generator should never surface manualDebug quest \(definition.id)")
+                return Quest(definition: definition, isCompleted: completedIDs.contains(id))
+            }
+
+            if !quests.isEmpty {
+                weeklyQuests = quests
+                userDefaults.set(weeklyQuests.map { $0.id }, forKey: weeklyActiveKey)
+                persistWeeklyCompletions()
+                return
+            }
+        }
+
+        var selectedIDs: [String] = []
+
+        for coreID in QuestCatalog.coreWeeklyQuestIDs where selectedIDs.count < weeklyBoardTargetCount {
+            guard poolByID[coreID] != nil else { continue }
+            selectedIDs.append(coreID)
+        }
+
+        func categoryCount(_ category: QuestCategory) -> Int {
+            selectedIDs.compactMap { poolByID[$0] }.filter { $0.category == category }.count
+        }
+
+        func addQuests(from definitions: [QuestDefinition], upTo minimum: Int) {
+            for definition in definitions.shuffled() {
+                guard selectedIDs.count < weeklyBoardTargetCount else { return }
+                guard categoryCount(definition.category) < minimum else { continue }
+                selectedIDs.append(definition.id)
+            }
+        }
+
+        let remainingPool = pool.filter { !selectedIDs.contains($0.id) }
+        let healthBarPool = remainingPool.filter { $0.category == .healthBar }
+        let metaPool = remainingPool.filter { $0.category == .meta }
+
+        addQuests(from: healthBarPool, upTo: weeklyMinHealthBarQuests)
+        addQuests(from: metaPool, upTo: weeklyMinMetaQuests)
+
+        var timerCount = categoryCount(.timer)
+        let finalPool = pool.filter { !selectedIDs.contains($0.id) }.shuffled()
+
+        for definition in finalPool {
+            guard selectedIDs.count < weeklyBoardTargetCount else { break }
+            if definition.category == .timer && timerCount >= weeklyMaxTimerQuests {
+                continue
+            }
+
+            selectedIDs.append(definition.id)
+            if definition.category == .timer {
+                timerCount += 1
+            }
+        }
+
+        let quests: [Quest] = selectedIDs.compactMap { id in
             guard let definition = poolByID[id] else { return nil }
             assert(definition.completionMode == .automatic, "Generator should never surface manualDebug quest \(definition.id)")
             return Quest(definition: definition, isCompleted: completedIDs.contains(id))
-        }
-
-        if quests.isEmpty {
-            quests = Self.activeWeeklyQuestPool.map {
-                assert($0.completionMode == .automatic, "Generator should never surface manualDebug quest \($0.id)")
-                return Quest(definition: $0, isCompleted: completedIDs.contains($0.id))
-            }
         }
 
         weeklyQuests = quests

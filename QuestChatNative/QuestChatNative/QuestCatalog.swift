@@ -789,4 +789,14 @@ enum QuestCatalog {
 
     static var allDailyQuests: [QuestDefinition] { expandedDailyQuests + legacyDailyQuests }
     static var allWeeklyQuests: [QuestDefinition] { expandedWeeklyQuests + legacyWeeklyQuests }
+
+    static var activeWeeklyQuestPool: [QuestDefinition] { expandedWeeklyQuests + legacyWeeklyQuests }
+
+    static let coreWeeklyQuestIDs: [String] = [
+        "WEEK_HYDRATION_HERO_PLUS",
+        "WEEK_BALANCED_BAR",
+        "WEEK_DAILY_SETUP_STREAK",
+        "WEEK_THREE_GOOD_DAYS",
+        "WEEK_SLEEP_SENTINEL"
+    ]
 }
