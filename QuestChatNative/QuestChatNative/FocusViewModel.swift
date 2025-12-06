@@ -160,7 +160,7 @@ struct TimerCategory: Identifiable, Equatable {
             case .gamingReset:
                 return "gamecontroller"
             case .quickBreak:
-                return "cup.and.saucer.fill"
+                return "figure.run"
             }
         }
     }

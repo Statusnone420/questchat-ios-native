@@ -42,7 +42,7 @@ private func symbolName(forTitle title: String) -> String {
     if t.contains("chore") { return "house.fill" }
     if t.contains("self") || t.contains("care") { return "figure.mind.and.body" }
     if t.contains("game") { return "gamecontroller" }
-    if t.contains("break") || t.contains("quick") { return "cup.and.saucer.fill" }
+    if t.contains("break") || t.contains("quick") { return "figure.run" }
     return "timer"
 }
 

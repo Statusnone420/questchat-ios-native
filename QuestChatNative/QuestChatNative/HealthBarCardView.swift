@@ -82,7 +82,7 @@ struct HealthBarCardView: View {
                     Label {
                         Text("Comfort beverage")
                     } icon: {
-                        Image(systemName: "cup.and.saucer.fill")
+                        Image(systemName: "figure.run")
                             .foregroundStyle(.yellow)
                     }
                 }
