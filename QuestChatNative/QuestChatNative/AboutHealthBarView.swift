@@ -4,50 +4,49 @@ struct AboutHealthBarView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Text("What is HealthBar IRL?")
+                Text("What is WeeklyQuest?")
                     .font(.largeTitle.bold())
                     .multilineTextAlignment(.leading)
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("What is HealthBar IRL?")
+                    Text("What is WeeklyQuest?")
                         .font(.title3.bold())
                         .padding(.top, 24)
 
-                    Text("HealthBar IRL is your real-life HP bar.\n\nIn games, you never walk into a boss fight at 60 HP with no buffs on. You top off, you drink a potion, you fix your loadout.\n\nIn real life, most of us do the opposite. We grind through work, family stuff, and social plans on low HP and then act surprised when everything feels harder than it should.\n\nHealthBar IRL turns your day into a simple health bar you can read at a glance so you can say:\n\n“Okay, I’m at about 62/100 HP right now. Why? And what can I do about it?”")
+                    Text("WeeklyQuest is your weekly questline for real life.\n\nIn games, you don’t level up by randomly doing stuff. You get a clear list of quests: do X, get Y XP, unlock cool titles and rewards.\n\nIn real life, most weeks are just chaos. You put out fires, scroll your phone, and then suddenly it’s Sunday and you have no idea what you actually did.\n\nWeeklyQuest turns your week into a simple set of quests so you can say:\n\n“Okay, these are my 3–5 small wins for this week. What can I knock out today?”")
                         .font(.body)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
 
-                    Text("Why should I care if I’m 10 HP down?")
+                    Text("Why should I care about WeeklyQuest?")
                         .font(.title3.bold())
                         .padding(.top, 24)
 
-                    Text("Because being “a little off” stacks.\n\nGoing to your in-laws and you’re sitting at 60 HP? Every small thing hits harder.\n\nHeading into work after garbage sleep and two coffees but no food? That’s basically fighting the final boss with a broken sword and no health potions.\n\nKnowing you’re down 10–20 HP lets you actually do something about it instead of just saying, “I’m cranky for no reason.”")
+                    Text("Because “just get your life together” is useless advice.\n\nA whole week is too big. A whole self-improvement plan is too big. But 1–2 tiny quests you can actually finish? That’s doable.\n\nWeeklyQuest gives you bite-sized, repeatable wins. Instead of vaguely “trying to be better,” you get concrete things like:\n\n• Finish a Work focus session.\n• Do a small self-care quest.\n• Drink the water you said you would.\n\nEach completed quest is proof you actually did something that helped Future You.")
                         .font(.body)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
 
-                    Text("What does HealthBar IRL track?")
+                    Text("What does WeeklyQuest track?")
                         .font(.title3.bold())
                         .padding(.top, 24)
 
-                    Text("This is not a medical device. This is a self-awareness HUD.\n\nYou can track things like:")
+                    Text("WeeklyQuest is not a medical tracker. It’s your “did I actually do the helpful stuff?” log.\n\nIt looks at things like:")
                         .font(.body)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("• Mood – how you’re actually feeling, not what you “should” be feeling.")
-                        Text("• Gut status – did you eat like a human today? Are you regular, or not?")
-                        Text("• Sleep vibes – rested, “meh,” or walking corpse.")
-                        Text("• Hydration – actual water, not just iced coffee pretending to be hydration.")
-                        Text("• Stress level – chill, tense, or “one more email and I scream.”")
+                        Text("• Focus timers – showing up for Work, Chores, Self Care, or Chill without doomscrolling the whole day.")
+                        Text("• Self-care quests – the small, boring, unsexy moves that actually help (water, breaks, moving your body).")
+                        Text("• Life admin – the annoying grown-up tasks you keep postponing until they become a crisis.")
+                        Text("• Boundaries – closing the app, stepping away from screens, or not letting one bad day nuke your whole week.")
                     }
                     .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
 
-                    Text("All of that feeds into your daily HealthBar so you can see: “Oh. I’m not broken, I’m just under-buffed.”")
+                    Text("All of that feeds into your WeeklyQuest progress so you can see: “Oh. I actually did a lot of good tiny things this week, even if my brain says I did nothing.”")
                         .font(.body)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
@@ -56,26 +55,26 @@ struct AboutHealthBarView: View {
                         .font(.title3.bold())
                         .padding(.top, 24)
 
-                    Text("The loop is simple:\n\n1. Check your bar.\n2. Look at your HP and what’s dragging it down.\n3. Do 1–2 tiny fixes:\n   • Drink water.\n   • Move your body.\n   • Go to the bathroom.\n   • Step away from the screen for five minutes.\n4. Watch the pattern.\n\nOver time you start seeing, “Every time I don’t sleep and don’t take care of myself, my HP tanks.”\n\nThis isn’t about being perfect. It’s about being slightly more buffed than yesterday.")
+                    Text("The loop is simple:\n\n1. Open WeeklyQuest.\n2. Look at the quests for this week.\n3. Pick 1–2 that feel doable **today**, not “ideal version of me” stuff.\n4. Use the app like normal (timers, water, posture, etc.) and let the game auto-credit you when you hit those quests.\n5. Check back a few times this week and watch the bar and badges fill in.\n\nOver time you start seeing patterns like: “When I hit even a couple WeeklyQuests, my week feels less like a blur and more like progress.”\n\nThis isn’t about perfection. It’s about stacking tiny wins instead of tiny self-hates.")
                         .font(.body)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
 
-                    Text("What HealthBar IRL is NOT")
+                    Text("What WeeklyQuest is NOT")
                         .font(.title3.bold())
                         .padding(.top, 24)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("• Not a doctor.")
-                        Text("• Not a diet app.")
+                        Text("• Not a productivity cult.")
+                        Text("• Not a punishment system for “bad weeks.”")
                         Text("• Not therapy or a replacement for professional help.")
-                        Text("• Not here to shame you for goblin days.")
+                        Text("• Not here to shame you for goblin-mode days.")
                     }
                     .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
 
-                    Text("It’s just a dashboard that says:\n“You’re going into a boss fight at 58 HP. Want to fix that first?”")
+                    Text("It’s just a weekly quest log that says:\n“You’re not lazy, your brain just needs smaller quests. Want to pick one for today?”")
                         .font(.body)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
@@ -86,7 +85,7 @@ struct AboutHealthBarView: View {
             .padding(.vertical, 24)
         }
         .background(Color(uiColor: .systemBackground).ignoresSafeArea())
-        .navigationTitle("What is HealthBar IRL?")
+        .navigationTitle("What is WeeklyQuest?")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
