@@ -32,7 +32,6 @@ struct FocusView: View {
     @Binding var selectedTab: MainTab
 
     @State private var primaryButtonScale: CGFloat = 1
-    @State private var pauseButtonScale: CGFloat = 1
     @State private var resetButtonScale: CGFloat = 1
     @State private var heroCardScale: CGFloat = 0.98
     @State private var heroCardOpacity: Double = 0.92
@@ -335,63 +334,61 @@ struct FocusView: View {
     }
 
     private func heroCard(for category: TimerCategory) -> some View {
-        VStack(alignment: .leading, spacing: 20) {
-            HStack(alignment: .top, spacing: 14) {
-                Image(systemName: category.id.systemImageName)
-                    .font(.system(size: 34))
-                    .foregroundStyle(Color.accentColor)
-                    .matchedGeometryEffect(id: "emoji-\(category.id)", in: categoryAnimation)
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Image(systemName: category.id.systemImageName)
+                        .font(.system(size: 30))
+                        .foregroundStyle(Color.accentColor)
+                        .matchedGeometryEffect(id: "emoji-\(category.id)", in: categoryAnimation)
 
-                VStack(alignment: .leading, spacing: 6) {
                     Text(category.id.title)
-                        .font(.title.bold())
+                        .font(.title.weight(.semibold))
                         .matchedGeometryEffect(id: "title-\(category.id)", in: categoryAnimation)
+
+                    Spacer(minLength: 0)
+
+                    Text(viewModel.formattedDuration(viewModel.durationForSelectedCategory()))
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.mint.opacity(0.16))
+                        .clipShape(Capsule())
+                        .matchedGeometryEffect(id: "duration-\(category.id)", in: categoryAnimation)
+                        .onTapGesture {
+                            viewModel.pendingDurationSeconds = viewModel.durationForSelectedCategory()
+                            viewModel.isShowingDurationPicker = true
+                        }
+                }
+
+                if !category.id.subtitle.isEmpty {
                     Text(category.id.subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .matchedGeometryEffect(id: "subtitle-\(category.id)", in: categoryAnimation)
-
-                    comboPill(for: category)
                 }
 
-                Spacer(minLength: 0)
-
-                Text(viewModel.formattedDuration(viewModel.durationForSelectedCategory()))
-                    .font(.headline)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(Color.mint.opacity(0.16))
-                    .clipShape(Capsule())
-                    .matchedGeometryEffect(id: "duration-\(category.id)", in: categoryAnimation)
-                    .onTapGesture {
-                        viewModel.pendingDurationSeconds = viewModel.durationForSelectedCategory()
-                        viewModel.isShowingDurationPicker = true
-                    }
+                comboPill(for: category)
             }
 
             timerRing
+                .frame(width: 220, height: 220)
+                .padding(.top, 4)
+                .frame(maxWidth: .infinity)
 
             controlPanel
         }
-        .padding(24)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground).opacity(0.22))
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground).opacity(0.18))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [Color.mint.opacity(0.4), Color.cyan.opacity(0.3), Color.purple.opacity(0.2)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.6
-                )
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(0.35), radius: 20, x: 0, y: 12)
-        .shadow(color: Color.mint.opacity(0.22), radius: 14, x: 0, y: 8)
+        .shadow(color: Color.black.opacity(0.25), radius: 12, x: 0, y: 8)
         .scaleEffect(heroCardScale)
         .opacity(heroCardOpacity)
         .onAppear {
@@ -496,7 +493,7 @@ struct FocusView: View {
     }
 
     private var timerRing: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             ZStack {
                 Circle()
                     .stroke(Color.gray.opacity(0.35), lineWidth: 18)
@@ -544,8 +541,7 @@ struct FocusView: View {
                     .font(.system(size: 64, weight: .black, design: .rounded))
                     .monospacedDigit()
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 280)
+            .frame(width: 220, height: 220)
 
             Text(viewModel.timerStatusText)
                 .font(.footnote)
@@ -555,56 +551,78 @@ struct FocusView: View {
                 .lineLimit(2)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical)
+        .padding(.vertical, 8)
     }
 
     private var controlPanel: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 12) {
+                let primaryDisabled = viewModel.state != .running && selectedDurationInSeconds <= 0
+
                 Button(action: {
                     animateButtonPress(scale: $primaryButtonScale)
-                    viewModel.start()
+                    if viewModel.state == .running {
+                        viewModel.pause()
+                    } else {
+                        viewModel.start()
+                    }
                 }) {
-                    Label(viewModel.state == .paused ? QuestChatStrings.FocusView.resumeButtonTitle : QuestChatStrings.FocusView.startButtonTitle,
-                          systemImage: "play.fill")
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                    Label(
+                        viewModel.state == .running
+                            ? QuestChatStrings.FocusView.pauseButtonTitle
+                            : (viewModel.state == .paused ? QuestChatStrings.FocusView.resumeButtonTitle : QuestChatStrings.FocusView.startButtonTitle),
+                        systemImage: viewModel.state == .running ? "pause.fill" : "play.fill"
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.mint)
                 .scaleEffect(primaryButtonScale)
-                .disabled(viewModel.state == .running || selectedDurationInSeconds <= 0)
-                .opacity(viewModel.state == .running || selectedDurationInSeconds <= 0 ? 0.6 : 1)
+                .disabled(primaryDisabled)
+                .opacity(primaryDisabled ? 0.6 : 1)
 
-                Button(action: {
-                    animateButtonPress(scale: $pauseButtonScale)
-                    viewModel.pause()
+                Button(role: .destructive, action: {
+                    animateButtonPress(scale: $resetButtonScale)
+                    viewModel.reset()
                 }) {
-                    Label(QuestChatStrings.FocusView.pauseButtonTitle, systemImage: "pause.fill")
-                        .frame(maxWidth: .infinity)
+                    Text(QuestChatStrings.FocusView.resetButtonTitle)
+                        .frame(minWidth: 90)
                         .padding(.vertical, 14)
                 }
                 .buttonStyle(.bordered)
-                .scaleEffect(pauseButtonScale)
-                .disabled(viewModel.state != .running)
-                .opacity(viewModel.state != .running ? 0.6 : 1)
+                .scaleEffect(resetButtonScale)
             }
 
-            Button(role: .destructive, action: {
-                animateButtonPress(scale: $resetButtonScale)
-                viewModel.reset()
-            }) {
-                Label(QuestChatStrings.FocusView.resetButtonTitle, systemImage: "arrow.counterclockwise")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-            }
-            .buttonStyle(.bordered)
-            .scaleEffect(resetButtonScale)
+            Text("Focus minutes turn into XP. For life too.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 4)
 
             HStack {
-                statPill(title: QuestChatStrings.FocusView.sessionsLabel, value: "\(statsStore.sessionsCompleted)")
-                let nudgesActive = viewModel.notificationAuthorized && viewModel.hydrationNudgesEnabled
-                statPill(title: QuestChatStrings.FocusView.hydratePostureLabel, value: nudgesActive ? QuestChatStrings.FocusView.hydratePostureOn : QuestChatStrings.FocusView.hydratePostureOff)
+                Text("\(QuestChatStrings.FocusView.sessionsLabel): \(statsStore.sessionsCompleted)")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    ToggleChip(
+                        title: "Hydrate",
+                        systemImage: "drop.fill",
+                        isOn: viewModel.notificationAuthorized && viewModel.hydrationNudgesEnabled,
+                        action: { viewModel.toggleHydrationNudges() }
+                    )
+
+                    ToggleChip(
+                        title: "Posture",
+                        systemImage: "figure.stand",
+                        isOn: viewModel.notificationAuthorized && viewModel.postureRemindersEnabled,
+                        action: { viewModel.togglePostureReminders() }
+                    )
+                }
             }
         }
         .padding()
@@ -682,20 +700,6 @@ struct FocusView: View {
         }
     }
 
-    private func statPill(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title.uppercased())
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.headline.bold())
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
-        .cornerRadius(14)
-    }
-
     private func comboPill(for category: TimerCategory) -> some View {
         // Derive a simple combo heuristic from existing stats rather than missing APIs.
         // Treat the daily focus goal as the combo completion for focus categories.
@@ -727,6 +731,30 @@ struct FocusView: View {
         .background(Color.mint.opacity(0.12))
         .foregroundStyle(.mint)
         .clipShape(Capsule())
+    }
+
+    private struct ToggleChip: View {
+        let title: String
+        let systemImage: String
+        let isOn: Bool
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                HStack(spacing: 4) {
+                    Image(systemName: systemImage)
+                        .font(.caption2)
+                    Text(title)
+                        .font(.caption)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(isOn ? Color.teal.opacity(0.2) : Color.secondary.opacity(0.15))
+                .foregroundStyle(isOn ? Color.teal : .secondary)
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     private func animateButtonPress(scale: Binding<CGFloat>) {

@@ -1623,6 +1623,18 @@ final class FocusViewModel: ObservableObject {
     var hydrationNudgesEnabled: Bool { reminderSettingsStore.hydrationSettings.enabled }
     var postureRemindersEnabled: Bool { reminderSettingsStore.postureSettings.enabled }
 
+    func toggleHydrationNudges() {
+        var settings = reminderSettingsStore.hydrationSettings
+        settings.enabled.toggle()
+        reminderSettingsStore.updateSettings(settings, for: .hydration)
+    }
+
+    func togglePostureReminders() {
+        var settings = reminderSettingsStore.postureSettings
+        settings.enabled.toggle()
+        reminderSettingsStore.updateSettings(settings, for: .posture)
+    }
+
     func logHydrationPillTapped() {
         guard let healthBarViewModel else { return }
 
