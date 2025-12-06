@@ -232,13 +232,18 @@ struct FocusView: View {
                     lineWidth: 1
                 )
         )
-        .overlay(alignment: .topTrailing) {
+        .overlay(alignment: .bottomTrailing) {
             Button {
                 isShowingSettings = true
             } label: {
                 Image(systemName: "gearshape.fill")
-                    .padding(8)
+                    .font(.title3)
+                    .padding(10)
+                    .background(Color(uiColor: .secondarySystemBackground))
+                    .clipShape(Circle())
             }
+            .foregroundStyle(.mint)
+            .padding(10)
         }
     }
 
