@@ -37,7 +37,10 @@ struct MoreView: View {
                 }
             }
             .sheet(isPresented: $isShowingSettings) {
-                SettingsView(viewModel: DependencyContainer.shared.settingsViewModel)
+                SettingsView(
+                    viewModel: DependencyContainer.shared.settingsViewModel,
+                    moreViewModel: DependencyContainer.shared.moreViewModel
+                )
             }
         }
     }

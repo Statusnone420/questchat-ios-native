@@ -35,6 +35,7 @@ struct FocusView: View {
     @State private var resetButtonScale: CGFloat = 1
     @State private var heroCardScale: CGFloat = 0.98
     @State private var heroCardOpacity: Double = 0.92
+    @State private var isShowingSettings = false
 
     @Namespace private var categoryAnimation
 
@@ -180,6 +181,12 @@ struct FocusView: View {
         .sheet(isPresented: $viewModel.isShowingDurationPicker) {
             durationPickerSheet()
         }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView(
+                viewModel: DependencyContainer.shared.settingsViewModel,
+                moreViewModel: DependencyContainer.shared.moreViewModel
+            )
+        }
         .sheet(
             isPresented: Binding(
                 get: { statsStore.shouldShowDailySetup },
@@ -225,6 +232,14 @@ struct FocusView: View {
                     lineWidth: 1
                 )
         )
+        .overlay(alignment: .topTrailing) {
+            Button {
+                isShowingSettings = true
+            } label: {
+                Image(systemName: "gearshape.fill")
+                    .padding(8)
+            }
+        }
     }
 
     private func headerItem(title: String, value: String, icon: String, tint: Color) -> some View {

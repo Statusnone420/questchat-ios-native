@@ -23,7 +23,7 @@ private struct SipFeedbackOverlay: View {
 }
 
 enum MainTab: Hashable {
-    case focus, health, quests, stats, more, talents
+    case focus, health, quests, stats, talents
 }
 
 struct ContentView: View {
@@ -34,7 +34,6 @@ struct ContentView: View {
     @StateObject private var healthBarViewModel = DependencyContainer.shared.healthBarViewModel
     @StateObject private var focusViewModel = DependencyContainer.shared.focusViewModel
     @StateObject private var questsViewModel = DependencyContainer.shared.questsViewModel
-    @StateObject private var moreViewModel = DependencyContainer.shared.moreViewModel
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -73,12 +72,11 @@ struct ContentView: View {
                     .tabItem { Label("Stats", systemImage: "chart.bar.xaxis") }
                     .tag(MainTab.stats)
 
-                MoreView(viewModel: moreViewModel)
-                    .tabItem { Label("More", systemImage: "ellipsis.circle") }
-                    .tag(MainTab.more)
-
                 appCoordinator.makeTalentsView()
-                    .tabItem { Label("Talents", systemImage: "wand.and.stars") }
+                    .tabItem {
+                        Image(systemName: "wand.and.stars")
+                        Text("Talents")
+                    }
                     .tag(MainTab.talents)
             }
             .preferredColorScheme(.dark)
