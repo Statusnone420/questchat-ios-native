@@ -116,16 +116,7 @@ struct FocusView: View {
 
                         reminderCard
 
-                        #if DEBUG
-                        VStack(spacing: 8) {
-                            Button("Test hydration nudge") {
-                                viewModel.debugFireHydrationReminder()
-                            }
-                            Button("Test posture nudge") {
-                                viewModel.debugFirePostureReminder()
-                            }
-                        }
-                        #endif
+                        bottomActionsSection
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 16)
@@ -232,13 +223,38 @@ struct FocusView: View {
                     lineWidth: 1
                 )
         )
-        .overlay(alignment: .topTrailing) {
-            Button {
-                isShowingSettings = true
-            } label: {
-                Image(systemName: "gearshape.fill")
-                    .padding(8)
+    }
+
+    private var settingsGearButton: some View {
+        Button {
+            isShowingSettings = true
+        } label: {
+            Image(systemName: "gearshape.fill")
+                .font(.title3)
+                .padding(10)
+                .background(Color(uiColor: .secondarySystemBackground))
+                .clipShape(Circle())
+        }
+        .foregroundStyle(.mint)
+    }
+
+    @ViewBuilder
+    private var bottomActionsSection: some View {
+        HStack(alignment: .center) {
+            #if DEBUG
+            VStack(alignment: .leading, spacing: 8) {
+                Button("Test hydration nudge") {
+                    viewModel.debugFireHydrationReminder()
+                }
+                Button("Test posture nudge") {
+                    viewModel.debugFirePostureReminder()
+                }
             }
+            #endif
+
+            Spacer()
+
+            settingsGearButton
         }
     }
 
