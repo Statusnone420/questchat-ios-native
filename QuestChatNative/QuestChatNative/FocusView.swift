@@ -197,10 +197,6 @@ struct FocusView: View {
         .onAppear {
             statsStore.refreshDailySetupIfNeeded()
         }
-        .overlay(alignment: .bottomTrailing) {
-            settingsGearButton
-                .padding(20)
-        }
     }
 
     @ViewBuilder
