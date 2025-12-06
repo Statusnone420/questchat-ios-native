@@ -5,43 +5,68 @@ struct PlayerCardView: View {
     @ObservedObject var statsViewModel: StatsViewModel
     @ObservedObject var healthBarViewModel: HealthBarViewModel
     @ObservedObject var focusViewModel: FocusViewModel
+    let isEmbedded: Bool = false
     @State private var isTitlePickerPresented = false
+    @State private var moodSliderValue: Int?
+    @State private var gutSliderValue: Int?
+    @State private var sleepSliderValue: Int?
 
     @AppStorage("playerDisplayName") private var playerDisplayName: String = QuestChatStrings.PlayerCard.defaultName
 
-    var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 20) {
-                headerCard
+    private var content: some View {
+        VStack(spacing: 20) {
+            headerCard
 
-                playerHUDSection
+            playerHUDSection
 
-                VStack(alignment: .leading, spacing: 12) {
-                    statRow(label: QuestChatStrings.PlayerCard.levelLabel, value: "\(store.level)", tint: .mint)
-                    statRow(label: QuestChatStrings.PlayerCard.totalXPLabel, value: "\(store.xp)", tint: .cyan)
-                    statRow(label: QuestChatStrings.PlayerCard.streakLabel, value: "\(store.currentStreakDays) days", tint: .orange)
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
-                .cornerRadius(16)
-
-                HStack {
-                    Text(store.statusLine)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
-
-                statusSection
-
-                Spacer()
+            VStack(alignment: .leading, spacing: 12) {
+                statRow(label: QuestChatStrings.PlayerCard.levelLabel, value: "\(store.level)", tint: .mint)
+                statRow(label: QuestChatStrings.PlayerCard.totalXPLabel, value: "\(store.xp)", tint: .cyan)
+                statRow(label: QuestChatStrings.PlayerCard.streakLabel, value: "\(store.currentStreakDays) days", tint: .orange)
             }
             .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
+            .cornerRadius(16)
+
+            HStack {
+                Text(store.statusLine)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+
+            statusSection
+
+            Spacer(minLength: 0)
+        }
+        .padding()
+    }
+
+    var body: some View {
+        Group {
+            if isEmbedded {
+                content
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    content
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .ignoresSafeArea(.keyboard, edges: .bottom)
+            }
         }
         .background(Color.black.ignoresSafeArea())
-        .scrollDismissesKeyboard(.interactively)
-        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .onAppear {
+            if moodSliderValue == nil {
+                moodSliderValue = HealthRatingMapper.rating(for: healthBarViewModel.inputs.moodStatus)
+            }
+            if gutSliderValue == nil {
+                gutSliderValue = HealthRatingMapper.rating(for: healthBarViewModel.inputs.gutStatus)
+            }
+            if sleepSliderValue == nil {
+                sleepSliderValue = HealthRatingMapper.rating(for: focusViewModel.sleepQuality)
+            }
+        }
         .sheet(isPresented: $isTitlePickerPresented) {
             NavigationStack {
                 VStack(spacing: 16) {
@@ -232,9 +257,10 @@ struct PlayerCardView: View {
 
     private var sleepQualityBinding: Binding<Int?> {
         Binding<Int?>(
-            get: { HealthRatingMapper.rating(for: focusViewModel.sleepQuality) },
+            get: { sleepSliderValue ?? HealthRatingMapper.rating(for: focusViewModel.sleepQuality) },
             set: { newValue in
                 guard let rating = newValue, let quality = HealthRatingMapper.sleepQuality(for: rating) else { return }
+                sleepSliderValue = rating
                 focusViewModel.sleepQuality = quality
             }
         )
@@ -242,9 +268,10 @@ struct PlayerCardView: View {
 
     private var moodRatingBinding: Binding<Int?> {
         Binding<Int?>(
-            get: { HealthRatingMapper.rating(for: healthBarViewModel.inputs.moodStatus) },
+            get: { moodSliderValue ?? HealthRatingMapper.rating(for: healthBarViewModel.inputs.moodStatus) },
             set: { newValue in
                 let status = HealthRatingMapper.moodStatus(for: newValue)
+                moodSliderValue = newValue
                 healthBarViewModel.setMoodStatus(status)
             }
         )
@@ -252,9 +279,10 @@ struct PlayerCardView: View {
 
     private var gutRatingBinding: Binding<Int?> {
         Binding<Int?>(
-            get: { HealthRatingMapper.rating(for: healthBarViewModel.inputs.gutStatus) },
+            get: { gutSliderValue ?? HealthRatingMapper.rating(for: healthBarViewModel.inputs.gutStatus) },
             set: { newValue in
                 let status = HealthRatingMapper.gutStatus(for: newValue)
+                gutSliderValue = newValue
                 healthBarViewModel.setGutStatus(status)
             }
         )
@@ -309,7 +337,7 @@ struct PlayerCardView: View {
                 systemImage: "figure.walk",
                 tint: .green,
                 value: activityRatingBinding,
-                labels: ["Barely moved", "Low", "Some", "Active", "Very active"],
+                labels: ["Barely moved", "Lightly active", "Some movement", "Active", "Very active"],
                 allowsClearing: true,
                 valueDescription: { HealthRatingMapper.activityLabel(for: $0) }
             )

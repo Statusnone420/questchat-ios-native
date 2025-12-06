@@ -3,12 +3,16 @@ import SwiftUI
 struct HealthBarView: View {
     @StateObject var viewModel: HealthBarViewModel
     @ObservedObject var focusViewModel: FocusViewModel
+    @ObservedObject var statsStore: SessionStatsStore
+    @ObservedObject var statsViewModel: StatsViewModel
     @Binding var selectedTab: MainTab
     @EnvironmentObject var questsViewModel: QuestsViewModel
 
-    init(viewModel: HealthBarViewModel, focusViewModel: FocusViewModel, selectedTab: Binding<MainTab>) {
+    init(viewModel: HealthBarViewModel, focusViewModel: FocusViewModel, statsStore: SessionStatsStore, statsViewModel: StatsViewModel, selectedTab: Binding<MainTab>) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _focusViewModel = ObservedObject(wrappedValue: focusViewModel)
+        _statsStore = ObservedObject(wrappedValue: statsStore)
+        _statsViewModel = ObservedObject(wrappedValue: statsViewModel)
         _selectedTab = selectedTab
     }
 
@@ -17,6 +21,13 @@ struct HealthBarView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 20) {
                     healthHeaderCard
+                    PlayerCardView(
+                        store: statsStore,
+                        statsViewModel: statsViewModel,
+                        healthBarViewModel: viewModel,
+                        focusViewModel: focusViewModel,
+                        isEmbedded: true
+                    )
                     vitalsCard
                     PotionsCard(
                         onHealthTap: { focusViewModel.logComfortBeverageTapped() },
@@ -193,6 +204,8 @@ struct HealthBarView: View {
     HealthBarView(
         viewModel: container.healthBarViewModel,
         focusViewModel: container.focusViewModel,
+        statsStore: container.sessionStatsStore,
+        statsViewModel: container.statsViewModel,
         selectedTab: .constant(.health)
     )
     .environmentObject(container.questsViewModel)

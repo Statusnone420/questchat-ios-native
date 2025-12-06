@@ -50,6 +50,8 @@ struct ContentView: View {
                 HealthBarView(
                     viewModel: healthBarViewModel,
                     focusViewModel: focusViewModel,
+                    statsStore: statsStore,
+                    statsViewModel: healthStatsViewModel,
                     selectedTab: $selectedTab
                 )
                     .environmentObject(questsViewModel)

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct RatingSliderRow: View {
     let title: String
@@ -8,6 +9,7 @@ struct RatingSliderRow: View {
     let labels: [String]
     let allowsClearing: Bool
     let valueDescription: (Int) -> String
+    @State private var lastHapticStep: Int?
 
     private var sliderBinding: Binding<Double> {
         Binding<Double>(
@@ -43,16 +45,32 @@ struct RatingSliderRow: View {
             }
 
             Slider(value: sliderBinding, in: 1...5, step: 1)
+                .onChange(of: value.wrappedValue) { newValue in
+                    guard let step = newValue else {
+                        lastHapticStep = nil
+                        return
+                    }
 
-            HStack {
-                Text(labels.first ?? "")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(labels.last ?? "")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    if step != lastHapticStep {
+                        UISelectionFeedbackGenerator().selectionChanged()
+                        lastHapticStep = step
+                    }
+                }
+
+            HStack(spacing: 8) {
+                ForEach(Array(labels.enumerated()), id: \.offset) { index, label in
+                    Text(label)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: alignment(for: index))
+                }
             }
         }
+    }
+
+    private func alignment(for index: Int) -> Alignment {
+        if index == 0 { return .leading }
+        if index == labels.count - 1 { return .trailing }
+        return .center
     }
 }

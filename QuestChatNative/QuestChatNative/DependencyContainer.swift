@@ -96,6 +96,8 @@ final class DependencyContainer {
         HealthBarView(
             viewModel: makeHealthBarViewModel(),
             focusViewModel: focusViewModel,
+            statsStore: sessionStatsStore,
+            statsViewModel: statsViewModel,
             selectedTab: .constant(.health)
         )
     }
