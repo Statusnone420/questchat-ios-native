@@ -862,7 +862,7 @@ private struct DailySetupSheet: View {
                         .foregroundColor(.black)
                         .cornerRadius(20)
                 }
-                .padding(.top, 24)
+                .padding(.top, 8)
                 .padding(.bottom, 4)
             }
             .padding(.horizontal, 20)
@@ -890,41 +890,29 @@ private struct DailySetupSheet: View {
             Text(QuestChatStrings.FocusView.dailySetupTitle)
                 .font(.title2.bold())
                 .foregroundColor(.white)
-            Text("Pick where to focus and your energy. We’ll set a realistic goal for today.")
+            Text("Pick today's focus and energy. We'll set a realistic goal for today.")
                 .font(.subheadline)
-                .foregroundColor(Color.white.opacity(0.85))
+                .foregroundStyle(.secondary)
         }
     }
 
     private var focusAreaSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(QuestChatStrings.FocusView.focusAreaLabel)
-                .font(.headline)
-                .foregroundColor(.white)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
 
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 ForEach(FocusArea.allCases) { area in
-                    Button {
+                    let details = focusDetails(for: area)
+                    FocusModeRow(
+                        title: area.displayName,
+                        subtitle: details.subtitle,
+                        systemImageName: details.icon,
+                        isSelected: selectedFocusArea == area
+                    ) {
                         selectedFocusArea = area
-                    } label: {
-                        HStack(spacing: 10) {
-                            Text(area.icon)
-                            Text(area.displayName)
-                                .font(.body)
-                            Spacer()
-                            if selectedFocusArea == area {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                            }
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(selectedFocusArea == area ? Color.white.opacity(0.12) : Color.white.opacity(0.04))
-                        )
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
@@ -933,14 +921,27 @@ private struct DailySetupSheet: View {
     private var energySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(QuestChatStrings.FocusView.energyLevelLabel)
-                .font(.headline)
-                .foregroundColor(.white)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
 
             HStack(spacing: 8) {
                 chip(for: .low)
                 chip(for: .medium)
                 chip(for: .high)
             }
+        }
+    }
+
+    private func focusDetails(for area: FocusArea) -> (icon: String, subtitle: String) {
+        switch area {
+        case .work:
+            return ("briefcase.fill", "Deep work, study, big tasks")
+        case .selfCare:
+            return ("figure.mind.and.body", "Recovery, appointments, chores")
+        case .chill:
+            return ("moon.zzz.fill", "Light tasks, rest, errands")
+        case .grind:
+            return ("flame.fill", "All-out push day. Use with caution")
         }
     }
 
@@ -964,6 +965,53 @@ private struct DailySetupSheet: View {
                     .stroke(Color.white.opacity(level == selectedEnergy ? 0.3 : 0.15), lineWidth: 1)
             )
             .foregroundColor(.white)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct FocusModeRow: View {
+    let title: String
+    let subtitle: String
+    let systemImageName: String
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.16))
+                        .frame(width: 40, height: 40)
+
+                    Image(systemName: systemImageName)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.accentColor)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Color.accentColor.opacity(0.18) : Color(.secondarySystemBackground))
+            )
         }
         .buttonStyle(.plain)
     }

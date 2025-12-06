@@ -40,19 +40,19 @@ struct OnboardingView: View {
     private var welcomeStep: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Welcome to your IRL HealthBar")
+                Text("Welcome to WeeklyQuest")
                     .font(.largeTitle.bold())
                     .foregroundColor(.white)
 
-                Text("Level up your day with quests, achievements, levels, and cool timers to keep track of important stuff")
+                Text("Turn your day into a set of clear quests with XP, levels, and a real-life HP bar.")
                     .font(.body)
                     .foregroundColor(Color.white.opacity(0.85))
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                bulletRow(text: "Start focus sessions for getting work done, going big on chores, and self care time")
-                bulletRow(text: "Enter how well you slept the night before, current mood, hydration goals, and your current gut situation")
-                bulletRow(text: "Earn XP, unlock badges and titles for your player card, and fill your HealthBar figurately and literally")
+                bulletRow(text: "Start focus sessions for work, chores, and self-care.")
+                bulletRow(text: "Keep your HP honest by logging sleep, mood, hydration, and gut.")
+                bulletRow(text: "Complete daily and weekly quests to earn XP, badges, and titles for your player card.")
             }
 
             VStack(spacing: 10) {
@@ -75,7 +75,7 @@ struct OnboardingView: View {
     private var nameStep: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("What is your badass gamer name")
+                Text("Pick your player name")
                     .font(.largeTitle.bold())
                     .foregroundColor(.white)
 
@@ -201,14 +201,14 @@ struct OnboardingView: View {
 
     private var howItWorksStep: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("You're ready to start earning XP")
+            Text("You're ready to start your WeeklyQuest")
                 .font(.largeTitle.bold())
                 .foregroundColor(.white)
 
             VStack(alignment: .leading, spacing: 12) {
                 bulletRow(text: "Quests: complete daily and weekly quests automatically based on progress to earn XP and badges.")
                 bulletRow(text: "Focus: start timers for work, chores, and self-care. These help keep you focused.")
-                bulletRow(text: "HealthBar IRL: keep your HP honest by updating sleep, mood, and gut each day so you know what you're working with.")
+                bulletRow(text: "WeeklyQuest HP: keep your HP honest by updating sleep, mood, and gut each day so you know what you're working with.")
             }
 
             VStack(alignment: .leading, spacing: 10) {
@@ -227,7 +227,7 @@ struct OnboardingView: View {
             )
             .padding(.top, 18)
 
-            primaryButton(title: "Enter HealthBar IRL") {
+            primaryButton(title: "Enter WeeklyQuest") {
                 viewModel.completeOnboarding()
             }
             .padding(.top, 22)
