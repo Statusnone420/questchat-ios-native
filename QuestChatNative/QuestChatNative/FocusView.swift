@@ -116,16 +116,7 @@ struct FocusView: View {
 
                         reminderCard
 
-                        #if DEBUG
-                        VStack(spacing: 8) {
-                            Button("Test hydration nudge") {
-                                viewModel.debugFireHydrationReminder()
-                            }
-                            Button("Test posture nudge") {
-                                viewModel.debugFirePostureReminder()
-                            }
-                        }
-                        #endif
+                        bottomActionsSection
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 16)
@@ -247,6 +238,27 @@ struct FocusView: View {
                 .padding(10)
                 .background(Color(uiColor: .secondarySystemBackground))
                 .clipShape(Circle())
+        }
+        .foregroundStyle(.mint)
+    }
+
+    @ViewBuilder
+    private var bottomActionsSection: some View {
+        HStack(alignment: .center) {
+            #if DEBUG
+            VStack(alignment: .leading, spacing: 8) {
+                Button("Test hydration nudge") {
+                    viewModel.debugFireHydrationReminder()
+                }
+                Button("Test posture nudge") {
+                    viewModel.debugFirePostureReminder()
+                }
+            }
+            #endif
+
+            Spacer()
+
+            settingsGearButton
         }
         .foregroundStyle(.mint)
     }
