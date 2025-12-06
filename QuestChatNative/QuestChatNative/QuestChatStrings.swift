@@ -2,23 +2,23 @@ import Foundation
 
 enum QuestChatStrings {
     enum TimerCategories {
-        static let deepFocusTitle = "Deep focus"
-        static let deepFocusSubtitle = "Heads-down work, no scrolling."
+        static let deepFocusTitle = "Create"
+        static let deepFocusSubtitle = "Be creative. Drawing, music, writing, crafts—just make stuff."
 
-        static let workSprintTitle = "Work"
-        static let workSprintSubtitle = "Ship stuff fast, no perfectionism."
+        static let workSprintTitle = "Focus mode"
+        static let workSprintSubtitle = "Focus on something important—no doomscrolling."
 
         static let choresSprintTitle = "Chores"
         static let choresSprintSubtitle = "Put the room back on your side."
 
-        static let selfCareTitle = "Self-care reset"
-        static let selfCareSubtitle = "Move, breathe, hydrate, unclench."
+        static let selfCareTitle = "Self-care"
+        static let selfCareSubtitle = "Hot shower, favorite drink, skincare—do something just for you."
 
-        static let gamingResetTitle = "Gaming reset"
-        static let gamingResetSubtitle = "Queue break. Stretch and sip."
+        static let gamingResetTitle = "Gaming"
+        static let gamingResetSubtitle = "Escape the world by entering a new one—guilt-free."
 
-        static let quickBreakTitle = "Quick break"
-        static let quickBreakSubtitle = "Step away so your brain comes back sharper."
+        static let quickBreakTitle = "Move"
+        static let quickBreakSubtitle = "Dance, gym, walk, VR—just move your body."
     }
 
     enum FocusTimerModeTitles {

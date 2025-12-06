@@ -1354,7 +1354,9 @@ final class FocusViewModel: ObservableObject {
         }
         self.categories = loadedCategories
 
-        let initialCategory = loadedCategories.first { $0.id.mode == initialMode } ?? loadedCategories[0]
+        let initialCategory = loadedCategories.first(where: { $0.id == .workSprint })
+            ?? loadedCategories.first { $0.id.mode == initialMode }
+            ?? loadedCategories[0]
         self.selectedCategory = initialCategory.id
         self.selectedMode = initialCategory.id.mode
         self.pausedRemainingSeconds = initialCategory.durationSeconds
@@ -2706,11 +2708,11 @@ extension FocusViewModel {
     static func seededCategories() -> [TimerCategory] {
         [
             TimerCategory(id: .deepFocus, durationSeconds: 25 * 60),
-            TimerCategory(id: .workSprint, durationSeconds: 45 * 60),
+            TimerCategory(id: .quickBreak, durationSeconds: 20 * 60), // TEMP: Move uses .quickBreak category until a dedicated movement category exists.
             TimerCategory(id: .choresSprint, durationSeconds: 15 * 60),
-            TimerCategory(id: .selfCare, durationSeconds: 5 * 60),
-            TimerCategory(id: .gamingReset, durationSeconds: 10 * 60),
-            TimerCategory(id: .quickBreak, durationSeconds: 8 * 60),
+            TimerCategory(id: .workSprint, durationSeconds: 45 * 60),
+            TimerCategory(id: .gamingReset, durationSeconds: 45 * 60),
+            TimerCategory(id: .selfCare, durationSeconds: 20 * 60),
         ]
     }
 }
