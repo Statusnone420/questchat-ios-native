@@ -1035,7 +1035,10 @@ extension QuestsViewModel {
         statsStore.registerQuestCompleted(id: weeklyQuests[index].id, xp: weeklyQuests[index].xpReward)
         persistWeeklyCompletions()
 
-        syncQuestProgress()
+        // Defer sync to next runloop tick so any state updates (counters/sets) settle before recomputing progress.
+        DispatchQueue.main.async { [weak self] in
+            self?.syncQuestProgress()
+        }
     }
 
     func loadHydrationGoalDays() {
