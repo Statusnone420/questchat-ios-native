@@ -7,6 +7,8 @@ final class TalentsViewModel: ObservableObject {
     @Published private(set) var availablePoints: Int = 0
     @Published private(set) var pointsSpent: Int = 0
     @Published private(set) var level: Int = 1
+    @Published var selectedTalent: TalentNode?
+    @Published var isShowingDetail: Bool = false
 
     private let store: TalentTreeStore
     private let statsStore: SessionStatsStore
@@ -17,10 +19,7 @@ final class TalentsViewModel: ObservableObject {
         self.statsStore = statsStore
 
         // Seed initial values
-        nodes = store.nodes
-        currentRanks = store.currentRanks
-        availablePoints = store.availablePoints
-        pointsSpent = store.pointsSpent
+        refreshFromStore()
         level = statsStore.level
 
         // Keep view model in sync with the store
@@ -31,20 +30,12 @@ final class TalentsViewModel: ObservableObject {
 
         store.$currentRanks
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard let self = self else { return }
-                self.currentRanks = self.store.currentRanks
-                self.pointsSpent = self.store.pointsSpent
-                self.availablePoints = self.store.availablePoints
-            }
+            .sink { [weak self] _ in self?.refreshFromStore() }
             .store(in: &cancellables)
 
         store.$totalPoints
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard let self = self else { return }
-                self.availablePoints = self.store.availablePoints
-            }
+            .sink { [weak self] _ in self?.refreshFromStore() }
             .store(in: &cancellables)
 
         statsStore.$progression
@@ -54,7 +45,7 @@ final class TalentsViewModel: ObservableObject {
     }
 
     func rank(for node: TalentNode) -> Int {
-        store.rank(for: node)
+        currentRanks[node.id] ?? 0
     }
 
     func canSpend(on node: TalentNode) -> Bool {
@@ -69,5 +60,17 @@ final class TalentsViewModel: ObservableObject {
 
     func tap(node: TalentNode) {
         store.spendPoint(on: node)
+    }
+
+    func respecAllTalents() {
+        store.respecAll()
+        refreshFromStore()
+    }
+
+    private func refreshFromStore() {
+        nodes = store.nodes
+        currentRanks = store.currentRanks
+        availablePoints = store.availablePoints
+        pointsSpent = store.pointsSpent
     }
 }

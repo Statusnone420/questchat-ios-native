@@ -82,7 +82,17 @@ final class TalentTreeStore: ObservableObject {
         }
     }
 
+    func respecAll() {
+        currentRanks = [:]
+        spentPoints = 0
+        saveIfNeeded()
+    }
+
     private func recalculateSpentPoints() {
         spentPoints = currentRanks.values.reduce(0, +)
+    }
+
+    private func saveIfNeeded() {
+        // Placeholder for persistence integration.
     }
 }

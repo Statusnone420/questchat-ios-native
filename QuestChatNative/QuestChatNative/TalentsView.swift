@@ -1,7 +1,9 @@
 import SwiftUI
+import UIKit
 
 struct TalentsView: View {
     @StateObject var viewModel: TalentsViewModel
+    @State private var isShowingRespecConfirm = false
 
     private let columns: [GridItem] = Array(
         repeating: GridItem(.flexible(), spacing: 12, alignment: .top),
@@ -21,7 +23,14 @@ struct TalentsView: View {
                             isUnlocked: viewModel.isUnlocked(node),
                             canSpend: viewModel.canSpend(on: node)
                         ) {
-                            viewModel.tap(node: node)
+                            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                                viewModel.tap(node: node)
+                            }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        .onLongPressGesture {
+                            viewModel.selectedTalent = node
+                            viewModel.isShowingDetail = true
                         }
                     }
                 }
@@ -29,12 +38,40 @@ struct TalentsView: View {
             .padding()
         }
         .navigationTitle("IRL Talent Tree")
+        .sheet(isPresented: $viewModel.isShowingDetail) {
+            if let node = viewModel.selectedTalent {
+                TalentDetailSheet(
+                    node: node,
+                    currentRank: viewModel.rank(for: node)
+                )
+            }
+        }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("IRL Talent Tree")
-                .font(.title2).bold()
+            HStack {
+                Text("IRL Talent Tree")
+                    .font(.largeTitle.bold())
+
+                Spacer()
+
+                Button("Respec") {
+                    isShowingRespecConfirm = true
+                }
+                .font(.footnote.bold())
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.secondary.opacity(0.2))
+                .clipShape(Capsule())
+
+                Text("Lvl \(viewModel.level)")
+                    .font(.footnote)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.thinMaterial)
+                    .clipShape(Capsule())
+            }
 
             HStack(spacing: 16) {
                 HStack(spacing: 4) {
@@ -52,16 +89,15 @@ struct TalentsView: View {
                     Text("\(viewModel.pointsSpent)")
                         .font(.subheadline)
                 }
-
-                Spacer()
-
-                Text("Lvl \(viewModel.level)")
-                    .font(.footnote)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.thinMaterial)
-                    .clipShape(Capsule())
             }
+        }
+        .alert("Reset all talents?", isPresented: $isShowingRespecConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset", role: .destructive) {
+                viewModel.respecAllTalents()
+            }
+        } message: {
+            Text("This will clear all spent points so you can rebuild your tree.")
         }
     }
 }
@@ -129,5 +165,24 @@ private struct TalentNodeTile: View {
         } else {
             return 0.35
         }
+    }
+}
+
+private struct TalentDetailSheet: View {
+    let node: TalentNode
+    let currentRank: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(node.name)
+                .font(.title2.bold())
+            Text("Rank \(currentRank)/\(node.maxRanks)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text(node.description)
+                .font(.body)
+            Spacer()
+        }
+        .padding()
     }
 }
