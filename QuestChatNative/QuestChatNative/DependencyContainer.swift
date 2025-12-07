@@ -91,6 +91,7 @@ final class DependencyContainer {
     func makeOnboardingViewModel(onCompletion: (() -> Void)? = nil) -> OnboardingViewModel {
         OnboardingViewModel(
             hydrationSettingsStore: hydrationSettingsStore,
+            dailyRatingsStore: dailyHealthRatingsStore,
             healthBarViewModel: healthBarViewModel,
             focusViewModel: focusViewModel,
             onCompletion: onCompletion

@@ -6,7 +6,7 @@ final class OnboardingViewModel: ObservableObject {
         case welcome
         case name
         case hydration
-        case moodGutSleep
+        case dailyVitals
         case howItWorks
     }
 
@@ -18,25 +18,25 @@ final class OnboardingViewModel: ObservableObject {
     @Published var currentStep: OnboardingStep = .welcome
     @Published var playerName: String
     @Published var selectedHydrationGoalCups: Int
-    @Published var selectedMoodState: MoodStatus
-    @Published var selectedGutState: GutStatus
-    @Published var selectedSleepValue: SleepQuality
     @Published private(set) var hasCompletedOnboarding: Bool
 
-    private let hydrationSettingsStore: HydrationSettingsStore
-    private let healthBarViewModel: HealthBarViewModel
-    private let focusViewModel: FocusViewModel
+    let hydrationSettingsStore: HydrationSettingsStore
+    let dailyRatingsStore: DailyHealthRatingsStore
+    let healthBarViewModel: HealthBarViewModel
+    let focusViewModel: FocusViewModel
     private let userDefaults: UserDefaults
     private let onCompletion: (() -> Void)?
 
     init(
         hydrationSettingsStore: HydrationSettingsStore,
+        dailyRatingsStore: DailyHealthRatingsStore,
         healthBarViewModel: HealthBarViewModel,
         focusViewModel: FocusViewModel,
         userDefaults: UserDefaults = .standard,
         onCompletion: (() -> Void)? = nil
     ) {
         self.hydrationSettingsStore = hydrationSettingsStore
+        self.dailyRatingsStore = dailyRatingsStore
         self.healthBarViewModel = healthBarViewModel
         self.focusViewModel = focusViewModel
         self.userDefaults = userDefaults
@@ -51,14 +51,6 @@ final class OnboardingViewModel: ObservableObject {
         } else {
             selectedHydrationGoalCups = 8
         }
-
-        let gut = healthBarViewModel.inputs.gutStatus
-        selectedGutState = gut == .none ? .none : gut
-
-        let mood = healthBarViewModel.inputs.moodStatus
-        selectedMoodState = mood == .none ? .none : mood
-
-        selectedSleepValue = focusViewModel.sleepQuality
         hasCompletedOnboarding = userDefaults.bool(forKey: Keys.hasCompletedOnboarding)
     }
 
@@ -69,12 +61,17 @@ final class OnboardingViewModel: ObservableObject {
         case .name:
             currentStep = .hydration
         case .hydration:
-            currentStep = .moodGutSleep
-        case .moodGutSleep:
+            currentStep = .dailyVitals
+        case .dailyVitals:
             currentStep = .howItWorks
         case .howItWorks:
             completeOnboarding()
         }
+    }
+
+    func completeDailyVitalsStep() {
+        seedDailyVitalsIfNeeded()
+        currentStep = .howItWorks
     }
 
     func skip() {
@@ -86,12 +83,55 @@ final class OnboardingViewModel: ObservableObject {
     func completeOnboarding() {
         userDefaults.set(playerName.isEmpty ? QuestChatStrings.PlayerCard.defaultName : playerName, forKey: Keys.playerDisplayName)
         hydrationSettingsStore.dailyWaterGoalOunces = selectedHydrationGoalCups * 8
-        healthBarViewModel.setGutStatus(selectedGutState)
-        healthBarViewModel.setMoodStatus(selectedMoodState)
-        focusViewModel.sleepQuality = selectedSleepValue
+
+        seedDailyVitalsIfNeeded()
 
         hasCompletedOnboarding = true
         userDefaults.set(true, forKey: Keys.hasCompletedOnboarding)
         onCompletion?()
     }
+
+    func seedDailyVitalsIfNeeded(defaultRating: Int = 3) {
+        let ratings = dailyRatingsStore.ratings()
+
+        if ratings.mood == nil {
+            setMoodRating(defaultRating)
+        }
+
+        if ratings.gut == nil {
+            setGutRating(defaultRating)
+        }
+
+        if ratings.sleep == nil {
+            setSleepRating(defaultRating)
+        }
+
+        if ratings.activity == nil {
+            setActivityRating(defaultRating)
+        }
+    }
+
+    private func setMoodRating(_ rating: Int?) {
+        dailyRatingsStore.setMood(rating)
+        let status = HealthRatingMapper.moodStatus(for: rating)
+        healthBarViewModel.setMoodStatus(status)
+    }
+
+    private func setGutRating(_ rating: Int?) {
+        dailyRatingsStore.setGut(rating)
+        let status = HealthRatingMapper.gutStatus(for: rating)
+        healthBarViewModel.setGutStatus(status)
+    }
+
+    private func setSleepRating(_ rating: Int?) {
+        dailyRatingsStore.setSleep(rating)
+        focusViewModel.sleepQuality = HealthRatingMapper.sleepQuality(for: rating ?? defaultSleepRating) ?? .okay
+    }
+
+    private func setActivityRating(_ rating: Int?) {
+        dailyRatingsStore.setActivity(rating)
+        focusViewModel.activityLevel = HealthRatingMapper.activityLevel(for: rating)
+    }
+
+    private var defaultSleepRating: Int { 3 }
 }

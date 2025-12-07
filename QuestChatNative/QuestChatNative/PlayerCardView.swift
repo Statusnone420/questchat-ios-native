@@ -317,61 +317,33 @@ struct PlayerCardView: View {
         )
     }
 
-    private var sleepQualityBinding: Binding<Int?> {
-        Binding<Int?>(
-            get: { dailyRatingsStore.ratings().sleep },
-            set: { newValue in
-                dailyRatingsStore.setSleep(newValue)
-                if let rating = newValue, let quality = HealthRatingMapper.sleepQuality(for: rating) {
-                    focusViewModel.sleepQuality = quality
-                }
-            }
-        )
-    }
-
-    private var moodRatingBinding: Binding<Int?> {
-        Binding<Int?>(
-            get: { dailyRatingsStore.ratings().mood },
-            set: { newValue in
-                let previous = dailyRatingsStore.ratings().mood
-                dailyRatingsStore.setMood(newValue)
-                let status = HealthRatingMapper.moodStatus(for: newValue)
-                healthBarViewModel.setMoodStatus(status)
-                if previous == nil, newValue != nil {
-                    // Complete Morning Check-In when mood is logged for the first time today.
-                    // This uses the canonical ratings store; HP tab already handles its own flow.
-                    DependencyContainer.shared.questsViewModel.completeQuestIfNeeded(id: "DAILY_HB_MORNING_CHECKIN")
-                }
-            }
-        )
-    }
-
-    private var gutRatingBinding: Binding<Int?> {
-        Binding<Int?>(
-            get: { dailyRatingsStore.ratings().gut },
-            set: { newValue in
-                dailyRatingsStore.setGut(newValue)
-                let status = HealthRatingMapper.gutStatus(for: newValue)
-                healthBarViewModel.setGutStatus(status)
-            }
-        )
-    }
-
-    private var activityRatingBinding: Binding<Int?> {
-        Binding<Int?>(
-            get: { dailyRatingsStore.ratings().activity },
-            set: { newValue in
-                dailyRatingsStore.setActivity(newValue)
-                focusViewModel.activityLevel = HealthRatingMapper.activityLevel(for: newValue)
-            }
-        )
-    }
-
     private var statusSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Status")
                 .font(.headline)
 
+            DailyVitalsSlidersView(
+                dailyRatingsStore: dailyRatingsStore,
+                healthBarViewModel: healthBarViewModel,
+                focusViewModel: focusViewModel
+            )
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
+        .cornerRadius(16)
+    }
+}
+
+/// Shared sliders for daily vitals (mood, gut, sleep, activity) used across the app and onboarding
+/// so updates only need to be made in one place.
+struct DailyVitalsSlidersView: View {
+    @ObservedObject var dailyRatingsStore: DailyHealthRatingsStore
+    @ObservedObject var healthBarViewModel: HealthBarViewModel
+    @ObservedObject var focusViewModel: FocusViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
             RatingSliderRow(
                 title: "Mood",
                 systemImage: "face.smiling",
@@ -412,10 +384,52 @@ struct PlayerCardView: View {
                 valueDescription: { HealthRatingMapper.activityLabel(for: $0) }
             )
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
-        .cornerRadius(16)
+    }
+
+    private var sleepQualityBinding: Binding<Int?> {
+        Binding<Int?>(
+            get: { dailyRatingsStore.ratings().sleep },
+            set: { newValue in
+                dailyRatingsStore.setSleep(newValue)
+                focusViewModel.sleepQuality = HealthRatingMapper.sleepQuality(for: newValue ?? 3) ?? .okay
+            }
+        )
+    }
+
+    private var moodRatingBinding: Binding<Int?> {
+        Binding<Int?>(
+            get: { dailyRatingsStore.ratings().mood },
+            set: { newValue in
+                let previous = dailyRatingsStore.ratings().mood
+                dailyRatingsStore.setMood(newValue)
+                let status = HealthRatingMapper.moodStatus(for: newValue)
+                healthBarViewModel.setMoodStatus(status)
+                if previous == nil, newValue != nil {
+                    DependencyContainer.shared.questsViewModel.completeQuestIfNeeded(id: "DAILY_HB_MORNING_CHECKIN")
+                }
+            }
+        )
+    }
+
+    private var gutRatingBinding: Binding<Int?> {
+        Binding<Int?>(
+            get: { dailyRatingsStore.ratings().gut },
+            set: { newValue in
+                dailyRatingsStore.setGut(newValue)
+                let status = HealthRatingMapper.gutStatus(for: newValue)
+                healthBarViewModel.setGutStatus(status)
+            }
+        )
+    }
+
+    private var activityRatingBinding: Binding<Int?> {
+        Binding<Int?>(
+            get: { dailyRatingsStore.ratings().activity },
+            set: { newValue in
+                dailyRatingsStore.setActivity(newValue)
+                focusViewModel.activityLevel = HealthRatingMapper.activityLevel(for: newValue)
+            }
+        )
     }
 }
 
