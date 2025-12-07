@@ -352,6 +352,7 @@ final class SessionStatsStore: ObservableObject {
 
     private let playerStateStore: PlayerStateStore
     private let playerTitleStore: PlayerTitleStore
+    private let talentTreeStore: TalentTreeStore
     private var playerCancellables = Set<AnyCancellable>()
     var questEventHandler: ((QuestEvent) -> Void)?
 
@@ -423,10 +424,16 @@ final class SessionStatsStore: ObservableObject {
         focusSessionsThisWeek
     }
 
-    init(userDefaults: UserDefaults = .standard, playerStateStore: PlayerStateStore, playerTitleStore: PlayerTitleStore) {
+    init(
+        userDefaults: UserDefaults = .standard,
+        playerStateStore: PlayerStateStore,
+        playerTitleStore: PlayerTitleStore,
+        talentTreeStore: TalentTreeStore
+    ) {
         self.userDefaults = userDefaults
         self.playerStateStore = playerStateStore
         self.playerTitleStore = playerTitleStore
+        self.talentTreeStore = talentTreeStore
         focusSeconds = userDefaults.integer(forKey: Keys.focusSeconds)
         selfCareSeconds = userDefaults.integer(forKey: Keys.selfCareSeconds)
         sessionsCompleted = userDefaults.integer(forKey: Keys.sessionsCompleted)
@@ -475,6 +482,8 @@ final class SessionStatsStore: ObservableObject {
         let initialLevel = computedProgression.level
         lastKnownLevel = storedLevel > 0 ? storedLevel : initialLevel
         pendingLevelUp = nil
+
+        talentTreeStore.applyLevel(progression.level)
 
         let storedPlan = Self.decodePlan(from: userDefaults.data(forKey: Keys.dailyPlan))
             ?? Self.decodeLegacyConfig(from: userDefaults.data(forKey: Keys.legacyDailyConfig))
@@ -662,6 +671,7 @@ final class SessionStatsStore: ObservableObject {
             pendingLevelUp = nil
         }
         lastKnownLevel = level
+        syncTalentTreeLevel()
         syncPlayerStateProgress()
         persist()
         return lastLevelUp
@@ -739,6 +749,7 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(Calendar.current.startOfDay(for: Date()), forKey: Keys.totalFocusDate)
         lastKnownLevel = level
         pendingLevelUp = nil
+        syncTalentTreeLevel()
         sessionHistory = []
         lastWeeklyGoalBonusAwardedDate = nil
         lastLevelUp = nil
@@ -765,6 +776,7 @@ final class SessionStatsStore: ObservableObject {
         lastLevelUp = nil
 
         // Keep player state in sync and persist
+        syncTalentTreeLevel()
         syncPlayerStateProgress()
         saveProgression()
         persist()
@@ -813,6 +825,10 @@ final class SessionStatsStore: ObservableObject {
             streakDays: streakDays,
             lastActiveDate: lastActiveDate
         )
+    }
+
+    private func syncTalentTreeLevel() {
+        talentTreeStore.applyLevel(level)
     }
 
     private func syncPlayerStateProgress() {

@@ -9,17 +9,19 @@ final class TalentsViewModel: ObservableObject {
     @Published private(set) var level: Int = 1
 
     private let store: TalentTreeStore
+    private let statsStore: SessionStatsStore
     private var cancellables = Set<AnyCancellable>()
 
-    init(store: TalentTreeStore) {
+    init(store: TalentTreeStore, statsStore: SessionStatsStore) {
         self.store = store
+        self.statsStore = statsStore
 
         // Seed initial values
         nodes = store.nodes
         currentRanks = store.currentRanks
         availablePoints = store.availablePoints
         pointsSpent = store.pointsSpent
-        level = store.currentLevel
+        level = statsStore.level
 
         // Keep view model in sync with the store
         store.$nodes
@@ -37,14 +39,18 @@ final class TalentsViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        store.$currentLevel
+        store.$totalPoints
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] newLevel in
+            .sink { [weak self] _ in
                 guard let self = self else { return }
-                self.level = newLevel
                 self.availablePoints = self.store.availablePoints
             }
             .store(in: &cancellables)
+
+        statsStore.$progression
+            .map { $0.level }
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$level)
     }
 
     func rank(for node: TalentNode) -> Int {

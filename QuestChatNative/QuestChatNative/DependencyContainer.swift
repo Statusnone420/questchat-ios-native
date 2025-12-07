@@ -29,7 +29,12 @@ final class DependencyContainer {
         // Core stores
         playerTitleStore = PlayerTitleStore()
         playerStateStore = PlayerStateStore()
-        sessionStatsStore = SessionStatsStore(playerStateStore: playerStateStore, playerTitleStore: playerTitleStore)
+        talentTreeStore = TalentTreeStore()
+        sessionStatsStore = SessionStatsStore(
+            playerStateStore: playerStateStore,
+            playerTitleStore: playerTitleStore,
+            talentTreeStore: talentTreeStore
+        )
         healthStatsStore = HealthBarIRLStatsStore()
         hydrationSettingsStore = HydrationSettingsStore()
         reminderSettingsStore = ReminderSettingsStore()
@@ -38,7 +43,6 @@ final class DependencyContainer {
         activityHistoryStore = ActivityHistoryStore()
         dailyHealthRatingsStore = DailyHealthRatingsStore()
         seasonAchievementsStore = SeasonAchievementsStore()
-        talentTreeStore = TalentTreeStore()
         questEngine = QuestEngine()
 
         // View models that depend on stores
@@ -112,6 +116,6 @@ final class DependencyContainer {
     }
 
     func makeTalentsViewModel() -> TalentsViewModel {
-        TalentsViewModel(store: talentTreeStore)
+        TalentsViewModel(store: talentTreeStore, statsStore: sessionStatsStore)
     }
 }
