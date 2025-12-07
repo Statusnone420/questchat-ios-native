@@ -11,6 +11,20 @@ struct TalentsView: View {
         count: 4
     )
 
+    private struct TalentEdge: Identifiable, Hashable {
+        let id: String
+        let parentID: String
+        let childID: String
+    }
+
+    private var edges: [TalentEdge] {
+        viewModel.nodes.flatMap { node in
+            node.prerequisiteIDs.map { parentID in
+                TalentEdge(id: "\(parentID)->\(node.id)", parentID: parentID, childID: node.id)
+            }
+        }
+    }
+
     private func popoverArrowEdge(for node: TalentNode) -> Edge {
         guard let rect = tileFrames[node.id] else { return .top }
         let screenHeight = UIScreen.main.bounds.height
@@ -31,58 +45,62 @@ struct TalentsView: View {
             VStack(alignment: .leading, spacing: 16) {
                 header
 
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(viewModel.nodes) { node in
-                        TalentTileView(
-                            node: node,
-                            currentRank: viewModel.rank(for: node),
-                            isUnlocked: viewModel.isUnlocked(node),
-                            isMastered: viewModel.rank(for: node) == node.maxRanks,
-                            canSpend: viewModel.canSpend(on: node),
-                            masteryPulseID: $viewModel.masteryPulseID,
-                            onTap: {
-                                guard viewModel.canSpend(on: node) else { return }
-                                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
-                                    viewModel.incrementRank(for: node)
-                                }
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            },
-                            onLongPress: {
-                                viewModel.selectedTalent = node
-                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                                TalentHaptics.prepareSelection()
-                            }
-                        )
-                        .onAppear { TalentHaptics.prepareSelection() }
-                        .background(
-                            GeometryReader { proxy in
-                                Color.clear
-                                    .preference(key: TalentTileFramePreferenceKey.self, value: [node.id: proxy.frame(in: .global)])
-                            }
-                        )
-                        .onPreferenceChange(TalentTileFramePreferenceKey.self) { frames in
-                            for (id, rect) in frames { tileFrames[id] = rect }
-                        }
-                        .popover(
-                            item: Binding(
-                                get: {
-                                    viewModel.selectedTalent?.id == node.id ? viewModel.selectedTalent : nil
-                                },
-                                set: { newValue in
-                                    if newValue == nil {
-                                        TalentHaptics.selectionChanged()
-                                        viewModel.selectedTalent = nil
-                                    }
-                                }
-                            ),
-                            attachmentAnchor: .rect(.bounds),
-                            arrowEdge: popoverArrowEdge(for: node)
-                        ) { node in
-                            TalentDetailPopover(
+                ZStack {
+                    connectorsLayer()
+
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(viewModel.nodes) { node in
+                            TalentTileView(
                                 node: node,
-                                currentRank: viewModel.rank(for: node)
+                                currentRank: viewModel.rank(for: node),
+                                isUnlocked: viewModel.isUnlocked(node),
+                                isMastered: viewModel.rank(for: node) == node.maxRanks,
+                                canSpend: viewModel.canSpend(on: node),
+                                masteryPulseID: $viewModel.masteryPulseID,
+                                onTap: {
+                                    guard viewModel.canSpend(on: node) else { return }
+                                    withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                                        viewModel.incrementRank(for: node)
+                                    }
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                },
+                                onLongPress: {
+                                    viewModel.selectedTalent = node
+                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                    TalentHaptics.prepareSelection()
+                                }
                             )
-                            .presentationCompactAdaptation(.none)
+                            .onAppear { TalentHaptics.prepareSelection() }
+                            .background(
+                                GeometryReader { proxy in
+                                    Color.clear
+                                        .preference(key: TalentTileFramePreferenceKey.self, value: [node.id: proxy.frame(in: .global)])
+                                }
+                            )
+                            .onPreferenceChange(TalentTileFramePreferenceKey.self) { frames in
+                                for (id, rect) in frames { tileFrames[id] = rect }
+                            }
+                            .popover(
+                                item: Binding(
+                                    get: {
+                                        viewModel.selectedTalent?.id == node.id ? viewModel.selectedTalent : nil
+                                    },
+                                    set: { newValue in
+                                        if newValue == nil {
+                                            TalentHaptics.selectionChanged()
+                                            viewModel.selectedTalent = nil
+                                        }
+                                    }
+                                ),
+                                attachmentAnchor: .rect(.bounds),
+                                arrowEdge: popoverArrowEdge(for: node)
+                            ) { node in
+                                TalentDetailPopover(
+                                    node: node,
+                                    currentRank: viewModel.rank(for: node)
+                                )
+                                .presentationCompactAdaptation(.none)
+                            }
                         }
                     }
                 }
@@ -91,6 +109,24 @@ struct TalentsView: View {
         }
         .navigationTitle("IRL Talent Tree")
         .onAppear { TalentHaptics.prepareSelection() }
+    }
+
+    private func connectorsLayer() -> some View {
+        ZStack {
+            ForEach(edges) { edge in
+                if let parentFrame = tileFrames[edge.parentID],
+                   let childFrame = tileFrames[edge.childID] {
+                    ConnectorLine(
+                        start: CGPoint(x: parentFrame.midX, y: parentFrame.maxY),
+                        end:   CGPoint(x: childFrame.midX,  y: childFrame.minY),
+                        parentID: edge.parentID,
+                        childID: edge.childID,
+                        viewModel: viewModel
+                    )
+                }
+            }
+        }
+        .allowsHitTesting(false)
     }
 
     private var talentTreeBackground: some View {
@@ -268,6 +304,71 @@ struct TalentsView: View {
                 endPoint: .bottomTrailing
             )
             .overlay(Color.black.opacity(0.55))
+        }
+    }
+}
+
+private struct ConnectorLine: View {
+    let start: CGPoint
+    let end: CGPoint
+    let parentID: String
+    let childID: String
+    @ObservedObject var viewModel: TalentsViewModel
+
+    var body: some View {
+        let style = styleForState
+
+        Path { path in
+            path.move(to: start)
+            path.addLine(to: end)
+        }
+        .stroke(style.gradient, style: StrokeStyle(
+            lineWidth: style.lineWidth,
+            lineCap: .round
+        ))
+        .opacity(style.opacity)
+        .shadow(radius: style.isGlowing ? 8 : 0)
+        .blendMode(.screen)
+        .animation(.easeOut(duration: 0.25), value: style.stateID)
+    }
+
+    private var styleForState: (gradient: LinearGradient, lineWidth: CGFloat, opacity: Double, isGlowing: Bool, stateID: Int) {
+        let parentRank = viewModel.nodes.first(where: { $0.id == parentID }).map { viewModel.rank(for: $0) } ?? 0
+        let childRank = viewModel.nodes.first(where: { $0.id == childID }).map { viewModel.rank(for: $0) } ?? 0
+
+        let activeGradient = LinearGradient(
+            colors: [Color.teal, Color.purple],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+
+        if childRank > 0 {
+            return (
+                gradient: activeGradient,
+                lineWidth: 4.0,
+                opacity: 1.0,
+                isGlowing: true,
+                stateID: 2
+            )
+        } else if parentRank > 0 {
+            return (
+                gradient: activeGradient,
+                lineWidth: 2.5,
+                opacity: 0.6,
+                isGlowing: false,
+                stateID: 1
+            )
+        } else {
+            return (
+                gradient: LinearGradient(
+                    colors: [Color.white.opacity(0.2)],
+                    startPoint: .top, endPoint: .bottom
+                ),
+                lineWidth: 1.5,
+                opacity: 0.25,
+                isGlowing: false,
+                stateID: 0
+            )
         }
     }
 }
