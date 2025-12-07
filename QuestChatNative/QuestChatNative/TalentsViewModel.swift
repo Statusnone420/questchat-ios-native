@@ -46,6 +46,20 @@ final class TalentsViewModel: ObservableObject {
             .assign(to: &$level)
     }
 
+    /// Number of talents that are fully mastered (currentRank == maxRanks).
+    var masteredCount: Int {
+        nodes.filter { rank(for: $0) >= $0.maxRanks }.count
+    }
+
+    /// Simple tier to drive background aura intensity.
+    var masteryTier: Int {
+        switch masteredCount {
+        case 0...3: return 0      // no aura
+        case 4...9: return 1      // soft aura
+        default: return 2         // stronger aura
+        }
+    }
+
     func rank(for node: TalentNode) -> Int {
         currentRanks[node.id] ?? 0
     }
