@@ -24,7 +24,7 @@ import SwiftUI
 // - Accent colors: use existing teal/purple from asset catalog
 //     • Prefer Color.teal / Color.purple, or any Color.questTeal / Color.questPurple
 // - Icons:
-//     • Use SF Symbols 7 (iOS 17 / SF Symbols 5+ or iOS 26 / SF Symbols 7 when possible).
+//     • Use SF Symbols Draw when possible (iOS 17 / SF Symbols 5+ if not).
 //     • Prefer “drawn” style where it makes sense.
 //     • Use .symbolRenderingMode(.hierarchical) or .palette with teal/purple.
 // - Typography:
