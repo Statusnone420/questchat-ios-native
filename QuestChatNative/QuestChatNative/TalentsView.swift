@@ -202,17 +202,67 @@ private struct TalentDetailPopover: View {
     let node: TalentNode
     let currentRank: Int
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(node.name)
-                .font(.title2.bold())
-            Text("Rank \(currentRank)/\(node.maxRanks)")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Text(node.description)
-                .font(.body)
-            Spacer()
+    private var rankColor: Color {
+        if currentRank <= 0 { return .secondary }
+        let fraction = Double(currentRank) / Double(max(node.maxRanks, 1))
+        switch fraction {
+        case ..<0.34: return .teal
+        case ..<0.67: return .blue
+        case ..<1.0: return .purple
+        default: return .yellow
         }
-        .padding()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.accentColor.opacity(0.16))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: node.sfSymbolName)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(node.name)
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.9)
+
+                    HStack(spacing: 6) {
+                        Image(systemName: "star.fill")
+                            .font(.caption2)
+                        Text("Rank \(currentRank)/\(node.maxRanks)")
+                            .font(.caption.bold())
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(rankColor.opacity(0.18))
+                    .foregroundStyle(rankColor)
+                    .clipShape(Capsule())
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            Text(node.description)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineSpacing(1.5)
+        }
+        .padding(14)
+        .frame(maxWidth: 340)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground).opacity(0.20))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+        )
     }
 }
