@@ -7,70 +7,55 @@ struct SettingsView: View {
     @State private var pendingReset: ResetWindow?
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("Settings")
+                .font(.largeTitle.bold())
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            ScrollView {
+                VStack(spacing: 16) {
                     remindersCard
-                }
-                .listRowBackground(Color.clear)
 
-                Section {
                     hydrationSettingsCard
-                }
-                .listRowBackground(Color.clear)
 
-                Section {
                     aboutWeeklyQuestCard
-                }
-                .listRowBackground(Color.clear)
 
 #if DEBUG
-                Section {
                     debugToolsCard
-                }
-                .listRowBackground(Color.clear)
 #endif
 
-                Section(
-                    footer: Text("Time-window resets remove recent sessions, XP, and health logs only. Full reset clears all local progress and settings; restart the app afterward for a fresh start.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                ) {
-                    resetButton(title: "Reset last 5 minutes", window: .last5Minutes)
-                    resetButton(title: "Reset last hour", window: .lastHour)
-                    resetButton(title: "Reset last day", window: .lastDay)
-                    resetButton(title: "Reset last week", window: .lastWeek)
-                    resetButton(title: "Full reset", window: .full, role: .destructive)
+                    resetCard
+                }
+                .padding(.bottom, 24)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .alert("Confirm reset", isPresented: Binding(
+            get: { pendingReset != nil },
+            set: { newValue in
+                if !newValue { pendingReset = nil }
+            }
+        ), actions: {
+            Button("Cancel", role: .cancel) {
+                pendingReset = nil
+            }
+            Button("Confirm", role: .destructive) {
+                if let window = pendingReset {
+                    viewModel.reset(window: window)
+                }
+                pendingReset = nil
+            }
+        }, message: {
+            if let pendingReset {
+                switch pendingReset {
+                case .full:
+                    Text("This will erase all locally stored progress and settings. The app may need to be fully restarted afterward.")
+                default:
+                    Text("This will remove data recorded in the selected time window, including sessions, XP, and health logs.")
                 }
             }
-            .navigationTitle("Settings")
-            .listStyle(.insetGrouped)
-            .alert("Confirm reset", isPresented: Binding(
-                get: { pendingReset != nil },
-                set: { newValue in
-                    if !newValue { pendingReset = nil }
-                }
-            ), actions: {
-                Button("Cancel", role: .cancel) {
-                    pendingReset = nil
-                }
-                Button("Confirm", role: .destructive) {
-                    if let window = pendingReset {
-                        viewModel.reset(window: window)
-                    }
-                    pendingReset = nil
-                }
-            }, message: {
-                if let pendingReset {
-                    switch pendingReset {
-                    case .full:
-                        Text("This will erase all locally stored progress and settings. The app may need to be fully restarted afterward.")
-                    default:
-                        Text("This will remove data recorded in the selected time window, including sessions, XP, and health logs.")
-                    }
-                }
-            })
-        }
+        })
     }
 
     private var remindersCard: some View {
@@ -118,12 +103,14 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Toggle(title, isOn: settings.enabled)
-                    .labelsHidden()
-                    .tint(.mint)
-                    .onChange(of: settings.enabled.wrappedValue) { _ in
-                        HapticsService.lightImpact()
-                    }
+                Toggle(isOn: settings.enabled) {
+                    EmptyView()
+                }
+                .labelsHidden()
+                .tint(.mint)
+                .onChange(of: settings.enabled.wrappedValue) { _ in
+                    HapticsService.lightImpact()
+                }
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -316,6 +303,31 @@ struct SettingsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 #endif
+
+    private var resetCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Reset")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 12) {
+                resetButton(title: "Reset last 5 minutes", window: .last5Minutes)
+                resetButton(title: "Reset last hour", window: .lastHour)
+                resetButton(title: "Reset last day", window: .lastDay)
+                resetButton(title: "Reset last week", window: .lastWeek)
+                resetButton(title: "Full reset", window: .full, role: .destructive)
+            }
+            .font(.subheadline)
+
+            Text("Time-window resets remove recent sessions, XP, and health logs only. Full reset clears all local progress and settings; restart the app afterward for a fresh start.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
 
     private var cadenceOptions: [Int] { [30, 45, 60, 90] }
     private var hourOptions: [Int] { Array(0...23) }
