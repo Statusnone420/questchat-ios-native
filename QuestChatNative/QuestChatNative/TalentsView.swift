@@ -25,25 +25,25 @@ struct TalentsView: View {
 
                 LazyVGrid(columns: columns, spacing: 12) {
                     ForEach(viewModel.nodes) { node in
-                        TalentNodeTile(
+                        TalentTileView(
                             node: node,
-                            rank: viewModel.rank(for: node),
+                            currentRank: viewModel.rank(for: node),
                             isUnlocked: viewModel.isUnlocked(node),
-                            canSpend: viewModel.canSpend(on: node)
-                        ) {
-                            withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
-                                viewModel.tap(node: node)
-                            }
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
-                        .contentShape(Rectangle())
-                        .highPriorityGesture(
-                            LongPressGesture(minimumDuration: 0.35)
-                                .onEnded { _ in
-                                    viewModel.selectedTalent = node
-                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                                    TalentHaptics.prepareSelection()
+                            isMastered: viewModel.rank(for: node) == node.maxRanks,
+                            canSpend: viewModel.canSpend(on: node),
+                            masteryPulseID: $viewModel.masteryPulseID,
+                            onTap: {
+                                guard viewModel.canSpend(on: node) else { return }
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                                    viewModel.incrementRank(for: node)
                                 }
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            },
+                            onLongPress: {
+                                viewModel.selectedTalent = node
+                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                TalentHaptics.prepareSelection()
+                            }
                         )
                         .onAppear { TalentHaptics.prepareSelection() }
                         .background(
@@ -139,44 +139,82 @@ struct TalentsView: View {
     }
 }
 
-private struct TalentNodeTile: View {
+private struct TalentTileView: View {
     let node: TalentNode
-    let rank: Int
+    let currentRank: Int
     let isUnlocked: Bool
+    let isMastered: Bool
     let canSpend: Bool
+    @Binding var masteryPulseID: String?
     let onTap: () -> Void
+    let onLongPress: () -> Void
+
+    @State private var pulse = false
 
     var body: some View {
-        Button(action: {
-            onTap()
-        }) {
-            VStack(spacing: 6) {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: 2)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(backgroundColor)
-                    )
-                    .overlay(
-                        Image(systemName: node.sfSymbolName)
-                            .font(.title3)
-                            .opacity(iconOpacity)
-                    )
-                    .aspectRatio(1, contentMode: .fit)
+        let baseTile = VStack(spacing: 6) {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(borderColor, lineWidth: 2)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(backgroundColor)
+                )
+                .overlay(
+                    Image(systemName: node.sfSymbolName)
+                        .font(.title3)
+                        .opacity(iconOpacity)
+                )
+                .aspectRatio(1, contentMode: .fit)
 
-                Text("\(rank)/\(node.maxRanks)")
-                    .font(.caption2)
-                    .foregroundStyle(rank > 0 ? .primary : .secondary)
-            }
-            .padding(4)
+            Text("\(currentRank)/\(node.maxRanks)")
+                .font(.caption2)
+                .foregroundStyle(currentRank > 0 ? .primary : .secondary)
         }
-        .buttonStyle(.plain)
-        .disabled(!canSpend)
+        .padding(4)
+        .frame(maxWidth: .infinity, minHeight: 88)
+
+        baseTile
+            .scaleEffect(pulse ? 1.05 : 1.0)
+            .overlay(haloOverlay)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard canSpend else { return }
+                onTap()
+            }
+            .onLongPressGesture(minimumDuration: 0.35) {
+                onLongPress()
+            }
+            .onChange(of: masteryPulseID) { newValue in
+                guard newValue == node.id else { return }
+                pulseOnce()
+            }
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: pulse)
+    }
+
+    private var haloOverlay: some View {
+        GeometryReader { _ in
+            let rect = RoundedRectangle(cornerRadius: 24, style: .continuous)
+            rect
+                .stroke(Color.teal.opacity(pulse ? 0.0 : 0.6), lineWidth: 4)
+                .scaleEffect(pulse ? 1.25 : 1.0)
+                .opacity(pulse ? 0.0 : 1.0)
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func pulseOnce() {
+        pulse = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            pulse = false
+            if masteryPulseID == node.id {
+                masteryPulseID = nil
+            }
+        }
     }
 
     private var borderColor: Color {
-        if rank >= node.maxRanks {
-            return .primary
+        if isMastered {
+            return .teal
         } else if canSpend {
             return .primary.opacity(0.9)
         } else if isUnlocked {
@@ -187,7 +225,7 @@ private struct TalentNodeTile: View {
     }
 
     private var backgroundColor: Color {
-        if rank > 0 {
+        if currentRank > 0 {
             return Color.primary.opacity(0.12)
         } else if canSpend {
             return Color.primary.opacity(0.06)
@@ -197,7 +235,7 @@ private struct TalentNodeTile: View {
     }
 
     private var iconOpacity: Double {
-        if rank > 0 || canSpend {
+        if currentRank > 0 || canSpend {
             return 1.0
         } else {
             return 0.35

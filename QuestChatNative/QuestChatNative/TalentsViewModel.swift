@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 final class TalentsViewModel: ObservableObject {
     @Published private(set) var nodes: [TalentNode] = []
@@ -9,6 +10,7 @@ final class TalentsViewModel: ObservableObject {
     @Published private(set) var level: Int = 1
     @Published var selectedTalent: TalentNode?
     @Published var isShowingDetail: Bool = false
+    @Published var masteryPulseID: String?
 
     private let store: TalentTreeStore
     private let statsStore: SessionStatsStore
@@ -58,8 +60,15 @@ final class TalentsViewModel: ObservableObject {
         rank(for: node) > 0 || canSpend(on: node)
     }
 
-    func tap(node: TalentNode) {
+    func incrementRank(for node: TalentNode) {
+        let previousRank = rank(for: node)
         store.spendPoint(on: node)
+        let newRank = store.rank(for: node)
+
+        if previousRank < node.maxRanks && newRank == node.maxRanks {
+            masteryPulseID = node.id
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        }
     }
 
     func respecAllTalents() {
