@@ -7,9 +7,9 @@ struct LevelTitleDefinition {
 
 enum PlayerTitles {
     static let rookie   = "Focus Rookie"      // 1–9
-    static let worker   = "Deep Worker"       // 10–19
+    static let worker   = "Deep Inside Focus"       // 10–19
     static let knight   = "Quest Knight"      // 20–29
-    static let master   = "Flow Master"       // 30–39
+    static let master   = "Wookie Rookie"       // 30–39
     static let sage     = "Time Sage"         // 40–49
     static let fiend    = "Focus Fiend"       // 50–59
     static let guardian = "Grind Guardian"    // 60–69
