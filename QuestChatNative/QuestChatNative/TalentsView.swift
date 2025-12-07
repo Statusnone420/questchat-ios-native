@@ -30,7 +30,26 @@ struct TalentsView: View {
                         }
                         .onLongPressGesture {
                             viewModel.selectedTalent = node
-                            viewModel.isShowingDetail = true
+                        }
+                        .popover(
+                            item: Binding(
+                                get: {
+                                    viewModel.selectedTalent?.id == node.id ? viewModel.selectedTalent : nil
+                                },
+                                set: { newValue in
+                                    if newValue == nil {
+                                        viewModel.selectedTalent = nil
+                                    }
+                                }
+                            ),
+                            attachmentAnchor: .rect(.bounds),
+                            arrowEdge: .top
+                        ) { node in
+                            TalentDetailPopover(
+                                node: node,
+                                currentRank: viewModel.rank(for: node)
+                            )
+                            .presentationCompactAdaptation(.none)
                         }
                     }
                 }
@@ -38,14 +57,6 @@ struct TalentsView: View {
             .padding()
         }
         .navigationTitle("IRL Talent Tree")
-        .sheet(isPresented: $viewModel.isShowingDetail) {
-            if let node = viewModel.selectedTalent {
-                TalentDetailSheet(
-                    node: node,
-                    currentRank: viewModel.rank(for: node)
-                )
-            }
-        }
     }
 
     private var header: some View {
@@ -169,6 +180,25 @@ private struct TalentNodeTile: View {
 }
 
 private struct TalentDetailSheet: View {
+    let node: TalentNode
+    let currentRank: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(node.name)
+                .font(.title2.bold())
+            Text("Rank \(currentRank)/\(node.maxRanks)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text(node.description)
+                .font(.body)
+            Spacer()
+        }
+        .padding()
+    }
+}
+
+private struct TalentDetailPopover: View {
     let node: TalentNode
     let currentRank: Int
 
