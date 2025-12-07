@@ -7,55 +7,59 @@ struct SettingsView: View {
     @State private var pendingReset: ResetWindow?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Settings")
-                .font(.largeTitle.bold())
-                .frame(maxWidth: .infinity, alignment: .leading)
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Settings")
+                    .font(.largeTitle.bold())
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-            ScrollView {
-                VStack(spacing: 16) {
-                    remindersCard
+                ScrollView {
+                    VStack(spacing: 16) {
+                        remindersCard
 
-                    hydrationSettingsCard
+                        hydrationSettingsCard
 
-                    aboutWeeklyQuestCard
+                        aboutWeeklyQuestCard
 
 #if DEBUG
-                    debugToolsCard
+                        debugToolsCard
 #endif
 
-                    resetCard
+                        resetCard
+                    }
+                    .padding(.bottom, 24)
                 }
-                .padding(.bottom, 24)
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .alert("Confirm reset", isPresented: Binding(
+                get: { pendingReset != nil },
+                set: { newValue in
+                    if !newValue { pendingReset = nil }
+                }
+            ), actions: {
+                Button("Cancel", role: .cancel) {
+                    pendingReset = nil
+                }
+                Button("Confirm", role: .destructive) {
+                    if let window = pendingReset {
+                        viewModel.reset(window: window)
+                    }
+                    pendingReset = nil
+                }
+            }, message: {
+                if let pendingReset {
+                    switch pendingReset {
+                    case .full:
+                        Text("This will erase all locally stored progress and settings. The app may need to be fully restarted afterward.")
+                    default:
+                        Text("This will remove data recorded in the selected time window, including sessions, XP, and health logs.")
+                    }
+                }
+            })
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-        .alert("Confirm reset", isPresented: Binding(
-            get: { pendingReset != nil },
-            set: { newValue in
-                if !newValue { pendingReset = nil }
-            }
-        ), actions: {
-            Button("Cancel", role: .cancel) {
-                pendingReset = nil
-            }
-            Button("Confirm", role: .destructive) {
-                if let window = pendingReset {
-                    viewModel.reset(window: window)
-                }
-                pendingReset = nil
-            }
-        }, message: {
-            if let pendingReset {
-                switch pendingReset {
-                case .full:
-                    Text("This will erase all locally stored progress and settings. The app may need to be fully restarted afterward.")
-                default:
-                    Text("This will remove data recorded in the selected time window, including sessions, XP, and health logs.")
-                }
-            }
-        })
     }
 
     private var remindersCard: some View {
