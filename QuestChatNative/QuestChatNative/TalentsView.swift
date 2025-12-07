@@ -1,10 +1,18 @@
 import SwiftUI
 import UIKit
 
+private struct TalentConnection: Hashable {
+    let fromId: String
+    let toId: String
+}
+
 struct TalentsView: View {
     @StateObject var viewModel: TalentsViewModel
     @State private var isShowingRespecConfirm = false
     @State private var tileFrames: [String: CGRect] = [:]
+    // TODO: Fill this with the talent ID pairs you actually want to connect.
+    // Example: TalentConnection(fromId: "hydration", toId: "hydration_mastery")
+    private let talentConnections: [TalentConnection] = []
 
     private let columns: [GridItem] = Array(
         repeating: GridItem(.flexible(), spacing: 12, alignment: .top),
@@ -21,6 +29,12 @@ struct TalentsView: View {
     var body: some View {
         ZStack {
             talentTreeBackground
+
+            TalentConnectionsOverlay(
+                tileFrames: tileFrames,
+                connections: talentConnections
+            )
+
             talentsContent
         }
         .background(Color.black.ignoresSafeArea())
@@ -269,6 +283,56 @@ struct TalentsView: View {
             )
             .overlay(Color.black.opacity(0.55))
         }
+    }
+}
+
+private struct TalentConnectionsOverlay: View {
+    let tileFrames: [String: CGRect]
+    let connections: [TalentConnection]
+
+    var body: some View {
+        Canvas { context, _ in
+            for connection in connections {
+                guard
+                    let fromFrame = tileFrames[connection.fromId],
+                    let toFrame = tileFrames[connection.toId]
+                else { continue }
+
+                let fromPoint = CGPoint(x: fromFrame.midX, y: fromFrame.midY)
+                let toPoint   = CGPoint(x: toFrame.midX,   y: toFrame.midY)
+
+                // Simple smooth curve between the two centers
+                var path = Path()
+                path.move(to: fromPoint)
+
+                let midY = (fromPoint.y + toPoint.y) / 2
+                let control1 = CGPoint(x: fromPoint.x, y: midY)
+                let control2 = CGPoint(x: toPoint.x,   y: midY)
+                path.addCurve(to: toPoint, control1: control1, control2: control2)
+
+                let strokeStyle = StrokeStyle(
+                    lineWidth: 1,
+                    lineCap: .round,
+                    lineJoin: .round
+                )
+
+                let gradient = Gradient(colors: [
+                    Color.purple.opacity(0.18),
+                    Color.cyan.opacity(0.18)
+                ])
+
+                context.stroke(
+                    path,
+                    with: .linearGradient(
+                        gradient,
+                        startPoint: fromPoint,
+                        endPoint: toPoint
+                    ),
+                    style: strokeStyle
+                )
+            }
+        }
+        .allowsHitTesting(false)
     }
 }
 
