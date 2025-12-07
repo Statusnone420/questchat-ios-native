@@ -167,9 +167,21 @@ struct OnboardingView: View {
                 Text("HealthBar setup")
                     .font(.largeTitle.bold())
                     .foregroundColor(.white)
-                Text("Set today's mood, gut, sleep, and activity using the same sliders you'll see in the app. These are to help keep track of how you feel from day to day and also drive some quest completion, so please just use these with no judgement; they're a tool to help guide progress.")
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Set today’s mood, gut, sleep, and activity.")
+                        .font(.body.weight(.semibold))
+                        .foregroundColor(.white)
+
+                    Text("These sliders match what you’ll see in the app. They help you track how you feel day to day and power some quests — no judgement, just a guide.")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.85))
+                        .lineSpacing(3)
+                }
+                .multilineTextAlignment(.leading)
+
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.white.opacity(0.9))
+                    .multilineTextAlignment(.leading)
             }
 
             DailyVitalsSlidersView(
@@ -179,12 +191,12 @@ struct OnboardingView: View {
             )
             .padding(16)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.white.opacity(0.05))
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(uiColor: .secondarySystemBackground).opacity(0.8))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.white.opacity(0.10), lineWidth: 1)
             )
 
             primaryButton(title: "Continue") {

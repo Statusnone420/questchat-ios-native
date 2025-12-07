@@ -195,7 +195,13 @@ final class HealthBarViewModel: ObservableObject {
     }
 
     var staminaLabel: String {
-        "\(inputs.focusSprints) focus sprints"
+        let sprints = inputs.focusSprints
+
+        switch sprints {
+        case 0...1: return "Warming up"
+        case 2...3: return "In the zone"
+        default:    return "Overcharged"
+        }
     }
 
     var hpProgress: Double { healthStatsStore?.hpPercentage ?? hpPercentage }
