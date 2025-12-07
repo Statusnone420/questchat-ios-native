@@ -69,6 +69,13 @@ extension Quest {
 }
 
 final class QuestsViewModel: ObservableObject {
+    struct LastDailyCompletion: Codable, Equatable {
+        let id: String
+        let date: Date
+    }
+
+    private var lastCompletionKey: String { "last-completion-\(completionKey)" }
+
     @Published var dailyQuests: [Quest] = []
     @Published var weeklyQuests: [Quest] = []
     @Published private(set) var hasUsedRerollToday: Bool = false
@@ -164,6 +171,17 @@ final class QuestsViewModel: ObservableObject {
     }
     private var hardQuestCountKey: String {
         "\(currentWeekKey)-hard-quests"
+    }
+
+    private func loadLastDailyCompletion() -> LastDailyCompletion? {
+        guard let data = userDefaults.data(forKey: lastCompletionKey) else { return nil }
+        return try? JSONDecoder().decode(LastDailyCompletion.self, from: data)
+    }
+
+    private func saveLastDailyCompletion(_ value: LastDailyCompletion) {
+        if let data = try? JSONEncoder().encode(value) {
+            userDefaults.set(data, forKey: lastCompletionKey)
+        }
     }
 
     init(
@@ -739,6 +757,23 @@ extension QuestsViewModel {
 
         let hadCompletedQuests = dailyQuests.contains(where: { $0.isCompleted })
 
+        // Chain quest: complete DAILY_EASY_TWO_CHAIN when two different quests are completed within 10 minutes.
+        // Do not allow the chain quest to trigger itself.
+        let chainQuestId = "DAILY_EASY_TWO_CHAIN"
+        let now = Date()
+        let previous = loadLastDailyCompletion()
+        let canConsiderChain = id != chainQuestId
+        var shouldTriggerChain = false
+        if canConsiderChain, let prev = previous {
+            // Same calendar day safeguard is implicit via per-day key; also ensure different quest id
+            if prev.id != id, now.timeIntervalSince(prev.date) <= 10 * 60 {
+                // Only trigger if chain quest isn't already completed today
+                if let chainIndex = dailyQuests.firstIndex(where: { $0.id == chainQuestId }) {
+                    shouldTriggerChain = !dailyQuests[chainIndex].isCompleted
+                }
+            }
+        }
+
         dailyQuests[index].isCompleted = true
         statsStore.registerQuestCompleted(id: dailyQuests[index].id, xp: dailyQuests[index].xpReward)
         trackHardQuestCompletion(for: dailyQuests[index])
@@ -750,6 +785,14 @@ extension QuestsViewModel {
 
         if !hadCompletedQuests && id != "DAILY_EASY_FIRST_QUEST" {
             completeQuestIfNeeded(id: "DAILY_EASY_FIRST_QUEST")
+        }
+
+        // Update last completion (must be after marking this quest complete)
+        saveLastDailyCompletion(LastDailyCompletion(id: id, date: now))
+
+        // Trigger chain quest if conditions met
+        if shouldTriggerChain {
+            completeQuestIfNeeded(id: chainQuestId)
         }
 
         syncQuestProgress()
@@ -1180,3 +1223,4 @@ extension QuestsViewModel {
     static let weeklyFocusMinutesTarget = 120
     static let weeklyFocusSessionTarget = 15
 }
+
