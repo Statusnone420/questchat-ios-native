@@ -56,6 +56,42 @@ struct PlayerCardView: View {
     @State private var sleepSliderValue: Int?
 
     @AppStorage("playerDisplayName") private var playerDisplayName: String = QuestChatStrings.PlayerCard.defaultName
+    @AppStorage("playerId") private var playerIdString: String = UUID().uuidString
+
+    private struct AvatarStyle {
+        let symbolName: String
+        let colors: [Color]
+    }
+
+    private let avatarStyles: [AvatarStyle] = [
+        AvatarStyle(symbolName: "atom",                colors: [.cyan, .blue]),
+        AvatarStyle(symbolName: "bolt.fill",           colors: [.orange, .pink]),
+        AvatarStyle(symbolName: "brain.head.profile",  colors: [.purple, .indigo]),
+        AvatarStyle(symbolName: "sparkles",            colors: [.teal, .cyan]),
+        AvatarStyle(symbolName: "flame.fill",          colors: [.red, .orange]),
+        AvatarStyle(symbolName: "gamecontroller.fill", colors: [.mint, .teal]),
+        AvatarStyle(symbolName: "moon.stars.fill",     colors: [.indigo, .purple]),
+        AvatarStyle(symbolName: "leaf.fill",           colors: [.green, .teal]),
+    ]
+
+    private func avatarStyle(for id: UUID) -> AvatarStyle {
+        let scalars = id.uuidString.unicodeScalars
+        let hash = scalars.reduce(UInt32(0)) { partial, scalar in
+            (partial &* 31) &+ scalar.value
+        }
+        let index = Int(hash % UInt32(avatarStyles.count))
+        return avatarStyles[index]
+    }
+
+    private var playerId: UUID {
+        if let existing = UUID(uuidString: playerIdString) {
+            return existing
+        }
+
+        let generated = UUID()
+        playerIdString = generated.uuidString
+        return generated
+    }
 
     init(
         store: SessionStatsStore,
@@ -184,23 +220,22 @@ struct PlayerCardView: View {
     }
 
     private var headerCard: some View {
+        let style = avatarStyle(for: playerId)
+
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .center, spacing: 16) {
                 ZStack {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [
-                                    Color.cyan.opacity(0.9),
-                                    Color.blue.opacity(0.9)
-                                ],
+                                colors: style.colors,
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                         .frame(width: 56, height: 56)
 
-                    Image(systemName: "atom")
+                    Image(systemName: style.symbolName)
                         .font(.title2.weight(.semibold))
                         .foregroundColor(.white)
                 }
@@ -442,3 +477,5 @@ struct DailyVitalsSlidersView: View {
         focusViewModel: container.focusViewModel
     )
 }
+
+// Avatar now uses a UUID-based rolled SF Symbol + gradient style.
