@@ -167,9 +167,9 @@ struct OnboardingView: View {
                 Text("HealthBar setup")
                     .font(.largeTitle.bold())
                     .foregroundColor(.white)
-                Text("Set today's mood, gut, sleep, and activity using the same sliders you'll see in the app.")
+                Text("Set today's mood, gut, sleep, and activity using the same sliders you'll see in the app. These are to help keep track of how you feel from day to day and also drive some quest completion, so please just use these with no judgement; they're a tool to help guide progress.")
                     .font(.body)
-                    .foregroundColor(Color.white.opacity(0.85))
+                    .foregroundStyle(.secondary)
             }
 
             DailyVitalsSlidersView(
@@ -313,3 +313,5 @@ struct OnboardingView: View {
     OnboardingView(viewModel: container.makeOnboardingViewModel())
         .preferredColorScheme(.dark)
 }
+
+// Tweaked HealthBar onboarding text contrast for better legibility.

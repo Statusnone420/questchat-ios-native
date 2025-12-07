@@ -60,8 +60,9 @@ struct RatingSliderRow: View {
             HStack(spacing: 8) {
                 ForEach(Array(labels.enumerated()), id: \.offset) { index, label in
                     Text(label)
-                        .font(.caption2)
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
+                        .opacity(0.85)
                         .frame(maxWidth: .infinity, alignment: alignment(for: index))
                 }
             }
@@ -74,3 +75,5 @@ struct RatingSliderRow: View {
         return .center
     }
 }
+
+// Tweaked HealthBar onboarding text contrast for better legibility.
