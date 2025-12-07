@@ -33,8 +33,11 @@ struct TalentsView: View {
                             LongPressGesture(minimumDuration: 0.35)
                                 .onEnded { _ in
                                     viewModel.selectedTalent = node
+                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                    TalentHaptics.prepareSelection()
                                 }
                         )
+                        .onAppear { TalentHaptics.prepareSelection() }
                         .popover(
                             item: Binding(
                                 get: {
@@ -42,6 +45,7 @@ struct TalentsView: View {
                                 },
                                 set: { newValue in
                                     if newValue == nil {
+                                        TalentHaptics.selectionChanged()
                                         viewModel.selectedTalent = nil
                                     }
                                 }
@@ -61,6 +65,7 @@ struct TalentsView: View {
             .padding()
         }
         .navigationTitle("IRL Talent Tree")
+        .onAppear { TalentHaptics.prepareSelection() }
     }
 
     private var header: some View {
@@ -264,5 +269,13 @@ private struct TalentDetailPopover: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(Color.white.opacity(0.10), lineWidth: 1)
         )
+        .onAppear { TalentHaptics.prepareSelection() }
+        .onDisappear { TalentHaptics.prepareSelection() }
     }
+}
+
+private enum TalentHaptics {
+    static let selection = UISelectionFeedbackGenerator()
+    static func prepareSelection() { selection.prepare() }
+    static func selectionChanged() { selection.selectionChanged() }
 }
