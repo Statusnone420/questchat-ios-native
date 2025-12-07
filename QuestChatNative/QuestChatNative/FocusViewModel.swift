@@ -1267,6 +1267,9 @@ final class FocusViewModel: ObservableObject {
     
     // Added published property for hydration sip feedback
     @Published var sipFeedback: String? = nil
+    
+    @Published var hydrationNudgesEnabled: Bool = false
+    @Published var postureRemindersEnabled: Bool = false
 
     var onSessionComplete: (() -> Void)?
 
@@ -1285,7 +1288,7 @@ final class FocusViewModel: ObservableObject {
     let playerTitleStore: PlayerTitleStore
     let healthStatsStore: HealthBarIRLStatsStore
     let hydrationSettingsStore: HydrationSettingsStore
-    let reminderSettingsStore: ReminderSettingsStore
+    private let reminderSettingsStore: ReminderSettingsStore
     let reminderEventsStore: ReminderEventsStore
     let seasonAchievementsStore: SeasonAchievementsStore
     let sleepHistoryStore: SleepHistoryStore
@@ -1356,6 +1359,11 @@ final class FocusViewModel: ObservableObject {
         // Defer syncing player HP until after initialization completes to avoid using self too early.
         let initialHP = healthStatsStore.currentHP
 
+        self.hydrationNudgesEnabled = reminderSettingsStore.hydrationSettings.enabled
+        self.postureRemindersEnabled = reminderSettingsStore.postureSettings.enabled
+
+        // Removed assign pipelines here; will add sink pipelines after hasInitialized = true
+
         let seeded = FocusViewModel.seededCategories()
         let loadedCategories: [TimerCategory] = seeded.map { base in
             let key = Self.durationKey(for: base.id)
@@ -1374,6 +1382,26 @@ final class FocusViewModel: ObservableObject {
         self.remainingSeconds = initialCategory.durationSeconds
 
         hasInitialized = true
+
+        // Add the new subscriptions here with sink and store
+
+        reminderSettingsStore.$hydrationSettings
+            .map { $0.enabled }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in
+                self?.hydrationNudgesEnabled = enabled
+            }
+            .store(in: &cancellables)
+
+        reminderSettingsStore.$postureSettings
+            .map { $0.enabled }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in
+                self?.postureRemindersEnabled = enabled
+            }
+            .store(in: &cancellables)
 
         ReminderType.allCases.forEach { type in
             if let storedDate = userDefaults.object(forKey: Self.reminderLastFiredKey(for: type)) as? Date {
@@ -1633,9 +1661,6 @@ final class FocusViewModel: ObservableObject {
     }
 
     var isRunning: Bool { state == .running }
-
-    var hydrationNudgesEnabled: Bool { reminderSettingsStore.hydrationSettings.enabled }
-    var postureRemindersEnabled: Bool { reminderSettingsStore.postureSettings.enabled }
 
     func toggleHydrationNudges() {
         var settings = reminderSettingsStore.hydrationSettings
