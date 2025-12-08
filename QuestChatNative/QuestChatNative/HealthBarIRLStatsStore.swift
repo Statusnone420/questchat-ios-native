@@ -71,7 +71,9 @@ final class HealthBarIRLStatsStore: ObservableObject {
 
         if let index = days.firstIndex(where: { calendar.isDate($0.date, inSameDayAs: today) }) {
             days[index].hpValues.append(hp)
-            days[index].hydrationCount = inputs.hydrationCount
+            // Preserve any hydration already recorded directly on the day (e.g., via addHydration)
+            // so partial "sip" logs or background writes are not overwritten if inputs lag behind.
+            days[index].hydrationCount = max(days[index].hydrationCount, inputs.hydrationCount)
             days[index].hydrationOunces += inputs.pendingHydrationOunces
             days[index].selfCareCount = inputs.selfCareSessions
             days[index].focusCount = inputs.focusSprints

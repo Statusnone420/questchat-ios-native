@@ -95,6 +95,7 @@ final class StatsViewModel: ObservableObject {
         weekdayFormatter.dateFormat = "E"
 
         refresh()
+        logIRLSnapshots()
         rebuildSeasonAchievements()
         playerTitleStore.$equippedOverrideTitle
             .combineLatest(playerTitleStore.$baseLevelTitle)
@@ -265,6 +266,22 @@ final class StatsViewModel: ObservableObject {
     private func refresh() {
         let sorted = healthStore.days.sorted { $0.date > $1.date }
         last7Days = Array(sorted.prefix(7))
+    }
+
+    private func logIRLSnapshots() {
+        let today = calendar.startOfDay(for: Date())
+        let yesterday = yesterdayDate
+
+        func describe(_ summary: HealthDaySummary?) -> String {
+            guard let summary else { return "<none>" }
+            return "date=\(summary.date), hydrationCount=\(summary.hydrationCount), hydrationOunces=\(summary.hydrationOunces), gut=\(summary.lastGut.rawValue), mood=\(summary.lastMood.rawValue), focusCount=\(summary.focusCount), selfCareCount=\(summary.selfCareCount), avgHP=\(Int(summary.averageHP.rounded()))"
+        }
+
+        let todaySnapshot = healthStore.days.first { calendar.isDate($0.date, inSameDayAs: today) }
+        let yesterdaySnapshot = healthStore.days.first { calendar.isDate($0.date, inSameDayAs: yesterday) }
+
+        print("[StatsViewModel] Today IRL snapshot: \(describe(todaySnapshot))")
+        print("[StatsViewModel] Yesterday IRL snapshot: \(describe(yesterdaySnapshot))")
     }
 
     private func rebuildSeasonAchievements() {
