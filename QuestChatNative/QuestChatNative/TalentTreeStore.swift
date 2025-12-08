@@ -8,6 +8,11 @@ final class TalentTreeStore: ObservableObject {
     @Published private(set) var spentPoints: Int
     @Published private(set) var currentLevel: Int  // external code can adjust this later
 
+    // MARK: - Persistence
+    private let userDefaults: UserDefaults
+    private let ranksKey = "talentTree.currentRanks.v1"
+    private let levelKey = "talentTree.currentLevel.v1"
+
     private func prerequisitesSatisfied(for node: TalentNode) -> Bool {
         guard !node.prerequisiteIDs.isEmpty else { return true }
         for prereqID in node.prerequisiteIDs {
@@ -22,14 +27,22 @@ final class TalentTreeStore: ObservableObject {
     init(
         nodes: [TalentNode] = TalentTreeConfig.defaultNodes,
         currentRanks: [String: Int] = [:],
-        currentLevel: Int = 1
+        currentLevel: Int = 1,
+        userDefaults: UserDefaults = .standard
     ) {
         self.nodes = nodes
         self.currentRanks = currentRanks
         self.totalPoints = 0
         self.spentPoints = currentRanks.values.reduce(0, +)
         self.currentLevel = currentLevel
-        applyLevel(currentLevel)
+        self.userDefaults = userDefaults
+
+        // Load previously saved state first to avoid wiping ranks on launch.
+        loadState()
+        recalculateSpentPoints()
+
+        // Ensure total points reflect the current (possibly loaded) level.
+        applyLevel(self.currentLevel)
     }
 
     /// 1 talent point per level. Later we can clamp or adjust if needed.
@@ -71,6 +84,7 @@ final class TalentTreeStore: ObservableObject {
         let current = rank(for: node)
         currentRanks[node.id] = current + 1
         recalculateSpentPoints()
+        saveIfNeeded()
     }
 
     func applyLevel(_ level: Int) {
@@ -78,14 +92,14 @@ final class TalentTreeStore: ObservableObject {
         let newTotalPoints = min(max(level, 0), maxPoints)
 
         currentLevel = level
-        guard newTotalPoints != totalPoints else { return }
-
-        totalPoints = newTotalPoints
-
-        if spentPoints > totalPoints {
-            currentRanks = [:]
-            recalculateSpentPoints()
+        if newTotalPoints != totalPoints {
+            totalPoints = newTotalPoints
+            if spentPoints > totalPoints {
+                currentRanks = [:]
+                recalculateSpentPoints()
+            }
         }
+        saveIfNeeded()
     }
 
     func respecAll() {
@@ -98,8 +112,21 @@ final class TalentTreeStore: ObservableObject {
         spentPoints = currentRanks.values.reduce(0, +)
     }
 
+    private func loadState() {
+        if let data = userDefaults.data(forKey: ranksKey),
+           let decoded = try? JSONDecoder().decode([String: Int].self, from: data) {
+            currentRanks = decoded
+        }
+        if userDefaults.object(forKey: levelKey) != nil {
+            let savedLevel = userDefaults.integer(forKey: levelKey)
+            if savedLevel > 0 { currentLevel = savedLevel }
+        }
+    }
+
     private func saveIfNeeded() {
-        // Placeholder for persistence integration.
+        if let data = try? JSONEncoder().encode(self.currentRanks) {
+            userDefaults.set(data, forKey: ranksKey)
+        }
+        userDefaults.set(self.currentLevel, forKey: levelKey)
     }
 }
-

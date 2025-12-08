@@ -23,6 +23,7 @@ final class TalentsViewModel: ObservableObject {
         // Seed initial values
         refreshFromStore()
         level = statsStore.level
+        self.store.applyLevel(self.level)
 
         // Keep view model in sync with the store
         store.$nodes
@@ -42,8 +43,14 @@ final class TalentsViewModel: ObservableObject {
 
         statsStore.$progression
             .map { $0.level }
+            .removeDuplicates()
             .receive(on: DispatchQueue.main)
-            .assign(to: &$level)
+            .sink { [weak self] newLevel in
+                guard let self = self else { return }
+                self.level = newLevel
+                self.store.applyLevel(newLevel)
+            }
+            .store(in: &cancellables)
     }
 
     // How many mastered nodes the player has
