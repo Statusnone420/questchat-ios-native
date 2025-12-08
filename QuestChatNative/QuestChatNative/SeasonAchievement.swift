@@ -45,7 +45,7 @@ extension SeasonAchievement {
             subtitle: "Hit your hydration goal on 20 days in one season.",
             iconName: "💧",
             conditionType: .hydrationDaysReached,
-            threshold: 1,
+            threshold: 20,
             seasonId: currentSeasonId,
             xpReward: 500,
             isSecret: false
