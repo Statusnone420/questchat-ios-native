@@ -53,8 +53,6 @@ final class DependencyContainer {
         potionManager = PotionManager.shared
         potionManager.start()
 
-        bindTalentTreeAchievements()
-
         // View models that depend on stores
         healthBarViewModel = HealthBarViewModel(
             statsStore: healthStatsStore,
@@ -98,6 +96,9 @@ final class DependencyContainer {
             dailyHealthRatingsStore: dailyHealthRatingsStore
         )
         settingsViewModel = SettingsViewModel(resetter: resetter)
+
+        // Bind after all properties are initialized
+        bindTalentTreeAchievements()
     }
 
     func makeOnboardingViewModel(onCompletion: (() -> Void)? = nil) -> OnboardingViewModel {

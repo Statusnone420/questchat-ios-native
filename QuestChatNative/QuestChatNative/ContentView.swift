@@ -34,6 +34,7 @@ struct ContentView: View {
     @StateObject private var healthBarViewModel = DependencyContainer.shared.healthBarViewModel
     @StateObject private var focusViewModel = DependencyContainer.shared.focusViewModel
     @StateObject private var questsViewModel = DependencyContainer.shared.questsViewModel
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -133,8 +134,24 @@ struct ContentView: View {
                             .padding(.top, -8)
                     }
                 }
+                .gesture(
+                    DragGesture(minimumDistance: 20)
+                        .onEnded { value in
+                            // Swipe up to dismiss
+                            if value.translation.height < -50 {
+                                focusViewModel.dismissReminder()
+                            }
+                        }
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
                 .zIndex(10)
             }
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            focusViewModel.updateScenePhase(newPhase)
+        }
+        .onAppear {
+            focusViewModel.updateScenePhase(scenePhase)
         }
     }
 }

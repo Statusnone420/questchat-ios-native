@@ -137,17 +137,6 @@ struct FocusView: View {
                     )
                     .zIndex(2)
             }
-            
-            /*
-            if let event = viewModel.activeReminderEvent,
-               let message = viewModel.activeReminderMessage {
-                reminderBanner(event: event, message: message)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .zIndex(1)
-            }
-            */
         }
         .onAppear {
             viewModel.handleAppear()
@@ -672,46 +661,6 @@ struct FocusView: View {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(Color.gray.opacity(0.25), lineWidth: 1)
         )
-    }
-
-    @ViewBuilder
-    private func reminderBanner(event: ReminderEvent, message: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: viewModel.reminderIconName(for: event.type))
-                .imageScale(.large)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(viewModel.reminderTitle(for: event.type))
-                    .font(.headline)
-                Text(message)
-                    .font(.subheadline)
-            }
-
-            Spacer()
-
-            if event.type == .hydration {
-                Button("Took a sip") {
-                    viewModel.logHydrationSip()
-                    viewModel.showSipFeedback("+1 oz")
-                    viewModel.acknowledgeReminder(event)
-                }
-            } else {
-                Button("Fixed it") {
-                    viewModel.acknowledgeReminder(event)
-                }
-            }
-        }
-        .padding(12)
-        .background(Color(uiColor: .secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .shadow(radius: 8)
-        .overlay(alignment: .topTrailing) {
-            if let feedback = viewModel.sipFeedback {
-                SipFeedbackOverlay(text: feedback)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .padding(.top, -8)
-            }
-        }
     }
 
     private func comboPill(for category: TimerCategory) -> some View {

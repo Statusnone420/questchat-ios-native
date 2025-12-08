@@ -1260,6 +1260,8 @@ final class FocusViewModel: ObservableObject {
     @Published var activeReminderEvent: ReminderEvent?
     @Published var activeReminderMessage: String?
     @Published var lastLevelUp: SessionStatsStore.LevelUpResult?
+    private var isAppInForeground: Bool = true
+    private var pendingBackgroundReminder: (event: ReminderEvent, message: String)?
     @Published var sleepQuality: SleepQuality = .okay {
         didSet {
             guard !isLoadingSleepData else { return }
@@ -2680,19 +2682,53 @@ final class FocusViewModel: ObservableObject {
             statsStore.questEventHandler?(.postureReminderFired)
         }
 
-        presentInAppReminder(event: event, message: message ?? reminderBody(for: type))
+        // If there's already an active reminder, delay this one to avoid collision
+        if let currentEvent = activeReminderEvent {
+            // First dismiss the current one immediately
+            withAnimation(.easeInOut(duration: 0.2)) {
+                activeReminderEvent = nil
+                activeReminderMessage = nil
+            }
+            
+            // Then show the new one after a brief delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self else { return }
+                // Double check nothing else snuck in
+                if self.activeReminderEvent == nil {
+                    self.presentInAppReminder(event: event, message: message ?? self.reminderBody(for: type))
+                }
+            }
+        } else {
+            presentInAppReminder(event: event, message: message ?? reminderBody(for: type))
+        }
+        
         scheduleLocalNotification(for: type, message: message)
         scheduleBackgroundReminders(now: date)
     }
 
     private func presentInAppReminder(event: ReminderEvent, message: String) {
+        // If the app is in the background, queue it to show when user returns
+        guard isAppInForeground else {
+            pendingBackgroundReminder = (event, message)
+            return
+        }
+        
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
             activeReminderEvent = event
             activeReminderMessage = message
         }
 
-        // Removed the auto-clear block that dismisses the in-app reminder after a delay.
-        // The reminder will now persist until acknowledged by the user.
+        // Auto-dismiss after 30 seconds if not acknowledged
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in
+            guard let self else { return }
+            // Only dismiss if this is still the active reminder
+            if self.activeReminderEvent?.id == event.id {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    self.activeReminderEvent = nil
+                    self.activeReminderMessage = nil
+                }
+            }
+        }
     }
 
     private func scheduleLocalNotification(for type: ReminderType, message: String?) {
@@ -2923,10 +2959,32 @@ extension FocusViewModel {
             activeReminderMessage = nil
         }
     }
+    
+    func dismissReminder() {
+        // Dismiss without marking as responded - for swipe dismissal
+        withAnimation(.easeInOut(duration: 0.2)) {
+            activeReminderEvent = nil
+            activeReminderMessage = nil
+        }
+    }
+    
+    func updateScenePhase(_ phase: ScenePhase) {
+        let wasInForeground = isAppInForeground
+        isAppInForeground = (phase == .active)
+        
+        // If we just came back to foreground and there's a pending reminder, show it
+        if isAppInForeground && !wasInForeground, let pending = pendingBackgroundReminder {
+            pendingBackgroundReminder = nil
+            // Small delay to let the app settle
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.presentInAppReminder(event: pending.event, message: pending.message)
+            }
+        }
+    }
 
     func debugFireHydrationReminder() {
         #if DEBUG
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
             self?.triggerReminder(for: .hydration, at: Date(), bypassCadence: true)
         }
         #endif
