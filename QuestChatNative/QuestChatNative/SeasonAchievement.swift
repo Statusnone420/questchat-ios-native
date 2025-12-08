@@ -38,6 +38,12 @@ struct SeasonAchievementProgress: Identifiable, Hashable, Codable {
 extension SeasonAchievement {
     static let currentSeasonId = "S1"
 
+    var requirementText: String { subtitle }
+
+    var descriptionText: String { subtitle }
+
+    var rewardTitle: String? { title }
+
     static let allSeasonOne: [SeasonAchievement] = [
         SeasonAchievement(
             id: "hydration_demon",
