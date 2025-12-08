@@ -6,46 +6,33 @@ struct StatsView: View {
     @ObservedObject var questsViewModel: QuestsViewModel
     @ObservedObject var healthBarViewModel: HealthBarViewModel
     @ObservedObject var focusViewModel: FocusViewModel
-    @State private var showPlayerCard = false
+    @State private var selectedScope: StatsScope = .today
+    @State private var selectedAchievement: SeasonAchievement?
+    @State private var isShowingDailySetup = false
+#if DEBUG
+    @State private var shouldPostAchievementNotifications = false
+#endif
 
     private var focusMinutes: Int { store.focusSeconds / 60 }
     private var selfCareMinutes: Int { store.selfCareSeconds / 60 }
-    private var focusMinutesToday: Int { store.focusSecondsToday / 60 }
+    private var focusMinutesToday: Int { store.todayProgress?.focusMinutes ?? store.focusSecondsToday / 60 }
     private var selfCareMinutesToday: Int { store.selfCareSecondsToday / 60 }
-    private var dailyGoalMinutes: Int { store.dailyMinutesGoal ?? 40 }
-    private var dailyGoalProgress: Int { store.dailyMinutesProgress }
+    private var dailyGoalMinutes: Int { store.todayPlan?.focusGoalMinutes ?? 40 }
+    private var dailyGoalProgress: Int { store.todayProgress?.focusMinutes ?? store.dailyMinutesProgress }
     private var focusAreaLabel: String? {
-        guard let area = store.dailyConfig?.focusArea else { return nil }
-        return "\(area.emoji) \(area.title)"
+        guard let area = store.todayPlan?.focusArea else { return nil }
+        return "\(area.icon) \(area.displayName)"
     }
-    private var levelProgress: Double {
-        if store.level >= 100 { return 1 }
-        let total = Double(store.xpForNextLevel)
-        guard total > 0 else { return 0 }
-        return Double(store.xpIntoCurrentLevel) / total
+    private var reachedFocusGoal: Bool { store.todayProgress?.reachedFocusGoal ?? false }
+    private var scopeTitle: String { selectedScope == .today ? "Today" : "Yesterday" }
+    private var dailyGoalMinutesForScope: Int { dailyGoalMinutes }
+    private var dailyGoalProgressForScope: Int { dailyGoalProgress }
+    private var reachedFocusGoalForScope: Bool { reachedFocusGoal }
+    private var focusAreaLabelForScope: String? { focusAreaLabel }
+    private var focusGoalLabel: String { QuestChatStrings.StatsView.todaysFocusGoal }
+    private var focusGoalProgressText: String {
+        QuestChatStrings.StatsView.dailyGoalProgress(current: dailyGoalProgressForScope, total: dailyGoalMinutesForScope)
     }
-
-    private var levelProgressText: String {
-        if store.level >= 100 {
-            return "QuestChat Master"
-        }
-        return QuestChatStrings.StatsView.levelProgress(current: store.xpIntoCurrentLevel, total: store.xpForNextLevel)
-    }
-
-    private var momentumStatusText: String {
-        let value = store.currentMomentum
-        switch value {
-        case let value where value >= 1.0:
-            return QuestChatStrings.StatsView.momentumReady
-        case let value where value >= 0.5:
-            return QuestChatStrings.StatsView.momentumAlmost
-        case let value where value > 0:
-            return QuestChatStrings.StatsView.momentumCharging
-        default:
-            return QuestChatStrings.StatsView.momentumStart
-        }
-    }
-
     private var recentSessions: [SessionStatsStore.SessionRecord] {
         Array(store.sessionHistory.suffix(5).reversed())
     }
@@ -56,94 +43,259 @@ struct StatsView: View {
 
     private var healthBarWeeklySummary: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("HealthBar IRL – Last 7 Days")
-                .font(.headline)
+            HStack(spacing: 8) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.subheadline)
+                    .foregroundStyle(.mint)
+                Text("HealthBar IRL – Last 7 Days")
+                    .font(.headline)
+            }
 
             if viewModel.last7Days.isEmpty {
                 Text("No recent HealthBar data yet.")
                     .foregroundStyle(.secondary)
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
+                    .cornerRadius(16)
             } else {
-                VStack(spacing: 10) {
+                VStack(spacing: 8) {
                     ForEach(viewModel.last7Days) { day in
                         healthDayRow(day)
                     }
                 }
-                .padding()
+                .padding(12)
                 .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
                 .cornerRadius(16)
             }
         }
     }
 
+    private var scopePicker: some View {
+        Picker("Stats range", selection: $selectedScope) {
+            Text("Today").tag(StatsScope.today)
+            Text("Yesterday").tag(StatsScope.yesterday)
+        }
+        .pickerStyle(.segmented)
+    }
+
+    private var todayContent: some View {
+        VStack(spacing: 18) {
+            TodaySummaryView(
+                title: scopeTitle,
+                completedQuests: questsViewModel.completedQuestsCount,
+                totalQuests: questsViewModel.totalQuestsCount,
+                focusMinutes: focusMinutesToday,
+                focusGoalMinutes: dailyGoalMinutes,
+                reachedFocusGoal: reachedFocusGoal,
+                focusAreaLabel: focusAreaLabel,
+                currentStreakDays: store.currentStreakDays
+            )
+
+            dailyGoalCard
+            reopenDailySetupButton
+            weeklyPathCard
+            achievementsSection
+            healthBarWeeklySummary
+
+            summaryTiles
+            sessionBreakdown
+            sessionHistorySection
+
+#if DEBUG
+            debugSeasonAchievementsSection
+#endif
+        }
+    }
+
+    private var reopenDailySetupButton: some View {
+        Button {
+            isShowingDailySetup = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "sun.max.circle.fill")
+                    .foregroundStyle(.mint)
+                Text("Re-open Daily Setup for today")
+                    .font(.subheadline.bold())
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.mint.opacity(0.18))
+            .foregroundStyle(.mint)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var yesterdayContent: some View {
+        VStack(spacing: 18) {
+            yesterdaySummaryCard
+            yesterdayStreakCard
+            yesterdayAchievementsSection
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView (.vertical, showsIndicators: false) {
-                VStack(spacing: 18) {
-                    TodaySummaryView(
-                        completedQuests: questsViewModel.completedQuestsCount,
-                        totalQuests: questsViewModel.totalQuestsCount,
-                        focusMinutes: focusMinutesToday,
-                        selfCareMinutes: selfCareMinutesToday,
-                        dailyFocusTarget: dailyGoalMinutes,
-                        currentStreakDays: store.currentStreakDays
-                    )
+            ZStack {
+                ScrollView (.vertical, showsIndicators: false) {
+                    VStack(spacing: 18) {
+                        HStack {
+                            Text("Stats")
+                                .font(.largeTitle.bold())
+                                .foregroundColor(.white)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                        .padding(.bottom, 12)
 
-                    dailyGoalCard
-                    weeklyPathCard
-                    healthBarWeeklySummary
-
-                    header
-                    summaryTiles
-                    sessionBreakdown
-                    sessionHistorySection
+                        scopePicker
+                        if selectedScope == .today {
+                            todayContent
+                        } else {
+                            yesterdayContent
+                        }
+                    }
+                    .padding(20)
                 }
-                .padding(20)
-            }
             .background(Color.black.ignoresSafeArea())
-            .navigationTitle(QuestChatStrings.StatsView.navigationTitle)
-            .toolbarBackground(Color.black, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-            .sheet(isPresented: $showPlayerCard) {
-                PlayerCardView(
-                    store: store,
-                    statsViewModel: viewModel,
-                    healthBarViewModel: healthBarViewModel,
-                    focusViewModel: focusViewModel
-                )
+            .toolbar(.hidden, for: .navigationBar)
+
+                if let unlocked = viewModel.unlockedAchievementToShow {
+                    AchievementUnlockOverlayView(
+                        achievement: unlocked,
+                        xpReward: 500,
+                        onEquipTitle: {
+                            viewModel.equipTitle(for: unlocked)
+                            viewModel.unlockedAchievementToShow = nil
+                        },
+                        onDismiss: {
+                            viewModel.unlockedAchievementToShow = nil
+                        }
+                    )
+                    .transition(.opacity.combined(with: .scale))
+                    .zIndex(10)
+                }
             }
+            .animation(.easeInOut, value: viewModel.unlockedAchievementToShow != nil)
             .onAppear {
-                store.refreshMomentumIfNeeded()
+                questsViewModel.handleQuestEvent(.statsViewed(scope: selectedScope))
             }
+            .onChange(of: selectedScope) { newScope in
+                questsViewModel.handleQuestEvent(.statsViewed(scope: newScope))
+            }
+        }
+        .sheet(isPresented: $isShowingDailySetup) {
+            DailySetupSheet(
+                initialFocusArea: store.todayPlan?.focusArea ?? .work,
+                initialEnergyLevel: store.todayPlan?.energyLevel ?? .medium
+            ) { focusArea, energyLevel in
+                store.completeDailyConfig(focusArea: focusArea, energyLevel: energyLevel)
+                questsViewModel.markCoreQuests(for: focusArea)
+            }
+            .presentationDetents([.medium])
+            .interactiveDismissDisabled()
+        }
+        .sheet(item: $selectedAchievement) { achievement in
+            SeasonAchievementDetailView(
+                achievement: achievement,
+                progress: viewModel.progress(for: achievement)
+            )
+            .presentationDetents([.medium, .large])
         }
     }
 
     private func healthDayRow(_ day: HealthDaySummary) -> some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
+        VStack(spacing: 10) {
+            // Header row with date and HP
+            HStack(alignment: .firstTextBaseline) {
                 Text(viewModel.label(for: day.date))
                     .font(.subheadline.bold())
-                Text("Avg \(Int(day.averageHP.rounded())) / 100 HP")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Spacer()
+                HStack(spacing: 4) {
+                    Image(systemName: "heart.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.red)
+                    Text("\(Int(day.averageHP.rounded())) HP")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
             }
-
-            Spacer()
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("💧 \(day.hydrationCount)")
-                Text("✨ \(day.selfCareCount)")
-                Text("⚡️ \(day.focusCount)")
+            
+            // Activity metrics grid
+            HStack(spacing: 12) {
+                // Hydration
+                HStack(spacing: 4) {
+                    Image(systemName: "drop.fill")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                    Text("\(day.hydrationOunces)")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.primary)
+                    Text("oz")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // Self-care sessions
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles")
+                        .font(.caption)
+                        .foregroundStyle(.cyan)
+                    Text("\(day.selfCareCount)")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.primary)
+                    Text("Self-care session\(day.selfCareCount == 1 ? "" : "s")")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .font(.caption)
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 6) {
-                Text("Gut: \(gutLabel(for: day.lastGut))")
-                Text("Mood: \(moodLabel(for: day.lastMood))")
+            
+            HStack(spacing: 12) {
+                // Focus sessions
+                HStack(spacing: 4) {
+                    Image(systemName: "bolt.fill")
+                        .font(.caption)
+                        .foregroundStyle(.mint)
+                    Text("\(day.focusCount)")
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.primary)
+                    Text("Focus session\(day.focusCount == 1 ? "" : "s")")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // Gut & Mood status
+                HStack(spacing: 8) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "heart.text.square.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                        Text(gutLabel(for: day.lastGut))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    HStack(spacing: 4) {
+                        Image(systemName: "face.smiling.fill")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                        Text(moodLabel(for: day.lastMood))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .font(.caption)
         }
+        .padding(12)
+        .background(Color(uiColor: .tertiarySystemBackground).opacity(0.5))
+        .cornerRadius(12)
     }
 
     private func gutLabel(for status: GutStatus) -> String {
@@ -164,63 +316,222 @@ struct StatsView: View {
         }
     }
 
-    private var header: some View {
+    private var yesterdaySummaryCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(QuestChatStrings.StatsView.headerTitle)
-                .font(.title2.bold())
-            Text(QuestChatStrings.StatsView.headerSubtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                Label("Yesterday", systemImage: "clock.arrow.circlepath")
+                    .font(.headline)
+                    .foregroundStyle(.mint.opacity(0.9))
+                Spacer()
+            }
 
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .lastTextBaseline, spacing: 8) {
-                    Text(QuestChatStrings.StatsView.levelLabel)
-                        .font(.headline)
-                        .foregroundStyle(.mint)
-                    Text("\(store.level)")
-                        .font(.largeTitle.bold())
-                }
-
-                ProgressView(value: levelProgress)
-                    .progressViewStyle(.linear)
-                    .tint(.mint)
-
-                Text(levelProgressText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
+            if let summary = viewModel.yesterdaySummary {
                 VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                    Label(QuestChatStrings.StatsView.momentumLabel, systemImage: "bolt.fill")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.yellow)
-                        Spacer()
-                        Text(momentumStatusText)
-                            .font(.caption)
+                    Text("Quests: \(summary.questsCompleted) / \(summary.totalQuests) completed")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 8) {
+                        Text("Focus: \(summary.focusMinutes) / \(summary.focusGoalMinutes) minutes")
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
+                        if summary.reachedFocusGoal {
+                            Text("Goal hit!")
+                                .font(.caption.bold())
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.mint.opacity(0.15))
+                                .foregroundColor(.mint)
+                                .cornerRadius(10)
+                        }
                     }
 
-                    ProgressView(value: store.currentMomentum, total: 1)
-                        .tint(.yellow)
-                        .progressViewStyle(.linear)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Overall progress: \(Int(summary.overallProgress * 100))%")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        ProgressView(value: summary.overallProgress)
+                            .progressViewStyle(.linear)
+                            .tint(.mint)
+                    }
+
+                    Divider().padding(.vertical, 6)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        // Hydration
+                        HStack(spacing: 8) {
+                            Image(systemName: "drop.fill").foregroundStyle(.cyan)
+                            let goalText = summary.hydrationGoalOunces > 0 ? " / \(summary.hydrationGoalOunces) oz" : " oz"
+                            Text("Hydration: \(summary.hydrationOunces)\(goalText)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                        if summary.hydrationGoalOunces > 0 {
+                            ProgressView(value: summary.hydrationProgress)
+                                .progressViewStyle(.linear)
+                                .tint(.cyan)
+                        }
+
+                        // Sleep
+                        HStack(spacing: 8) {
+                            Image(systemName: "moon.fill").foregroundStyle(.purple)
+                            Text("Sleep: \(summary.sleepQuality?.label ?? "—")")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        // Mood
+                        HStack(spacing: 8) {
+                            Image(systemName: "face.smiling").foregroundStyle(.green)
+                            let moodLabel: String = {
+                                switch summary.mood ?? .none {
+                                case .good: return "Good"
+                                case .neutral: return "Neutral"
+                                case .bad: return "Bad"
+                                case .none: return "—"
+                                }
+                            }()
+                            Text("Mood: \(moodLabel)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    // Gut and HP
+                    Divider().padding(.vertical, 6)
+
+                    HStack(spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "heart.text.square").foregroundStyle(.orange)
+                            let gutLabel: String = {
+                                switch summary.gutStatus ?? .none {
+                                case .great: return "Great"
+                                case .meh: return "Meh"
+                                case .rough: return "Rough"
+                                case .none: return "—"
+                                }
+                            }()
+                            Text("Gut: \(gutLabel)")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Spacer()
+
+                        HStack(spacing: 6) {
+                            Image(systemName: "cross.case.fill").foregroundStyle(.red)
+                            Text("Avg HP: \(summary.averageHP.map(String.init) ?? "—")")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
+            } else {
+                Text("No stats for yesterday yet.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-            .padding()
-            .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
-            .cornerRadius(14)
         }
-        .overlay(alignment: .topTrailing) {
-            Button {
-                showPlayerCard = true
-            } label: {
-                Image(systemName: "person.crop.circle")
-                    .font(.title3)
-                    .padding(8)
-                    .background(Color(uiColor: .secondarySystemBackground).opacity(0.25))
-                    .clipShape(Circle())
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.12))
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+    }
+
+    private var yesterdayStreakCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Weekly streak as of yesterday", systemImage: "calendar.badge.clock")
+                .font(.headline)
+                .foregroundStyle(.orange)
+
+            if let maintained = viewModel.wasStreakMaintainedYesterday {
+                Text(maintained ? "Streak: maintained ✅" : "Streak: broken ☠️")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(maintained ? .mint : .red)
+
+                if viewModel.yesterdayStreakDots.isEmpty {
+                    Text("No streak data for yesterday yet.")
+                        .foregroundStyle(.secondary)
+                        .font(.footnote)
+                } else {
+                    compactWeeklyDots(for: viewModel.yesterdayStreakDots)
+                }
+            } else {
+                Text("No streak data for yesterday yet.")
+                    .foregroundStyle(.secondary)
+                    .font(.footnote)
             }
-            .buttonStyle(.plain)
         }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
+        .cornerRadius(14)
+    }
+
+    private var yesterdayAchievementsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Season achievements from yesterday")
+                .font(.headline)
+
+            if viewModel.yesterdayUnlockedAchievements.isEmpty {
+                Text("No new achievements yesterday. Today’s a good day to change that.")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+            } else {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
+                    ForEach(viewModel.yesterdayUnlockedAchievements) { item in
+                        Button {
+                            selectAchievement(item)
+                        } label: {
+                            SeasonAchievementBadgeView(
+                                title: item.title,
+                                iconName: item.iconName,
+                                isUnlocked: item.isUnlocked,
+                                progressFraction: CGFloat(item.progressFraction)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+        }
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
+        .cornerRadius(16)
+    }
+
+    private func compactWeeklyDots(for days: [SessionStatsStore.WeeklyGoalDayStatus]) -> some View {
+        HStack(spacing: 8) {
+            ForEach(days) { day in
+                ZStack {
+                    Circle()
+                        .fill(day.goalHit ? Color.mint : Color.clear)
+                        .frame(width: 12, height: 12)
+                        .overlay(
+                            Circle()
+                                .stroke(day.goalHit ? Color.mint : Color.secondary.opacity(0.6), lineWidth: 2)
+                        )
+                        .opacity(day.goalHit ? 1 : 0.7)
+
+                    if day.isToday {
+                        Circle()
+                            .stroke(Color.white.opacity(0.35), lineWidth: 3)
+                            .frame(width: 18, height: 18)
+                    }
+                }
+                .accessibilityLabel(day.date.formatted(date: .abbreviated, time: .omitted))
+                .accessibilityValue(day.goalHit ? QuestChatStrings.StatsView.weeklyGoalMet : QuestChatStrings.StatsView.weeklyGoalNotMet)
+            }
+        }
+    }
+
+    private func selectAchievement(_ item: StatsViewModel.SeasonAchievementItemViewModel) {
+        guard let achievement = viewModel.achievement(for: item.id) else { return }
+        selectedAchievement = achievement
     }
 
     private var summaryTiles: some View {
@@ -246,6 +557,38 @@ struct StatsView: View {
             .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
             .cornerRadius(16)
         }
+    }
+
+    private var achievementsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Season Achievements")
+                .font(.headline)
+
+            if viewModel.seasonAchievements.isEmpty {
+                Text("No achievements available yet.")
+                    .foregroundStyle(.secondary)
+            } else {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
+                    ForEach(viewModel.seasonAchievements) { item in
+                        Button {
+                            selectAchievement(item)
+                        } label: {
+                            SeasonAchievementBadgeView(
+                                title: item.title,
+                                iconName: item.iconName,
+                                isUnlocked: item.isUnlocked,
+                                progressFraction: CGFloat(item.progressFraction)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+        }
+        .padding()
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.15))
+        .cornerRadius(16)
     }
 
     private var sessionHistorySection: some View {
@@ -285,7 +628,7 @@ struct StatsView: View {
 
     private var weeklyPathCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label(QuestChatStrings.StatsView.weeklyPathTitle, systemImage: "chart.dots.scatter")
+            Label("Weekly streak", systemImage: "chart.dots.scatter")
                 .font(.headline)
                 .foregroundStyle(.mint)
 
@@ -312,11 +655,9 @@ struct StatsView: View {
                 }
             }
 
-            if weeklyGoalProgress.allSatisfy({ $0.goalHit }) {
-                Text(QuestChatStrings.StatsView.weeklyStreakBonus)
-                    .font(.caption)
-                    .foregroundStyle(.mint)
-            }
+            Text("Current streak: \(store.currentGoalStreak) day\(store.currentGoalStreak == 1 ? "" : "s")")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -327,22 +668,28 @@ struct StatsView: View {
     private var dailyGoalCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label(QuestChatStrings.StatsView.todaysFocusGoal, systemImage: "target")
+                Label(focusGoalLabel, systemImage: "target")
                     .font(.headline)
                     .foregroundStyle(.mint)
                 Spacer()
-                if let focusAreaLabel {
-                    Text(focusAreaLabel)
+                if let label = focusAreaLabelForScope {
+                    Text(label)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
             }
 
-            Text(QuestChatStrings.StatsView.dailyGoalProgress(current: dailyGoalProgress, total: dailyGoalMinutes))
+            Text(focusGoalProgressText)
                 .font(.subheadline.bold())
 
-            ProgressView(value: Double(min(dailyGoalProgress, dailyGoalMinutes)), total: Double(dailyGoalMinutes))
+            ProgressView(value: Double(min(dailyGoalProgressForScope, dailyGoalMinutesForScope)), total: Double(dailyGoalMinutesForScope))
                 .tint(.mint)
+
+            if reachedFocusGoalForScope {
+                Text("Goal hit! 🎯")
+                    .font(.caption.bold())
+                    .foregroundColor(.mint)
+            }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -408,19 +755,42 @@ struct StatsView: View {
     private func modeTitle(for rawValue: String) -> String {
         FocusTimerMode(rawValue: rawValue)?.title ?? rawValue.capitalized
     }
+
+#if DEBUG
+    private var debugSeasonAchievementsSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                Toggle("Post notifications", isOn: $shouldPostAchievementNotifications)
+                    .tint(.mint)
+
+                Button {
+                    viewModel.unlockAllSeasonAchievementsForDebug(
+                        postNotifications: shouldPostAchievementNotifications
+                    )
+                } label: {
+                    Label("Unlock all Season Achievement Progress", systemImage: "sparkles")
+                }
+                .disabled(!viewModel.hasLockedSeasonAchievements)
+
+                Text("Unlocks every remaining Season achievement for debugging. Enable notifications to preview unlock overlays; tap slowly to avoid spamming.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } header: {
+            Text("Debug: Season Achievement Progress")
+        }
+    }
+#endif
 }
 
 #Preview {
-    let store = SessionStatsStore()
-    let healthStats = HealthBarIRLStatsStore()
-    let hydrationSettingsStore = HydrationSettingsStore()
-    let healthBarViewModel = HealthBarViewModel()
-    let focusViewModel = DependencyContainer.shared.makeFocusViewModel()
+    let container = DependencyContainer.shared
     StatsView(
-        store: store,
-        viewModel: StatsViewModel(healthStore: healthStats, hydrationSettingsStore: hydrationSettingsStore),
-        questsViewModel: QuestsViewModel(statsStore: store),
-        healthBarViewModel: healthBarViewModel,
-        focusViewModel: focusViewModel
+        store: container.sessionStatsStore,
+        viewModel: container.statsViewModel,
+        questsViewModel: container.questsViewModel,
+        healthBarViewModel: container.healthBarViewModel,
+        focusViewModel: container.focusViewModel
     )
 }

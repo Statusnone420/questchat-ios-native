@@ -1,6 +1,28 @@
 import SwiftUI
 import UIKit
 
+private struct SipFeedbackOverlay: View {
+    let text: String
+    @State private var animate = false
+
+    var body: some View {
+        Text(text)
+            .font(.caption.bold())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.cyan.opacity(0.2))
+            .foregroundStyle(.cyan)
+            .clipShape(Capsule())
+            .offset(y: animate ? -24 : 0)
+            .opacity(animate ? 0 : 1)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.5)) {
+                    animate = true
+                }
+            }
+    }
+}
+
 struct FocusView: View {
     @StateObject var viewModel: FocusViewModel
     @ObservedObject var healthBarViewModel: HealthBarViewModel
@@ -10,11 +32,10 @@ struct FocusView: View {
     @Binding var selectedTab: MainTab
 
     @State private var primaryButtonScale: CGFloat = 1
-    @State private var pauseButtonScale: CGFloat = 1
     @State private var resetButtonScale: CGFloat = 1
     @State private var heroCardScale: CGFloat = 0.98
     @State private var heroCardOpacity: Double = 0.92
-    @State private var selectedStatusEffect: StatusEffect?
+    @State private var isShowingSettings = false
 
     @Namespace private var categoryAnimation
 
@@ -59,6 +80,15 @@ struct FocusView: View {
         return QuestChatStrings.FocusView.streakProgress(days: days)
     }
 
+    private var momentumLabel: String { statsStore.momentumLabel() }
+
+    private var momentumDescription: String { statsStore.momentumDescription() }
+
+    private var momentumProgress: Double {
+        let normalized = (statsStore.momentumMultiplier() - 1.0) / 0.20
+        return min(max(normalized, 0), 1)
+    }
+
     init(viewModel: FocusViewModel, healthBarViewModel: HealthBarViewModel, selectedTab: Binding<MainTab>) {
         _viewModel = StateObject(wrappedValue: viewModel)
         _healthBarViewModel = ObservedObject(wrappedValue: healthBarViewModel)
@@ -66,7 +96,7 @@ struct FocusView: View {
         _statsStore = ObservedObject(wrappedValue: viewModel.statsStore)
 
         viewModel.onSessionComplete = { [weak healthBarViewModel] in
-            healthBarViewModel?.logFocusSprint()
+            healthBarViewModel?.logFocusSession()
         }
 
         // Note: onQuestEvent is wired up in .onAppear since questsViewModel
@@ -74,32 +104,30 @@ struct FocusView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             NavigationStack {
-                ScrollView (.vertical, showsIndicators: false) {
-                    VStack(spacing: 20) {
-                        healthHeaderCard
-                        vitalsCard
-                        potionsCard
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVStack(alignment: .leading, spacing: 20) {
                         compactStatusHeader
-                        todayQuestBanner
-                        
+                        momentumCard
+
                         if let selectedCategory = viewModel.selectedCategoryData {
-                            heroCard(for: selectedCategory)
+                            activeTimerSection(for: selectedCategory)
                         }
-                        
+
                         quickTimersList
-                        
+
                         reminderCard
+
+                        bottomActionsSection
                     }
-                    .padding(.vertical, 24)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
+                .scrollBounceBehavior(.basedOnSize)
                 .background(Color.black.ignoresSafeArea())
-                .navigationTitle(QuestChatStrings.FocusView.navigationTitle)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbarBackground(Color.black, for: .navigationBar)
-                .toolbarColorScheme(.dark, for: .navigationBar)
+                .toolbar(.hidden, for: .navigationBar)
             }
             
             if let session = viewModel.lastCompletedSession {
@@ -140,16 +168,13 @@ struct FocusView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
-        .animation(.easeInOut(duration: 0.35), value: viewModel.activeHydrationNudge?.id)
+        .animation(.spring(), value: viewModel.activeReminderEvent != nil)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.selectedCategory)
-        .onAppear {
-            statsStore.refreshMomentumIfNeeded()
-        }
         .onAppear {
             viewModel.handleScenePhaseChange(scenePhase)
         }
-        .onChange(of: scenePhase) { phase in
-            viewModel.handleScenePhaseChange(phase)
+        .onChange(of: scenePhase) {
+            viewModel.handleScenePhaseChange(scenePhase)
         }
         .onChange(of: viewModel.remainingSeconds) { remaining in
             // Check for mid-timer engagement prompt during active sessions
@@ -170,6 +195,12 @@ struct FocusView: View {
         .sheet(isPresented: $viewModel.isShowingDurationPicker) {
             durationPickerSheet()
         }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView(
+                viewModel: DependencyContainer.shared.settingsViewModel,
+                moreViewModel: DependencyContainer.shared.moreViewModel
+            )
+        }
         .sheet(
             isPresented: Binding(
                 get: { statsStore.shouldShowDailySetup },
@@ -177,8 +208,8 @@ struct FocusView: View {
             )
         ) {
             DailySetupSheet(
-                initialFocusArea: statsStore.dailyConfig?.focusArea ?? .work,
-                initialEnergyLevel: .medium
+                initialFocusArea: statsStore.todayPlan?.focusArea ?? .work,
+                initialEnergyLevel: statsStore.todayPlan?.energyLevel ?? .medium
             ) { focusArea, energyLevel in
                 statsStore.completeDailyConfig(focusArea: focusArea, energyLevel: energyLevel)
                 questsViewModel.markCoreQuests(for: focusArea)
@@ -199,7 +230,7 @@ struct FocusView: View {
             headerItem(title: QuestChatStrings.FocusView.headerStreakTitle, value: streakSummaryText, icon: "flame.fill", tint: .orange)
         }
         .padding(14)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color(uiColor: .secondarySystemBackground).opacity(0.16))
@@ -217,6 +248,40 @@ struct FocusView: View {
         )
     }
 
+    private var settingsGearButton: some View {
+        Button {
+            isShowingSettings = true
+        } label: {
+            Image(systemName: "gearshape.fill")
+                .font(.title3)
+                .padding(10)
+                .background(Color(uiColor: .secondarySystemBackground))
+                .clipShape(Circle())
+        }
+        .foregroundStyle(.mint)
+    }
+
+    @ViewBuilder
+    private var bottomActionsSection: some View {
+        HStack(alignment: .center) {
+            #if DEBUG
+            VStack(alignment: .leading, spacing: 8) {
+                Button("Test hydration nudge") {
+                    viewModel.debugFireHydrationReminder()
+                }
+                Button("Test posture nudge") {
+                    viewModel.debugFirePostureReminder()
+                }
+            }
+            #endif
+
+            Spacer()
+
+            settingsGearButton
+        }
+        .foregroundStyle(.mint)
+    }
+
     private func headerItem(title: String, value: String, icon: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Label(title, systemImage: icon)
@@ -229,319 +294,153 @@ struct FocusView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func statusEffectIcon(for effect: StatusEffect) -> some View {
-        let tint: Color = effect.kind == .buff ? .green : .red
-
-        return VStack(spacing: 6) {
-            Image(systemName: effect.systemImageName)
-                .font(.subheadline.weight(.bold))
-                .frame(width: 32, height: 32)
-                .foregroundStyle(.black)
-                .background(tint)
-                .clipShape(Circle())
-                .shadow(color: tint.opacity(0.35), radius: 6, x: 0, y: 3)
-
-            Text(effect.title)
-                .font(.caption2.weight(.semibold))
-                .lineLimit(1)
-        }
-        .padding(10)
-        .frame(minWidth: 90)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.3))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(tint.opacity(0.5), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-
-    private func statusEffectDetail(for effect: StatusEffect) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(effect.title, systemImage: effect.systemImageName)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(effect.kind == .buff ? .green : .red)
-
-            Text(effect.description)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            if !effect.affectedStats.isEmpty {
-                HStack(spacing: 6) {
-                    Image(systemName: "wand.and.stars")
-                        .foregroundStyle(.yellow)
-                    Text(effect.affectedStats.joined(separator: ", "))
-                        .font(.caption.bold())
-                }
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.4))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .transition(.opacity.combined(with: .scale))
-    }
-
-    private var healthHeaderCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+    private var momentumCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
-                Text("HealthBar IRL")
+                Label(QuestChatStrings.StatsView.momentumLabel, systemImage: "bolt.fill")
                     .font(.headline.weight(.semibold))
+                    .foregroundStyle(.yellow)
                 Spacer()
-                Text("\(viewModel.currentHP) / 100 HP")
-                    .font(.subheadline.weight(.semibold))
+                Text(momentumLabel)
+                    .font(.caption.bold())
                     .foregroundStyle(.secondary)
             }
 
-            RPGStatBar(
-                iconName: "heart.fill",
-                label: "HP",
-                color: .red,
-                progress: viewModel.hpProgress,
-                segments: 12
-            )
+            ProgressView(value: momentumProgress, total: 1)
+                .tint(.yellow)
+                .progressViewStyle(.linear)
 
-            if !viewModel.activeEffects.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(viewModel.activeEffects) { effect in
-                                Button {
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                        if selectedStatusEffect?.id == effect.id {
-                                            selectedStatusEffect = nil
-                                        } else {
-                                            selectedStatusEffect = effect
-                                        }
-                                    }
-                                } label: {
-                                    statusEffectIcon(for: effect)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                    }
-
-                    if let selectedStatusEffect {
-                        statusEffectDetail(for: selectedStatusEffect)
-                    }
-                }
-            }
+            Text(momentumDescription)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding(14)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.65))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
-    private var vitalsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .lastTextBaseline) {
-                Text("Vitals")
-                    .font(.headline.weight(.semibold))
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(viewModel.hydrationSummaryText)
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
-                    if let cups = viewModel.hydrationCupsText {
-                        Text(cups)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            StatusBarRow(
-                iconName: "drop.fill",
-                label: "Hydration",
-                tint: .blue,
-                progress: viewModel.hydrationProgress,
-                segments: 10,
-                detailText: viewModel.hydrationSummaryText
-            )
-
-            StatusBarRow(
-                iconName: "moon.fill",
-                label: "Sleep",
-                tint: .purple,
-                progress: viewModel.sleepProgress,
-                segments: 8,
-                detailText: viewModel.sleepQualityLabel
-            )
-
-            StatusBarRow(
-                iconName: "face.smiling",
-                label: "Mood",
-                tint: .green,
-                progress: viewModel.moodProgress,
-                segments: 8,
-                detailText: viewModel.moodStatusLabel
-            )
-
-            StatusBarRow(
-                iconName: "bolt.fill",
-                label: "Stamina",
-                tint: .orange,
-                progress: viewModel.staminaProgress,
-                segments: 8,
-                detailText: viewModel.staminaLabel
-            )
-        }
-        .padding(14)
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.45))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
-    private func potionButton(title: String, systemImage: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.subheadline.weight(.semibold))
-        }
-        .buttonStyle(HealthPotionButtonStyle(color: color))
-    }
-
-    private var potionsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Potions")
-                .font(.headline.weight(.semibold))
-
-            HStack(spacing: 10) {
-                potionButton(title: "Health", systemImage: "cross.case.fill", color: .green) {
-                    viewModel.logComfortBeverageTapped()
-                }
-
-                potionButton(title: "Mana", systemImage: "drop.fill", color: .cyan) {
-                    viewModel.logHydrationPillTapped()
-                }
-
-                potionButton(title: "Stamina", systemImage: "bolt.fill", color: .orange) {
-                    viewModel.logStaminaPotionTapped()
-                }
-            }
-        }
-        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.45))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     @ViewBuilder
-    private var todayQuestBanner: some View {
-        if let quest = questsViewModel.dailyQuests.first {
-            Button {
-                selectedTab = .quests
-            } label: {
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(QuestChatStrings.FocusView.todayQuestLabel)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+    private func activeTimerSection(for category: TimerCategory) -> some View {
+        let isSessionActive = viewModel.timerState != .idle
 
-                        Text(quest.title)
-                            .font(.headline)
-                    }
-
-                    Spacer()
-
-                    if quest.isCompleted {
-                        Label(QuestChatStrings.FocusView.questCompletedLabel, systemImage: "checkmark.circle.fill")
-                            .font(.subheadline.bold())
-                            .foregroundStyle(.mint)
-                    } else {
-                        Text(QuestChatStrings.xpRewardText(quest.xpReward))
-                            .font(.caption.bold())
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(.mint.opacity(0.15))
-                            .foregroundStyle(.mint)
-                            .clipShape(Capsule())
-                    }
+        if isSessionActive && !viewModel.isActiveTimerExpanded {
+            collapsedActiveTimer(for: category)
+                .onTapGesture { toggleActiveTimerExpansion() }
+        } else {
+            heroCard(for: category)
+                .onTapGesture {
+                    guard isSessionActive else { return }
+                    toggleActiveTimerExpansion()
                 }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(.ultraThinMaterial.opacity(0.14))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.gray.opacity(0.25), lineWidth: 1)
-                )
-                .cornerRadius(14)
-            }
-            .buttonStyle(.plain)
         }
     }
 
-    private func heroCard(for category: TimerCategory) -> some View {
-        VStack(alignment: .leading, spacing: 20) {
-            HStack(alignment: .top, spacing: 14) {
-                Image(systemName: category.id.systemImageName)
-                    .font(.system(size: 34))
-                    .foregroundStyle(Color.accentColor)
-                    .matchedGeometryEffect(id: "emoji-\(category.id)", in: categoryAnimation)
+    private func toggleActiveTimerExpansion() {
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+            viewModel.isActiveTimerExpanded.toggle()
+        }
+    }
 
-                VStack(alignment: .leading, spacing: 6) {
+    private func collapsedActiveTimer(for category: TimerCategory) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(category.id.title)
-                        .font(.title.bold())
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    Text(category.id.subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Text(formattedTime)
+                    .font(.title3.monospacedDigit().weight(.bold))
+                    .foregroundStyle(.primary)
+            }
+
+            ProgressView(value: viewModel.progress, total: 1)
+                .progressViewStyle(.linear)
+                .tint(.mint)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
+        .cornerRadius(18)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.25), radius: 12, x: 0, y: 6)
+    }
+
+    private func heroCard(for category: TimerCategory) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Image(systemName: category.id.systemImageName)
+                        .font(.system(size: 30))
+                        .foregroundStyle(Color.accentColor)
+                        .matchedGeometryEffect(id: "emoji-\(category.id)", in: categoryAnimation)
+
+                    Text(category.id.title)
+                        .font(.title.weight(.semibold))
                         .matchedGeometryEffect(id: "title-\(category.id)", in: categoryAnimation)
+
+                    Spacer(minLength: 0)
+
+                    Text(viewModel.formattedDuration(viewModel.durationForSelectedCategory()))
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.mint.opacity(0.16))
+                        .clipShape(Capsule())
+                        .matchedGeometryEffect(id: "duration-\(category.id)", in: categoryAnimation)
+                        .onTapGesture {
+                            viewModel.pendingDurationSeconds = viewModel.durationForSelectedCategory()
+                            viewModel.isShowingDurationPicker = true
+                        }
+                }
+
+                if !category.id.subtitle.isEmpty {
                     Text(category.id.subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .matchedGeometryEffect(id: "subtitle-\(category.id)", in: categoryAnimation)
-
-                    comboPill(for: category)
                 }
 
-                Spacer(minLength: 0)
-
-                Text(viewModel.formattedDuration(viewModel.durationForSelectedCategory()))
-                    .font(.headline)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(Color.mint.opacity(0.16))
-                    .clipShape(Capsule())
-                    .matchedGeometryEffect(id: "duration-\(category.id)", in: categoryAnimation)
-                    .onTapGesture {
-                        viewModel.pendingDurationSeconds = viewModel.durationForSelectedCategory()
-                        viewModel.isShowingDurationPicker = true
-                    }
+                comboPill(for: category)
             }
 
             timerRing
+                .frame(width: 220, height: 220)
+                .padding(.top, 4)
+                .frame(maxWidth: .infinity)
 
             controlPanel
         }
-        .padding(24)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground).opacity(0.22))
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground).opacity(0.18))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [Color.mint.opacity(0.4), Color.cyan.opacity(0.3), Color.purple.opacity(0.2)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.6
-                )
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(0.35), radius: 20, x: 0, y: 12)
-        .shadow(color: Color.mint.opacity(0.22), radius: 14, x: 0, y: 8)
-        .padding(.top, 4)
+        .shadow(color: Color.black.opacity(0.25), radius: 12, x: 0, y: 8)
         .scaleEffect(heroCardScale)
         .opacity(heroCardOpacity)
         .onAppear {
             withAnimation(.spring(response: 0.45, dampingFraction: 0.78)) {
                 heroCardScale = 1
                 heroCardOpacity = 1
-            }
-        }
-        .overlay(alignment: .top) {
-            if let nudge = viewModel.activeHydrationNudge {
-                hydrationBanner(nudge: nudge)
-                    .padding(.horizontal, 12)
-                    .padding(.top, -6)
-                    .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
     }
@@ -640,7 +539,7 @@ struct FocusView: View {
     }
 
     private var timerRing: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             ZStack {
                 Circle()
                     .stroke(Color.gray.opacity(0.35), lineWidth: 18)
@@ -688,67 +587,79 @@ struct FocusView: View {
                     .font(.system(size: 64, weight: .black, design: .rounded))
                     .monospacedDigit()
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 280)
-
-            Text(viewModel.timerStatusText)
-                .font(.footnote)
-                .foregroundColor(.white.opacity(0.75))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-                .lineLimit(2)
+            .frame(width: 220, height: 220)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical)
+        .padding(.vertical, 8)
     }
 
     private var controlPanel: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 12) {
+                let primaryDisabled = viewModel.state != .running && selectedDurationInSeconds <= 0
+
                 Button(action: {
                     animateButtonPress(scale: $primaryButtonScale)
-                    viewModel.start()
+                    if viewModel.state == .running {
+                        viewModel.pause()
+                    } else {
+                        viewModel.start()
+                    }
                 }) {
-                    Label(viewModel.state == .paused ? QuestChatStrings.FocusView.resumeButtonTitle : QuestChatStrings.FocusView.startButtonTitle,
-                          systemImage: "play.fill")
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
+                    Label(
+                        viewModel.state == .running
+                            ? QuestChatStrings.FocusView.pauseButtonTitle
+                            : (viewModel.state == .paused ? QuestChatStrings.FocusView.resumeButtonTitle : QuestChatStrings.FocusView.startButtonTitle),
+                        systemImage: viewModel.state == .running ? "pause.fill" : "play.fill"
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.mint)
                 .scaleEffect(primaryButtonScale)
-                .disabled(viewModel.state == .running || selectedDurationInSeconds <= 0)
-                .opacity(viewModel.state == .running || selectedDurationInSeconds <= 0 ? 0.6 : 1)
+                .disabled(primaryDisabled)
+                .opacity(primaryDisabled ? 0.6 : 1)
 
-                Button(action: {
-                    animateButtonPress(scale: $pauseButtonScale)
-                    viewModel.pause()
+                Button(role: .destructive, action: {
+                    animateButtonPress(scale: $resetButtonScale)
+                    viewModel.reset()
                 }) {
-                    Label(QuestChatStrings.FocusView.pauseButtonTitle, systemImage: "pause.fill")
-                        .frame(maxWidth: .infinity)
+                    Text(QuestChatStrings.FocusView.resetButtonTitle)
+                        .frame(minWidth: 90)
                         .padding(.vertical, 14)
                 }
                 .buttonStyle(.bordered)
-                .scaleEffect(pauseButtonScale)
-                .disabled(viewModel.state != .running)
-                .opacity(viewModel.state != .running ? 0.6 : 1)
+                .scaleEffect(resetButtonScale)
             }
 
-            Button(role: .destructive, action: {
-                animateButtonPress(scale: $resetButtonScale)
-                viewModel.reset()
-            }) {
-                Label(QuestChatStrings.FocusView.resetButtonTitle, systemImage: "arrow.counterclockwise")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-            }
-            .buttonStyle(.bordered)
-            .scaleEffect(resetButtonScale)
+            Text("Focus minutes turn into XP. For life too.")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 4)
 
             HStack {
-                statPill(title: QuestChatStrings.FocusView.sessionsLabel, value: "\(statsStore.sessionsCompleted)")
-                let nudgesActive = viewModel.notificationAuthorized && viewModel.hydrationNudgesEnabled
-                statPill(title: QuestChatStrings.FocusView.hydratePostureLabel, value: nudgesActive ? QuestChatStrings.FocusView.hydratePostureOn : QuestChatStrings.FocusView.hydratePostureOff)
+                Text("\(QuestChatStrings.FocusView.sessionsLabel): \(statsStore.sessionsCompleted)")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    ToggleChip(
+                        title: "Hydrate",
+                        systemImage: "drop.fill",
+                        isOn: viewModel.notificationAuthorized && viewModel.hydrationNudgesEnabled
+                    )
+
+                    ToggleChip(
+                        title: "Posture",
+                        systemImage: "figure.stand",
+                        isOn: viewModel.notificationAuthorized && viewModel.postureRemindersEnabled
+                    )
+                }
             }
         }
         .padding()
@@ -761,26 +672,24 @@ struct FocusView: View {
     }
 
     private var reminderCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "drop.fill")
-                    .foregroundStyle(.cyan)
-                VStack(alignment: .leading) {
-                    Text(QuestChatStrings.FocusView.reminderTitle)
-                        .font(.headline)
-                    Text(QuestChatStrings.FocusView.reminderSubtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "hand.tap")
+                .font(.title3)
+                .foregroundStyle(.mint)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Tip: Tap the active timer while it's running to minimize.")
+                    .font(.subheadline.weight(.semibold))
+                Text("Expand again anytime to see details or adjust settings.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
 
-            Text(QuestChatStrings.FocusView.reminderTip)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            Spacer()
         }
         .padding()
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.12))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial.opacity(0.14))
         .cornerRadius(18)
         .overlay(
             RoundedRectangle(cornerRadius: 18)
@@ -788,53 +697,28 @@ struct FocusView: View {
         )
     }
 
-    private func hydrationBanner(nudge: FocusViewModel.HydrationNudge) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "figure.walk")
-                .foregroundStyle(.mint)
-                .imageScale(.large)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(QuestChatStrings.FocusView.hydrationBannerTitle)
-                    .font(.headline)
-                Text(nudge.message)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 12)
-        .background(.ultraThinMaterial.opacity(0.85))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 6)
-    }
-
-    private func statPill(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title.uppercased())
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.headline.bold())
-        }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
-        .cornerRadius(14)
-    }
-
     private func comboPill(for category: TimerCategory) -> some View {
-        let comboCount = statsStore.comboCount(for: category.id)
-        let comboComplete = statsStore.hasEarnedComboBonus(for: category.id)
+        // Derive a simple combo heuristic from existing stats rather than missing APIs.
+        // Treat the daily focus goal as the combo completion for focus categories.
+        let goalMinutes = statsStore.dailyMinutesGoal ?? 40
+        let focusToday = statsStore.focusSecondsToday / 60
+        let selfCareToday = statsStore.selfCareSecondsToday / 60
+
+        // Determine progress source based on the category's mode.
+        let isFocusMode = category.id.mode == .focus
+        let progressMinutes = isFocusMode ? focusToday : selfCareToday
+
+        // Map progress to a 3-step combo (roughly thirds of the goal for focus; fixed steps for self-care).
+        let stepTarget: Int = max(1, isFocusMode ? max(10, goalMinutes / 3) : 5)
+        let stepsCompleted = max(0, min(3, progressMinutes / stepTarget))
+        let comboComplete = stepsCompleted >= 3
 
         return Group {
             if comboComplete {
                 Label(QuestChatStrings.FocusView.comboComplete, systemImage: "sparkles")
                     .labelStyle(.titleAndIcon)
             } else {
-                Label("\(QuestChatStrings.FocusView.comboProgressPrefix) \(comboCount) / 3", systemImage: "repeat")
+                Label("\(QuestChatStrings.FocusView.comboProgressPrefix) \(stepsCompleted) / 3", systemImage: "repeat")
                     .labelStyle(.titleAndIcon)
             }
         }
@@ -844,6 +728,26 @@ struct FocusView: View {
         .background(Color.mint.opacity(0.12))
         .foregroundStyle(.mint)
         .clipShape(Capsule())
+    }
+
+    private struct ToggleChip: View {
+        let title: String
+        let systemImage: String
+        let isOn: Bool
+
+        var body: some View {
+            HStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.caption2)
+                Text(title)
+                    .font(.caption)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(isOn ? Color.teal.opacity(0.2) : Color.secondary.opacity(0.15))
+            .foregroundStyle(isOn ? Color.teal : .secondary)
+            .clipShape(Capsule())
+        }
     }
 
     private func animateButtonPress(scale: Binding<CGFloat>) {
@@ -993,71 +897,31 @@ private extension Color {
 
 }
 
-private struct DailySetupSheet: View {
+struct DailySetupSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedFocusArea: FocusArea
-    @State private var selectedEnergy: DailyEnergyLevel
+    @State private var selectedEnergy: EnergyLevel
 
-    let onComplete: (FocusArea, DailyEnergyLevel) -> Void
+    let onComplete: (FocusArea, EnergyLevel) -> Void
 
-    init(initialFocusArea: FocusArea, initialEnergyLevel: DailyEnergyLevel, onComplete: @escaping (FocusArea, DailyEnergyLevel) -> Void) {
+    init(initialFocusArea: FocusArea, initialEnergyLevel: EnergyLevel, onComplete: @escaping (FocusArea, EnergyLevel) -> Void) {
         _selectedFocusArea = State(initialValue: initialFocusArea)
         _selectedEnergy = State(initialValue: initialEnergyLevel)
         self.onComplete = onComplete
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(QuestChatStrings.FocusView.dailySetupTitle)
-                        .font(.title2.bold())
-                    Text(QuestChatStrings.FocusView.dailySetupDescription)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 16) {
+                header
 
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(QuestChatStrings.FocusView.focusAreaLabel)
-                        .font(.headline)
-                    ForEach(FocusArea.allCases) { area in
-                        Button {
-                            selectedFocusArea = area
-                        } label: {
-                            HStack {
-                                Text(area.emoji)
-                                Text(area.title)
-                                    .font(.body)
-                                Spacer()
-                                if selectedFocusArea == area {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundStyle(.mint)
-                                }
-                            }
-                            .padding(10)
-                            .frame(maxWidth: .infinity)
-                            .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        focusAreaSection
+                        energySection
                     }
                 }
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(QuestChatStrings.FocusView.energyLevelLabel)
-                        .font(.headline)
-
-                    Picker(QuestChatStrings.FocusView.energyLevelLabel, selection: $selectedEnergy) {
-                        ForEach(DailyEnergyLevel.allCases) { level in
-                            Text("\(level.emoji) \(level.title) - \(level.suggestedMinutes) min")
-                                .tag(level)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-
-                Spacer()
 
                 Button {
                     onComplete(selectedFocusArea, selectedEnergy)
@@ -1066,26 +930,223 @@ private struct DailySetupSheet: View {
                     Text(QuestChatStrings.FocusView.saveTodayButtonTitle)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(.mint)
-                        .foregroundStyle(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .frame(height: 52)
+                        .background(Color.accentColor)
+                        .foregroundColor(.black)
+                        .cornerRadius(20)
+                }
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color.white.opacity(0.06))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 16)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.black.opacity(0.6).ignoresSafeArea())
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(QuestChatStrings.FocusView.dailySetupTitle)
+                .font(.title2.bold())
+                .foregroundColor(.white)
+            Text("Pick today's focus and energy. We'll set a realistic goal for today.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var focusAreaSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(QuestChatStrings.FocusView.focusAreaLabel)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 10) {
+                ForEach(FocusArea.allCases) { area in
+                    let details = focusDetails(for: area)
+                    FocusModeRow(
+                        title: area.displayName,
+                        subtitle: details.subtitle,
+                        systemImageName: details.icon,
+                        isSelected: selectedFocusArea == area
+                    ) {
+                        selectedFocusArea = area
+                    }
                 }
             }
-            .padding()
-            .background(Color.black.ignoresSafeArea())
+        }
+    }
+
+    private var energySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Energy level")
+                .font(.subheadline.weight(.semibold))
+                .padding(.top, 12)
+
+            HStack(spacing: 8) {
+                ForEach(EnergyLevel.allCases) { level in
+                    let details = energyDetails(for: level)
+                    EnergyLevelChip(
+                        systemImageName: details.icon,
+                        title: details.label,
+                        isSelected: selectedEnergy == level
+                    ) {
+                        selectedEnergy = level
+                    }
+                }
+            }
+        }
+    }
+
+    private func energyDetails(for level: EnergyLevel) -> (icon: String, label: String) {
+        switch level {
+        case .low:
+            return ("moon.zzz.fill", "Low – 20 min")
+        case .medium:
+            return ("cloud.sun.fill", "Medium – 40 min")
+        case .high:
+            return ("sun.max.fill", "High – 60 min")
+        }
+    }
+
+    private func focusDetails(for area: FocusArea) -> (icon: String, subtitle: String) {
+        switch area {
+        case .work:
+            return ("briefcase.fill", "Deep work, study, big tasks")
+        case .selfCare:
+            return ("figure.mind.and.body", "Recovery, appointments, chores")
+        case .chill:
+            return ("moon.zzz.fill", "Light tasks, rest, errands")
+        case .grind:
+            return ("flame.fill", "All-out push day. Use with caution")
+        }
+    }
+
+    private struct EnergyLevelChip: View {
+        let systemImageName: String
+        let title: String
+        let isSelected: Bool
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                HStack(spacing: 6) {
+                    Image(systemName: systemImageName)
+                    Text(title)
+                }
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 12)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? Color.accentColor.opacity(0.25) : Color(.secondarySystemBackground))
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 }
 
-#Preview {
-    let store = SessionStatsStore()
-    let healthStats = HealthBarIRLStatsStore()
+private struct FocusModeRow: View {
+    let title: String
+    let subtitle: String
+    let systemImageName: String
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.16))
+                        .frame(width: 40, height: 40)
+
+                    Image(systemName: systemImageName)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text(subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Color.accentColor.opacity(0.18) : Color(.secondarySystemBackground))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+#Preview("FocusView – iPhone 15 Pro") {
+    let container = DependencyContainer.shared
+    let focusVM = container.focusViewModel
     let healthBarVM = HealthBarViewModel()
     FocusView(
-        viewModel: FocusViewModel(statsStore: store, healthStatsStore: healthStats, healthBarViewModel: healthBarVM),
+        viewModel: focusVM,
         healthBarViewModel: healthBarVM,
         selectedTab: .constant(.focus)
     )
-    .environmentObject(QuestsViewModel(statsStore: store))
+    .environmentObject(QuestsViewModel(statsStore: container.sessionStatsStore))
+    .previewDevice("iPhone 15 Pro")
 }
+
+#Preview("FocusView – iPhone 17 Pro Max") {
+    let container = DependencyContainer.shared
+    let focusVM = container.focusViewModel
+    let healthBarVM = HealthBarViewModel()
+    FocusView(
+        viewModel: focusVM,
+        healthBarViewModel: healthBarVM,
+        selectedTab: .constant(.focus)
+    )
+    .environmentObject(QuestsViewModel(statsStore: container.sessionStatsStore))
+    .previewDevice("iPhone 17 Pro Max")
+}
+
+#Preview("Potions – iPhone 15 Pro") {
+    PotionsCard(onHealthTap: {}, onManaTap: {}, onStaminaTap: {})
+        .padding(20)
+        .background(Color.black)
+        .previewDevice("iPhone 15 Pro")
+}
+
+#Preview("Potions – iPhone 17 Pro Max") {
+    PotionsCard(onHealthTap: {}, onManaTap: {}, onStaminaTap: {})
+        .padding(20)
+        .background(Color.black)
+        .previewDevice("iPhone 17 Pro Max")
+}
+

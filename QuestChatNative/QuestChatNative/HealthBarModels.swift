@@ -20,6 +20,23 @@ struct DailyHealthInputs: Codable {
     var focusSprints: Int
     var gutStatus: GutStatus
     var moodStatus: MoodStatus
+    var pendingHydrationOunces: Int
+
+    init(
+        hydrationCount: Int,
+        selfCareSessions: Int,
+        focusSprints: Int,
+        gutStatus: GutStatus,
+        moodStatus: MoodStatus,
+        pendingHydrationOunces: Int = 0
+    ) {
+        self.hydrationCount = hydrationCount
+        self.selfCareSessions = selfCareSessions
+        self.focusSprints = focusSprints
+        self.gutStatus = gutStatus
+        self.moodStatus = moodStatus
+        self.pendingHydrationOunces = pendingHydrationOunces
+    }
 }
 
 struct StatusEffect: Identifiable, Equatable {

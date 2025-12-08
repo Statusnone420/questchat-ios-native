@@ -1,11 +1,13 @@
 import SwiftUI
 
 struct TodaySummaryView: View {
+    let title: String
     let completedQuests: Int
     let totalQuests: Int
     let focusMinutes: Int
-    let selfCareMinutes: Int
-    let dailyFocusTarget: Int
+    let focusGoalMinutes: Int
+    let reachedFocusGoal: Bool
+    let focusAreaLabel: String?
     let currentStreakDays: Int
 
     private var questProgress: Double {
@@ -14,9 +16,8 @@ struct TodaySummaryView: View {
     }
 
     private var minutesProgress: Double {
-        guard dailyFocusTarget > 0 else { return 0 }
-        let totalMinutes = focusMinutes + selfCareMinutes
-        let progress = Double(totalMinutes) / Double(dailyFocusTarget)
+        guard focusGoalMinutes > 0 else { return 0 }
+        let progress = Double(focusMinutes) / Double(focusGoalMinutes)
         return min(progress, 1)
     }
 
@@ -31,18 +32,34 @@ struct TodaySummaryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Today", systemImage: "sun.max.fill")
-                .font(.headline)
-                .foregroundStyle(.mint)
+            HStack(spacing: 8) {
+                Label(title, systemImage: "sun.max.fill")
+                    .font(.headline)
+                    .foregroundStyle(.mint)
+                Spacer()
+                if let focusAreaLabel {
+                    Text(focusAreaLabel)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Today: \(completedQuests) / \(totalQuests) quests done")
+                Text("\(title): \(completedQuests) / \(totalQuests) quests done")
                     .font(.subheadline)
-                Text("Focus: \(focusMinutes) / \(dailyFocusTarget) minutes")
-                    .font(.subheadline)
-                Text("Self care: \(selfCareMinutes) minutes")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    Text("Focus: \(focusMinutes) / \(focusGoalMinutes) minutes")
+                        .font(.subheadline)
+                    if reachedFocusGoal {
+                        Text("Goal hit!")
+                            .font(.caption.bold())
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.mint.opacity(0.2))
+                            .foregroundColor(.mint)
+                            .cornerRadius(10)
+                    }
+                }
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -72,11 +89,13 @@ struct TodaySummaryView: View {
 
 #Preview {
     TodaySummaryView(
+        title: "Today",
         completedQuests: 2,
         totalQuests: 4,
         focusMinutes: 32,
-        selfCareMinutes: 10,
-        dailyFocusTarget: 40,
+        focusGoalMinutes: 40,
+        reachedFocusGoal: true,
+        focusAreaLabel: "💼 Work",
         currentStreakDays: 3
     )
     .padding()

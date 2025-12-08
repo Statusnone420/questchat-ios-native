@@ -2,23 +2,28 @@ import Foundation
 
 enum QuestChatStrings {
     enum TimerCategories {
-        static let deepFocusTitle = "Deep focus"
-        static let deepFocusSubtitle = "Heads-down work, no scrolling."
+        static let createTitle = "Create"
+        static let createSubtitle = "Be creative. Drawing, music, writing, crafts—just make stuff."
 
-        static let workSprintTitle = "Work"
-        static let workSprintSubtitle = "Ship stuff fast, no perfectionism."
+        static let focusModeTitle = "Focus mode"
+        static let focusModeSubtitle = "Focus on something important—no doomscrolling."
 
-        static let choresSprintTitle = "Chores"
-        static let choresSprintSubtitle = "Put the room back on your side."
+        static let choresTitle = "Chores"
+        static let choresSubtitle = "Put the room back on your side."
 
-        static let selfCareTitle = "Self-care reset"
-        static let selfCareSubtitle = "Move, breathe, hydrate, unclench."
+        static let selfCareTitle = "Self-care"
+        static let selfCareSubtitle = "Hot shower, favorite drink, skincare—do something just for you."
 
-        static let gamingResetTitle = "Gaming reset"
-        static let gamingResetSubtitle = "Queue break. Stretch and sip."
+        static let gamingResetTitle = "Gaming"
+        static let gamingResetSubtitle = "Escape the world by entering a new one—guilt-free."
 
-        static let quickBreakTitle = "Quick break"
-        static let quickBreakSubtitle = "Step away so your brain comes back sharper."
+        static let moveTitle = "Move"
+        static let moveSubtitle = "Dance, gym, walk, VR—just move your body."
+    }
+
+    enum ReminderCopy {
+        /// Unified hydration reminder body used for both test nudges and scheduled notifications.
+        static let hydrationShort = "Grab something that isn’t just caffeine or vibes."
     }
 
     enum FocusTimerModeTitles {
@@ -28,9 +33,9 @@ enum QuestChatStrings {
 
     enum FocusAreaTitles {
         static let work = "Work"
-        static let home = "Home"
-        static let health = "Health"
+        static let selfCare = "Self care"
         static let chill = "Chill"
+        static let grind = "Grind"
     }
 
     enum PlayerTitles {
@@ -62,9 +67,25 @@ enum QuestChatStrings {
         static let timerCompleteBody = "Hydrate and check your posture. Your session just wrapped up!"
 
         static let hydrateReminderTitle = "Hydration break"
-        static let hydrateReminderBody = "Grab something that isn’t just caffeine or vibes."
+        static let hydrateReminderBody = ReminderCopy.hydrationShort
 
         static let hydrateNudgeTitle = "Hydrate + posture check"
+    }
+
+    enum Reminders {
+        static let settingsHeader = "Reminders"
+        static let hydrationTitle = "Hydration"
+        static let hydrationDescription = "Quick reminders to drink water during your day."
+        static let postureTitle = "Posture"
+        static let postureDescription = "Straighten up, unclench, and breathe."
+        static let everyLabel = "Every"
+        static func everyValue(_ minutes: Int) -> String { "\(minutes) min" }
+        static let startHourLabel = "Start"
+        static let endHourLabel = "End"
+        static let focusOnlyLabel = "Only during focus sessions"
+        static let focusOnlyDescription = "Skip posture nudges when the Focus timer isn’t running."
+        static let hydrationBody = ReminderCopy.hydrationShort
+        static let postureBody = "Unclench your shoulders and reset your posture."
     }
 
     enum FocusView {
@@ -135,7 +156,7 @@ enum QuestChatStrings {
     enum StatsView {
         static let navigationTitle = "Stats"
         static let headerTitle = "Experience"
-        static let headerSubtitle = "Everything is stored locally until Supabase sync lands."
+        static let headerSubtitle = "Everything is stored locally on your device."
         static let levelLabel = "Level"
         static func levelProgress(current: Int, total: Int) -> String {
             "\(current) / \(total) XP into this level"
@@ -282,7 +303,7 @@ enum QuestChatStrings {
         static let postureSnoozeHint = "Can’t move right now? Snooze it and come back to un-pretzel later."
 
         static let hydrateReminderTitle = "Hydration break"
-        static let hydrateReminderBody = "Grab something that isn’t just caffeine or vibes."
+        static let hydrateReminderBody = ReminderCopy.hydrationShort
         static let hydratePostureInfoTitle = "Hydrate + posture when the timer ends"
         static let hydratePostureInfoBody = "Reminders stay on this device for now. Your body still gets the buff."
     }
@@ -305,11 +326,9 @@ enum QuestChatStrings {
 
     enum MoreView {
         static let moreComing = "More coming soon"
-        static let timerDurationsTitle = "Timer durations"
-        static let timerDurationsDescription = "Adjust each category directly from the Focus tab."
-        static let hydrationToggleTitle = "Hydrate + posture nudges"
-        static let hydrationToggleDescription = "In-app banners and local notifications when you cross focus milestones."
-        static let visitSite = "Visit questchat.app"
+        static let moreComingSubtitle = "New reminders and tiny superpowers will live here."
+        static let hydrationSettingsTitle = "Hydration settings"
+        static let hydrationSettingsSubtitle = "These control how much water gets logged when you tap on the HP tab."
     }
 
     enum PlayerCard {

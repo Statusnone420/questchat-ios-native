@@ -5,24 +5,71 @@ import SwiftUI
 final class HealthBarViewModel: ObservableObject {
     @Published private(set) var inputs: DailyHealthInputs
     @Published private(set) var hp: Int = 40
+    @Published private(set) var currentHP: Int = 40
+    @Published var hydrationProgressBump: Bool = false
 
-    private let maxHP: Double = 100
+    // Accumulates partial ounces that haven't reached a full tap yet, persisted through inputs.
+    // Removed private var pendingOunces: Int = 0
+
+    private let defaultMaxHP: Double = 100
 
     private let storage: HealthBarStorageProtocol
-    private let statsStore: HealthBarIRLStatsStore?
+    private let healthStatsStore: HealthBarIRLStatsStore?
+    private let statsStore: SessionStatsStore?
+    private let hydrationSettingsStore: HydrationSettingsStore?
+    private let sleepHistoryStore: SleepHistoryStore?
+    private var cancellables = Set<AnyCancellable>()
 
     init(
         storage: HealthBarStorageProtocol = DefaultHealthBarStorage(),
-        statsStore: HealthBarIRLStatsStore? = nil
+        statsStore: HealthBarIRLStatsStore? = nil,
+        sessionStatsStore: SessionStatsStore? = nil,
+        hydrationSettingsStore: HydrationSettingsStore? = nil,
+        sleepHistoryStore: SleepHistoryStore? = nil
     ) {
         self.storage = storage
-        self.statsStore = statsStore
+        self.healthStatsStore = statsStore
+        self.statsStore = sessionStatsStore
+        self.hydrationSettingsStore = hydrationSettingsStore
+        self.sleepHistoryStore = sleepHistoryStore
         inputs = storage.loadTodayInputs()
+        currentHP = statsStore?.currentHP ?? HealthBarCalculator.hp(for: inputs)
         recalculate()
+
+        bindStores()
+    }
+
+    /// Log an arbitrary number of ounces of water intake.
+    /// This converts ounces into taps based on the configured ouncesPerWaterTap, rounding to the nearest tap.
+    /// If no hydration settings are available, it falls back to 8 oz per tap.
+    func logHydration(ounces: Int) {
+        let perTap = hydrationSettingsStore?.ouncesPerWaterTap ?? 8
+        guard ounces > 0 else { return }
+
+        let beforeProgress = hydrationProgress
+
+        // Persist absolute ounces at log time to freeze history
+        healthStatsStore?.addHydration(ounces: ounces)
+
+        // Maintain tap count heuristic when ounces meet/exceed perTap
+        if ounces >= perTap { inputs.hydrationCount += ounces / max(perTap, 1) }
+
+        // Clear any carry-over ounces from older behavior to avoid add-on update
+        inputs.pendingHydrationOunces = 0
+
+        recalculate()
+        save()
+
+        let afterProgress = hydrationProgress
+        if afterProgress > beforeProgress {
+            hydrationProgressBump.toggle()
+        }
     }
 
     func logHydration() {
+        let perTap = hydrationSettingsStore?.ouncesPerWaterTap ?? 8
         inputs.hydrationCount += 1
+        healthStatsStore?.addHydration(ounces: perTap)
         recalculate()
         save()
     }
@@ -33,7 +80,7 @@ final class HealthBarViewModel: ObservableObject {
         save()
     }
 
-    func logFocusSprint() {
+    func logFocusSession() {
         inputs.focusSprints += 1
         recalculate()
         save()
@@ -51,9 +98,126 @@ final class HealthBarViewModel: ObservableObject {
         save()
     }
 
+    var maxHP: Int { healthStatsStore?.maxHP ?? Int(defaultMaxHP) }
+
+    var hpSegments: Int { 12 }
+
+    var xpInCurrentLevel: Int { statsStore?.xpIntoCurrentLevel ?? 0 }
+
+    var xpToNextLevel: Int { statsStore?.xpNeededToLevelUp(from: level) ?? 0 }
+
+    var xpProgress: Double {
+        let needed = max(1, xpToNextLevel == Int.max ? 1 : xpToNextLevel)
+        return Double(min(xpInCurrentLevel, needed)) / Double(needed)
+    }
+
+    var level: Int { statsStore?.level ?? 1 }
+
+    var gutStatusText: String {
+        switch inputs.gutStatus {
+        case .none: return "Not set"
+        case .great: return "Great"
+        case .meh: return "Meh"
+        case .rough: return "Rough"
+        }
+    }
+
+    var moodStatusText: String {
+        switch inputs.moodStatus {
+        case .none: return "Not set"
+        case .good: return "Good"
+        case .neutral: return "Neutral"
+        case .bad: return "Bad"
+        }
+    }
+
+    var sleepStatusText: String {
+        todaysSleepQuality?.label ?? "Not set"
+    }
+
+    var hydrationProgress: Double {
+        let goal = hydrationSettingsStore?.dailyWaterGoalOunces ?? 0
+        guard goal > 0 else { return 0 }
+        let intake = todaysHydrationOunces
+        return clampProgress(Double(intake) / Double(goal))
+    }
+
+    var sleepProgress: Double {
+        guard let sleepQuality = todaysSleepQuality else { return 0 }
+        let normalized = Double(sleepQuality.rawValue) / Double(SleepQuality.allCases.count - 1)
+        return clampProgress(normalized)
+    }
+
+    var moodProgress: Double {
+        let value: Double = {
+            switch inputs.moodStatus {
+            case .none:
+                return 0
+            case .bad:
+                return 0.25
+            case .neutral:
+                return 0.5
+            case .good:
+                return 1
+            }
+        }()
+
+        return clampProgress(value)
+    }
+
+    var staminaProgress: Double {
+        let target = 4.0
+        return clampProgress(Double(inputs.focusSprints) / target)
+    }
+
+    var hydrationSummaryText: String {
+        let intake = todaysHydrationOunces
+        let goal = hydrationSettingsStore?.dailyWaterGoalOunces ?? 0
+        let goalText = goal > 0 ? " / \(goal) oz" : " oz"
+        return "\(intake)\(goalText)"
+    }
+
+    var hydrationCupsText: String? {
+        let intake = waterIntakeOuncesToday
+        let goal = hydrationSettingsStore?.dailyWaterGoalOunces ?? 0
+        guard intake > 0 || goal > 0 else { return nil }
+
+        let intakeCups = Double(intake) / 8
+        let goalCups = goal > 0 ? Double(goal) / 8 : nil
+        if let goalCups { return String(format: "%.0f / %.0f cups", intakeCups, goalCups) }
+        return String(format: "%.0f cups", intakeCups)
+    }
+
+    var staminaLabel: String {
+        let sessions = inputs.focusSprints
+
+        switch sessions {
+        case 0...1: return "Warming up"
+        case 2...3: return "In the zone"
+        default:    return "Overcharged"
+        }
+    }
+
+    var hpProgress: Double { healthStatsStore?.hpPercentage ?? hpPercentage }
+
+    private var todaysSleepQuality: SleepQuality? {
+        let today = Calendar.current.startOfDay(for: Date())
+        return sleepHistoryStore?.quality(on: today)
+    }
+
+    private var waterIntakeOuncesToday: Int {
+        return todaysHydrationOunces
+    }
+
+    private var todaysHydrationOunces: Int {
+        let today = Calendar.current.startOfDay(for: Date())
+        let day = healthStatsStore?.days.first { Calendar.current.isDate($0.date, inSameDayAs: today) }
+        return day?.hydrationOunces ?? 0
+    }
+
     var hpPercentage: Double {
-        let clamped = max(0, min(Double(hp), maxHP))
-        return clamped / maxHP
+        let clamped = max(0, min(Double(currentHP), Double(maxHP)))
+        return clamped / Double(maxHP)
     }
 
     var healthBarColor: Color {
@@ -70,10 +234,40 @@ final class HealthBarViewModel: ObservableObject {
 
 private extension HealthBarViewModel {
     func recalculate() {
-        hp = statsStore?.calculateHP(for: inputs) ?? HealthBarCalculator.hp(for: inputs)
+        hp = healthStatsStore?.calculateHP(for: inputs) ?? HealthBarCalculator.hp(for: inputs)
+        currentHP = hp
     }
 
     func save() {
         storage.saveTodayInputs(inputs)
+    }
+
+    func bindStores() {
+        healthStatsStore?.$currentHP
+            .receive(on: RunLoop.main)
+            .sink { [weak self] hp in
+                self?.hp = hp
+                self?.currentHP = hp
+            }
+            .store(in: &cancellables)
+
+        statsStore?.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        hydrationSettingsStore?.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+
+        sleepHistoryStore?.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+    }
+
+    func clampProgress(_ value: Double) -> Double {
+        min(max(value, 0), 1)
     }
 }

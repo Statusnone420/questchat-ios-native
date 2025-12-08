@@ -46,7 +46,8 @@ private extension DefaultHealthBarStorage {
             selfCareSessions: 0,
             focusSprints: 0,
             gutStatus: .none,
-            moodStatus: .none
+            moodStatus: .none,
+            pendingHydrationOunces: 0
         )
     }
 

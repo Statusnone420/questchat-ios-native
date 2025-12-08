@@ -97,70 +97,70 @@ enum SleepQuality: Int, CaseIterable, Identifiable {
 
 struct TimerCategory: Identifiable, Equatable {
     enum Kind: String, Codable {
-        case deepFocus
-        case workSprint
-        case choresSprint
+        case create
+        case focusMode
+        case chores
         case selfCare
         case gamingReset
-        case quickBreak
+        case move
 
         var title: String {
             switch self {
-            case .deepFocus:
-                return QuestChatStrings.TimerCategories.deepFocusTitle
-            case .workSprint:
-                return QuestChatStrings.TimerCategories.workSprintTitle
-            case .choresSprint:
-                return QuestChatStrings.TimerCategories.choresSprintTitle
+            case .create:
+                return QuestChatStrings.TimerCategories.createTitle
+            case .focusMode:
+                return QuestChatStrings.TimerCategories.focusModeTitle
+            case .chores:
+                return QuestChatStrings.TimerCategories.choresTitle
             case .selfCare:
                 return QuestChatStrings.TimerCategories.selfCareTitle
             case .gamingReset:
                 return QuestChatStrings.TimerCategories.gamingResetTitle
-            case .quickBreak:
-                return QuestChatStrings.TimerCategories.quickBreakTitle
+            case .move:
+                return QuestChatStrings.TimerCategories.moveTitle
             }
         }
 
         var subtitle: String {
             switch self {
-            case .deepFocus:
-                return QuestChatStrings.TimerCategories.deepFocusSubtitle
-            case .workSprint:
-                return QuestChatStrings.TimerCategories.workSprintSubtitle
-            case .choresSprint:
-                return QuestChatStrings.TimerCategories.choresSprintSubtitle
+            case .create:
+                return QuestChatStrings.TimerCategories.createSubtitle
+            case .focusMode:
+                return QuestChatStrings.TimerCategories.focusModeSubtitle
+            case .chores:
+                return QuestChatStrings.TimerCategories.choresSubtitle
             case .selfCare:
                 return QuestChatStrings.TimerCategories.selfCareSubtitle
             case .gamingReset:
                 return QuestChatStrings.TimerCategories.gamingResetSubtitle
-            case .quickBreak:
-                return QuestChatStrings.TimerCategories.quickBreakSubtitle
+            case .move:
+                return QuestChatStrings.TimerCategories.moveSubtitle
             }
         }
 
         var mode: FocusTimerMode {
             switch self {
-            case .deepFocus, .workSprint, .choresSprint:
+            case .create, .focusMode, .chores:
                 return .focus
-            case .selfCare, .gamingReset, .quickBreak:
+            case .selfCare, .gamingReset, .move:
                 return .selfCare
             }
         }
 
         var systemImageName: String {
             switch self {
-            case .deepFocus:
+            case .create:
                 return "brain.head.profile"
-            case .workSprint:
+            case .focusMode:
                 return "bolt.circle"
-            case .choresSprint:
+            case .chores:
                 return "house.fill"
             case .selfCare:
                 return "figure.mind.and.body"
             case .gamingReset:
                 return "gamecontroller"
-            case .quickBreak:
-                return "cup.and.saucer.fill"
+            case .move:
+                return "figure.run"
             }
         }
     }
@@ -169,77 +169,122 @@ struct TimerCategory: Identifiable, Equatable {
     var durationSeconds: Int
 }
 
-enum FocusArea: String, CaseIterable, Identifiable, Codable {
+enum FocusArea: CaseIterable, Codable, Equatable, Identifiable, Hashable {
     case work
-    case home
-    case health
+    case selfCare
     case chill
+    case grind
 
-    var id: String { rawValue }
+    var id: String { displayName }
 
-    var title: String {
+    var icon: String {
         switch self {
-        case .work:
-            return QuestChatStrings.FocusAreaTitles.work
-        case .home:
-            return QuestChatStrings.FocusAreaTitles.home
-        case .health:
-            return QuestChatStrings.FocusAreaTitles.health
-        case .chill:
-            return QuestChatStrings.FocusAreaTitles.chill
+        case .work: return "💼"
+        case .selfCare: return "🧘"
+        case .chill: return "😌"
+        case .grind: return "🔥"
         }
     }
 
-    var emoji: String {
+    var displayName: String {
         switch self {
-        case .work:
-            return "💼"
-        case .home:
-            return "🏡"
-        case .health:
-            return "💪"
-        case .chill:
-            return "😌"
+        case .work: return QuestChatStrings.FocusAreaTitles.work
+        case .selfCare: return QuestChatStrings.FocusAreaTitles.selfCare
+        case .chill: return QuestChatStrings.FocusAreaTitles.chill
+        case .grind: return QuestChatStrings.FocusAreaTitles.grind
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+        switch rawValue {
+        case "work":
+            self = .work
+        case "selfCare", "selfcare", "health", "home":
+            self = .selfCare
+        case "chill":
+            self = .chill
+        case "grind":
+            self = .grind
+        default:
+            self = .work
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .work: try container.encode("work")
+        case .selfCare: try container.encode("selfCare")
+        case .chill: try container.encode("chill")
+        case .grind: try container.encode("grind")
         }
     }
 }
 
-struct DailyConfig: Codable {
+struct DailyPlan: Codable, Equatable {
     let date: Date
-    let focusArea: FocusArea
-    let dailyMinutesGoal: Int
+    var focusArea: FocusArea
+    var energyLevel: EnergyLevel
+    var focusGoalMinutes: Int
 }
 
-enum DailyEnergyLevel: String, CaseIterable, Identifiable {
+struct DailyProgress: Codable, Equatable, Identifiable {
+    let date: Date
+    var questsCompleted: Int
+    var focusMinutes: Int
+    var reachedFocusGoal: Bool
+    var totalQuests: Int?
+    var focusGoalMinutes: Int?
+
+    var id: Date { date }
+
+    init(
+        date: Date,
+        questsCompleted: Int,
+        focusMinutes: Int,
+        reachedFocusGoal: Bool,
+        totalQuests: Int? = nil,
+        focusGoalMinutes: Int? = nil
+    ) {
+        self.date = date
+        self.questsCompleted = questsCompleted
+        self.focusMinutes = focusMinutes
+        self.reachedFocusGoal = reachedFocusGoal
+        self.totalQuests = totalQuests
+        self.focusGoalMinutes = focusGoalMinutes
+    }
+}
+
+enum EnergyLevel: String, CaseIterable, Identifiable, Codable {
     case low
     case medium
     case high
 
     var id: String { rawValue }
 
-    var title: String {
-        rawValue.capitalized
+    var label: String {
+        switch self {
+        case .low: return "Low – 20 min"
+        case .medium: return "Medium – 40 min"
+        case .high: return "High – 60 min"
+        }
     }
 
-    var suggestedMinutes: Int {
+    var focusGoalMinutes: Int {
         switch self {
-        case .low:
-            return 20
-        case .medium:
-            return 40
-        case .high:
-            return 60
+        case .low: return 20
+        case .medium: return 40
+        case .high: return 60
         }
     }
 
     var emoji: String {
         switch self {
-        case .low:
-            return "🌙"
-        case .medium:
-            return "🌤️"
-        case .high:
-            return "☀️"
+        case .low: return "🌙"
+        case .medium: return "🌤️"
+        case .high: return "☀️"
         }
     }
 }
@@ -247,9 +292,9 @@ enum DailyEnergyLevel: String, CaseIterable, Identifiable {
 /// Stores session stats and persists them in UserDefaults for now.
 final class SessionStatsStore: ObservableObject {
     struct ProgressionState: Codable, Equatable {
-        var level: Int                // 1...100
-        var xpInCurrentLevel: Int     // XP stored into the current level
-        var totalXP: Int              // lifetime XP, for stats only
+        var level: Int                // legacy support
+        var xpInCurrentLevel: Int     // legacy support
+        var totalXP: Int              // legacy support
         var streakDays: Int
         var lastActiveDate: Date?
     }
@@ -283,17 +328,21 @@ final class SessionStatsStore: ObservableObject {
         var id: Date { date }
     }
 
+    enum MomentumTier {
+        case cold      // 0 active days
+        case warming   // 1–2 active days
+        case rolling   // 3–5 active days
+        case onFire    // 6–7 active days
+    }
+
     @Published private(set) var focusSeconds: Int
     @Published private(set) var selfCareSeconds: Int
     @Published private(set) var sessionsCompleted: Int
-    @Published private(set) var xp: Int
-    @Published private(set) var momentum: Double
     @Published private(set) var sessionHistory: [SessionRecord]
     @Published private(set) var totalFocusSecondsToday: Int
-    @Published private(set) var todayCategorySessionCounts: [TimerCategory.Kind: Int]
-    @Published private(set) var categoryComboBonusAwardedToday: Set<TimerCategory.Kind>
     @Published var pendingLevelUp: Int?
-    @Published private(set) var dailyConfig: DailyConfig?
+    @Published private(set) var dailyPlan: DailyPlan?
+    @Published private(set) var dailyProgressHistory: [DailyProgress]
     @Published var shouldShowDailySetup: Bool = false
     @Published private(set) var lastWeeklyGoalBonusAwardedDate: Date?
     @Published private(set) var progression: ProgressionState
@@ -301,29 +350,28 @@ final class SessionStatsStore: ObservableObject {
 
     private(set) var lastKnownLevel: Int
 
+    private let playerStateStore: PlayerStateStore
+    private let playerTitleStore: PlayerTitleStore
+    private let talentTreeStore: TalentTreeStore
+    private var playerCancellables = Set<AnyCancellable>()
+    var questEventHandler: ((QuestEvent) -> Void)?
+
     var level: Int { progression.level }
+
+    var totalXP: Int { progression.totalXP }
 
     var xpIntoCurrentLevel: Int { progression.xpInCurrentLevel }
 
     var xpForNextLevel: Int {
-        let needed = xpNeededToLevelUp(from: progression.level)
-        return needed == Int.max ? 0 : needed
+        let needed = xpNeededToLevelUp(from: level)
+        return needed == Int.max ? 0 : max(0, needed - xpIntoCurrentLevel)
     }
+    
+    var xpTotalThisLevel: Int { xpIntoCurrentLevel + xpForNextLevel }
 
-    var playerTitle: String {
-        switch level {
-        case 1...4:
-            return QuestChatStrings.PlayerTitles.rookie
-        case 5...9:
-            return QuestChatStrings.PlayerTitles.worker
-        case 10...19:
-            return QuestChatStrings.PlayerTitles.knight
-        case 20...29:
-            return QuestChatStrings.PlayerTitles.master
-        default:
-            return QuestChatStrings.PlayerTitles.sage
-        }
-    }
+    var xp: Int { progression.totalXP }
+
+    var playerTitle: String { levelTitle(for: level) }
 
     var focusSecondsToday: Int {
         todaySessions
@@ -342,22 +390,53 @@ final class SessionStatsStore: ObservableObject {
             return QuestChatStrings.StatusLines.streak(currentStreakDays)
         }
 
-        return QuestChatStrings.StatusLines.xpEarned(xp)
+        return QuestChatStrings.StatusLines.xpEarned(totalXP)
     }
 
-    var dailyMinutesGoal: Int? { dailyConfig?.dailyMinutesGoal }
+    var dailyMinutesGoal: Int? { dailyPlan?.focusGoalMinutes }
+
+    var todayPlan: DailyPlan? {
+        let today = Calendar.current.startOfDay(for: Date())
+        guard let plan = dailyPlan, Calendar.current.isDate(plan.date, inSameDayAs: today) else { return nil }
+        return plan
+    }
+
+    var todayProgress: DailyProgress? {
+        let today = Calendar.current.startOfDay(for: Date())
+        return dailyProgressHistory.first { Calendar.current.isDate($0.date, inSameDayAs: today) }
+    }
 
     var dailyMinutesProgress: Int {
         totalFocusSecondsToday / 60
     }
 
-    init(userDefaults: UserDefaults = .standard) {
+    var focusSessionsToday: Int {
+        todaySessions
+            .filter { $0.modeRawValue == FocusTimerMode.focus.rawValue }
+            .count
+    }
+
+    var totalFocusMinutesThisWeek: Int {
+        focusSecondsThisWeek / 60
+    }
+
+    var totalFocusSessionsThisWeek: Int {
+        focusSessionsThisWeek
+    }
+
+    init(
+        userDefaults: UserDefaults = .standard,
+        playerStateStore: PlayerStateStore,
+        playerTitleStore: PlayerTitleStore,
+        talentTreeStore: TalentTreeStore
+    ) {
         self.userDefaults = userDefaults
+        self.playerStateStore = playerStateStore
+        self.playerTitleStore = playerTitleStore
+        self.talentTreeStore = talentTreeStore
         focusSeconds = userDefaults.integer(forKey: Keys.focusSeconds)
         selfCareSeconds = userDefaults.integer(forKey: Keys.selfCareSeconds)
         sessionsCompleted = userDefaults.integer(forKey: Keys.sessionsCompleted)
-
-        let storedXP = userDefaults.integer(forKey: Keys.xp)
 
         if
             let data = userDefaults.data(forKey: Keys.sessionHistory),
@@ -368,30 +447,6 @@ final class SessionStatsStore: ObservableObject {
             sessionHistory = []
         }
 
-        if let data = userDefaults.data(forKey: Keys.categorySessionCounts),
-           let decoded = try? JSONDecoder().decode([String: Int].self, from: data)
-        {
-            todayCategorySessionCounts = decoded.reduce(into: [:]) { partialResult, pair in
-                if let id = TimerCategory.Kind(rawValue: pair.key) {
-                    partialResult[id] = pair.value
-                }
-            }
-        } else {
-            todayCategorySessionCounts = [:]
-        }
-
-        if let data = userDefaults.data(forKey: Keys.categoryComboBonusesAwarded),
-           let decoded = try? JSONDecoder().decode([String].self, from: data)
-        {
-            categoryComboBonusAwardedToday = Set(decoded.compactMap { TimerCategory.Kind(rawValue: $0) })
-        } else {
-            categoryComboBonusAwardedToday = []
-        }
-
-        let storedMomentum = userDefaults.double(forKey: Keys.momentum)
-        let clampedMomentum = max(0, min(storedMomentum, 1))
-        momentum = clampedMomentum
-
         let initialProgression: ProgressionState
         if let loadedProgression = Self.loadProgression(from: userDefaults) {
             initialProgression = loadedProgression
@@ -399,20 +454,14 @@ final class SessionStatsStore: ObservableObject {
             initialProgression = ProgressionState(
                 level: 1,
                 xpInCurrentLevel: 0,
-                totalXP: storedXP,
+                totalXP: 0,
                 streakDays: 0,
                 lastActiveDate: nil
             )
         }
-        progression = initialProgression
-        xp = initialProgression.totalXP
-
-        lastSessionDate = userDefaults.object(forKey: Keys.lastSessionDate) as? Date
-        let storedLastMomentumUpdate = userDefaults.object(forKey: Keys.lastMomentumUpdate) as? Date
-        lastMomentumUpdate = storedLastMomentumUpdate ?? lastSessionDate
-        if clampedMomentum > 0, lastMomentumUpdate == nil {
-            lastMomentumUpdate = Date()
-        }
+        let initialTotalXP = initialProgression.totalXP > 0 ? initialProgression.totalXP : playerStateStore.xp
+        let computedProgression = Self.computeProgression(totalXP: initialTotalXP, streakDays: initialProgression.streakDays, lastActiveDate: initialProgression.lastActiveDate)
+        progression = computedProgression
 
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
@@ -430,17 +479,19 @@ final class SessionStatsStore: ObservableObject {
         totalFocusSecondsToday = initialTotalFocusSecondsToday
 
         let storedLevel = userDefaults.integer(forKey: Keys.lastKnownLevel)
-        let initialLevel = initialProgression.level
+        let initialLevel = computedProgression.level
         lastKnownLevel = storedLevel > 0 ? storedLevel : initialLevel
         pendingLevelUp = nil
 
-        let storedConfig = Self.decodeConfig(from: userDefaults.data(forKey: Keys.dailyConfig))
-        dailyConfig = storedConfig
-        shouldShowDailySetup = !Self.isConfigValidForToday(storedConfig)
+        talentTreeStore.applyLevel(computedProgression.level)
+
+        let storedPlan = Self.decodePlan(from: userDefaults.data(forKey: Keys.dailyPlan))
+            ?? Self.decodeLegacyConfig(from: userDefaults.data(forKey: Keys.legacyDailyConfig))
+        dailyPlan = storedPlan
+        dailyProgressHistory = Self.decodeDailyProgress(from: userDefaults.data(forKey: Keys.dailyProgressHistory)) ?? []
+        shouldShowDailySetup = !Self.isPlanValidForToday(storedPlan)
 
         lastWeeklyGoalBonusAwardedDate = userDefaults.object(forKey: Keys.lastWeeklyGoalBonusAwardedDate) as? Date
-
-        refreshDailyCategoryCountsIfNeeded(today: today)
 
         // Now that all stored properties are initialized, persist any needed resets.
         if needsDateReset {
@@ -457,17 +508,19 @@ final class SessionStatsStore: ObservableObject {
         }
 
         refreshDailySetupIfNeeded()
-        refreshMomentumIfNeeded()
+        pruneDailyProgressHistory(referenceDate: today)
+        updateDailyProgress(for: today, focusGoalMinutes: dailyPlan?.focusGoalMinutes)
         evaluateWeeklyGoalBonus()
+
+        syncPlayerStateProgress()
+        syncBaseLevelTitle()
     }
 
     @discardableResult
     func recordSession(mode: FocusTimerMode, duration: Int) -> Int {
         refreshDailyTotalsIfNeeded()
-        refreshMomentumIfNeeded()
 
         let now = Date()
-        let minutes = max(0, duration / 60)
         let xpBefore = progression.totalXP
 
         switch mode {
@@ -481,51 +534,29 @@ final class SessionStatsStore: ObservableObject {
         sessionsCompleted += 1
         recordSessionHistory(mode: mode, duration: duration)
 
-        let baseXP = minutes * 2
-        let _ = registerCompletedSession(minutes: minutes)
+        let baseXP = xpForCompletedFocusSession(duration: TimeInterval(duration))
+        let momentumMultiplier = momentumMultiplier(for: now)
+        let boostedXP = Int(round(Double(baseXP) * momentumMultiplier))
+        let minutes = Int(duration / 60)
+        _ = grantXP(boostedXP, reason: .focusSession(minutes: minutes))
 
-        if momentum >= 1.0 {
-            let bonusXP = Int((Double(baseXP) * momentumBonusMultiplier).rounded())
-            if bonusXP > 0 {
-                grantBonusXP(bonusXP)
-            }
-            momentum = 0
+        if mode == .focus {
+            updateDailyProgress(for: now, focusGoalMinutes: dailyPlan?.focusGoalMinutes)
         }
 
-        momentum = min(1.0, momentum + momentumIncrement)
-        lastSessionDate = now
-        lastMomentumUpdate = now
         persist()
         evaluateWeeklyGoalBonus()
+
+        if mode == .focus {
+            questEventHandler?(.focusMinutesUpdated(totalMinutesToday: totalFocusSecondsToday / 60))
+            questEventHandler?(.focusSessionsUpdated(totalSessionsToday: focusSessionsToday))
+        }
         return progression.totalXP - xpBefore
     }
 
-    @discardableResult
-    func recordCategorySession(categoryID: TimerCategory.Kind, now: Date = Date()) -> Int {
-        refreshDailyCategoryCountsIfNeeded(today: Calendar.current.startOfDay(for: now))
-
-        let today = Calendar.current.startOfDay(for: now)
-        let newCount = (todayCategorySessionCounts[categoryID] ?? 0) + 1
-        todayCategorySessionCounts[categoryID] = newCount
-        persistCategorySessionCounts(for: today)
-
-        if newCount >= 3, !categoryComboBonusAwardedToday.contains(categoryID) {
-            categoryComboBonusAwardedToday.insert(categoryID)
-            grantBonusXP(20)
-            persistCategoryComboBonuses(for: today)
-        }
-
-        return newCount
-    }
-
-    func comboCount(for categoryID: TimerCategory.Kind) -> Int {
-        refreshDailyCategoryCountsIfNeeded()
-        return todayCategorySessionCounts[categoryID] ?? 0
-    }
-
-    func hasEarnedComboBonus(for categoryID: TimerCategory.Kind) -> Bool {
-        refreshDailyCategoryCountsIfNeeded()
-        return categoryComboBonusAwardedToday.contains(categoryID)
+    func emitQuestProgressSnapshot() {
+        questEventHandler?(.focusMinutesUpdated(totalMinutesToday: totalFocusSecondsToday / 60))
+        questEventHandler?(.focusSessionsUpdated(totalSessionsToday: focusSessionsToday))
     }
 
     func refreshDailyFocusTotal() {
@@ -556,8 +587,8 @@ final class SessionStatsStore: ObservableObject {
             .reduce(0) { $0 + $1.durationSeconds }
         totalFocusSecondsToday = max(0, totalFocusSecondsToday - focusRemovedToday)
 
-        lastSessionDate = sessionHistory.map { $0.date }.max()
-        lastMomentumUpdate = lastSessionDate
+        updateDailyProgress(for: today, focusGoalMinutes: dailyPlan?.focusGoalMinutes)
+
         persist()
     }
 
@@ -566,8 +597,8 @@ final class SessionStatsStore: ObservableObject {
         guard !impactedSessions.isEmpty else { return }
 
         let removedXP = impactedSessions.reduce(0) { partialResult, session in
-            let minutes = max(0, session.durationSeconds / 60)
-            return partialResult + minutes * 2
+            let duration = TimeInterval(session.durationSeconds)
+            return partialResult + xpForCompletedFocusSession(duration: duration)
         }
 
         guard removedXP > 0 else { return }
@@ -576,24 +607,36 @@ final class SessionStatsStore: ObservableObject {
 
     func refreshDailySetupIfNeeded() {
         let today = Calendar.current.startOfDay(for: Date())
-        let isValid = Self.isConfigValidForToday(dailyConfig, today: today)
+        let isValid = Self.isPlanValidForToday(dailyPlan, today: today)
         if !isValid {
-            dailyConfig = nil
-            persistDailyConfig(nil)
+            dailyPlan = nil
+            persistDailyPlan(nil)
         }
         shouldShowDailySetup = !isValid
     }
 
-    func completeDailyConfig(focusArea: FocusArea, energyLevel: DailyEnergyLevel) {
+    func completeDailyConfig(focusArea: FocusArea, energyLevel: EnergyLevel) {
         let today = Calendar.current.startOfDay(for: Date())
-        let config = DailyConfig(
+        let plan = DailyPlan(
             date: today,
             focusArea: focusArea,
-            dailyMinutesGoal: energyLevel.suggestedMinutes
+            energyLevel: energyLevel,
+            focusGoalMinutes: energyLevel.focusGoalMinutes
         )
-        dailyConfig = config
+        dailyPlan = plan
         shouldShowDailySetup = false
-        persistDailyConfig(config)
+        persistDailyPlan(plan)
+        updateDailyProgress(for: today, focusGoalMinutes: plan.focusGoalMinutes)
+        questEventHandler?(.dailySetupCompleted)
+    }
+
+    func updateDailyQuestsCompleted(_ count: Int, totalQuests: Int? = nil, date: Date = Date()) {
+        updateDailyProgress(
+            for: date,
+            focusGoalMinutes: dailyPlan?.focusGoalMinutes,
+            questsCompleted: count,
+            totalQuests: totalQuests
+        )
     }
 
     func recordSessionHistory(mode: FocusTimerMode, duration: Int) {
@@ -613,41 +656,51 @@ final class SessionStatsStore: ObservableObject {
     @discardableResult
     func grantXP(_ amount: Int, reason: XPReason) -> LevelUpResult? {
         guard amount > 0 else { return nil }
+        let previousLevel = level
 
-        progression.totalXP += amount
-        xp = progression.totalXP
+        let newTotal = progression.totalXP + amount
+        progression = recalculatedProgression(totalXP: newTotal, streakDays: progression.streakDays, lastActiveDate: progression.lastActiveDate)
+        syncBaseLevelTitle()
 
-        guard progression.level < 100 else {
-            saveProgression()
-            return nil
-        }
-
-        progression.xpInCurrentLevel += amount
-        var oldLevel = progression.level
-
-        while progression.level < 100 && progression.xpInCurrentLevel >= xpNeededToLevelUp(from: progression.level) {
-            progression.xpInCurrentLevel -= xpNeededToLevelUp(from: progression.level)
-            progression.level += 1
-        }
-
-        let levelChanged = progression.level != oldLevel
-        if levelChanged {
-            let result = LevelUpResult(oldLevel: oldLevel, newLevel: progression.level)
+        if level > previousLevel {
+            let result = LevelUpResult(oldLevel: previousLevel, newLevel: level)
             lastLevelUp = result
-            pendingLevelUp = result.newLevel
-            oldLevel = progression.level
+            pendingLevelUp = level
+        } else {
+            lastLevelUp = nil
+            pendingLevelUp = nil
         }
-
-        lastKnownLevel = progression.level
-        saveProgression()
+        lastKnownLevel = level
+        syncTalentTreeLevel()
+        syncPlayerStateProgress()
         persist()
         return lastLevelUp
     }
 
+    func xpForCompletedFocusSession(duration: TimeInterval) -> Int {
+        // Round down to whole minutes, but never less than 1
+        let minutes = max(1, Int(duration / 60))
+
+        // Base: roughly 1 XP per 2 minutes, min 1 XP
+        var xp = max(1, minutes / 2)
+
+        // Longer-focus bonuses
+        if minutes >= 25 {
+            xp += 3   // pomodoro-ish bonus
+        }
+        if minutes >= 45 {
+            xp += 3   // deep-focus bonus
+        }
+
+        return xp
+    }
+
     @discardableResult
-    func registerCompletedSession(minutes: Int) -> LevelUpResult? {
-        guard minutes > 0 else { return nil }
-        return grantXP(minutes * 2, reason: .focusSession(minutes: minutes))
+    func registerCompletedSession(duration: TimeInterval) -> LevelUpResult? {
+        let xpAward = xpForCompletedFocusSession(duration: duration)
+        guard xpAward > 0 else { return nil }
+        let minutes = Int(duration / 60)
+        return grantXP(xpAward, reason: .focusSession(minutes: minutes))
     }
 
     @discardableResult
@@ -658,7 +711,7 @@ final class SessionStatsStore: ObservableObject {
 
     @discardableResult
     func registerStreakBonus() -> LevelUpResult? {
-        grantXP(10, reason: .streakBonus)
+        grantXP(20, reason: .streakBonus)
     }
 
     func registerActiveToday(date: Date = Date()) -> LevelUpResult? {
@@ -686,63 +739,102 @@ final class SessionStatsStore: ObservableObject {
         return nil
     }
 
-    func grantBonusXP(_ amount: Int) {
-        _ = grantXP(amount, reason: .questCompleted(id: "bonus", xp: amount))
-    }
-
     func resetAll() {
         focusSeconds = 0
         selfCareSeconds = 0
         sessionsCompleted = 0
         progression = ProgressionState(level: 1, xpInCurrentLevel: 0, totalXP: 0, streakDays: 0, lastActiveDate: nil)
-        xp = progression.totalXP
+        syncBaseLevelTitle()
         totalFocusSecondsToday = 0
         userDefaults.set(Calendar.current.startOfDay(for: Date()), forKey: Keys.totalFocusDate)
-        lastKnownLevel = progression.level
+        lastKnownLevel = level
         pendingLevelUp = nil
+        syncTalentTreeLevel()
         sessionHistory = []
-        todayCategorySessionCounts = [:]
-        categoryComboBonusAwardedToday = []
-        momentum = 0
-        lastSessionDate = nil
-        lastMomentumUpdate = nil
         lastWeeklyGoalBonusAwardedDate = nil
         lastLevelUp = nil
         persist()
     }
 
-    var currentMomentum: Double {
-        // Return a computed value without mutating @Published properties to avoid publishing during view updates
-        return computeDecayedMomentum(now: Date())
-    }
-
     func xpNeededToLevelUp(from level: Int) -> Int {
-        guard level < 100 else { return Int.max }
-        return 40 + 4 * max(0, level - 1)
+        return 100
     }
 
     private func reduceTotalXP(by amount: Int) {
         let newTotal = max(0, progression.totalXP - amount)
 
-        var remainingXP = newTotal
-        var newLevel = 1
+        // Recompute level + xp in level from the new total XP
+        progression = recalculatedProgression(
+            totalXP: newTotal,
+            streakDays: progression.streakDays,
+            lastActiveDate: progression.lastActiveDate
+        )
+        syncBaseLevelTitle()
 
-        while newLevel < 100 {
-            let needed = xpNeededToLevelUp(from: newLevel)
-            guard remainingXP >= needed else { break }
-            remainingXP -= needed
-            newLevel += 1
-        }
-
-        progression.totalXP = newTotal
-        progression.level = newLevel
-        progression.xpInCurrentLevel = remainingXP
-        xp = progression.totalXP
-        lastKnownLevel = newLevel
+        // Removing XP should not trigger a level-up modal
         pendingLevelUp = nil
         lastLevelUp = nil
+
+        // Keep player state in sync and persist
+        syncTalentTreeLevel()
+        syncPlayerStateProgress()
         saveProgression()
         persist()
+    }
+
+    private func levelTitle(for level: Int) -> String {
+        switch level {
+        case 1...4:
+            return QuestChatStrings.PlayerTitles.rookie
+        case 5...9:
+            return QuestChatStrings.PlayerTitles.worker
+        case 10...19:
+            return QuestChatStrings.PlayerTitles.knight
+        case 20...29:
+            return QuestChatStrings.PlayerTitles.master
+        default:
+            return QuestChatStrings.PlayerTitles.sage
+        }
+    }
+
+    private func syncBaseLevelTitle() {
+        playerTitleStore.updateBaseLevelTitle(levelTitle(for: level))
+    }
+
+    private static func computeProgression(totalXP: Int, streakDays: Int, lastActiveDate: Date?) -> ProgressionState {
+        let normalizedTotal = max(0, totalXP)
+        let computedLevel = (normalizedTotal / 100) + 1
+        let xpIntoLevel = normalizedTotal % 100
+        return ProgressionState(
+            level: computedLevel,
+            xpInCurrentLevel: xpIntoLevel,
+            totalXP: normalizedTotal,
+            streakDays: streakDays,
+            lastActiveDate: lastActiveDate
+        )
+    }
+
+    private func recalculatedProgression(totalXP: Int, streakDays: Int, lastActiveDate: Date?) -> ProgressionState {
+        let normalizedTotal = max(0, totalXP)
+        let computedLevel = (normalizedTotal / 100) + 1
+        let xpIntoLevel = normalizedTotal % 100
+        return ProgressionState(
+            level: computedLevel,
+            xpInCurrentLevel: xpIntoLevel,
+            totalXP: normalizedTotal,
+            streakDays: streakDays,
+            lastActiveDate: lastActiveDate
+        )
+    }
+
+    private func syncTalentTreeLevel() {
+        talentTreeStore.applyLevel(level)
+    }
+
+    private func syncPlayerStateProgress() {
+        playerStateStore.xp = progression.totalXP
+        playerStateStore.level = progression.level
+        playerStateStore.pendingLevelUp = pendingLevelUp
     }
 
     private func saveProgression() {
@@ -756,53 +848,84 @@ final class SessionStatsStore: ObservableObject {
         return try? JSONDecoder().decode(ProgressionState.self, from: data)
     }
 
-    private func computeDecayedMomentum(now: Date) -> Double {
-        guard let lastUpdate = lastMomentumUpdate else { return momentum }
-        let elapsed = now.timeIntervalSince(lastUpdate)
-        guard elapsed > 0, momentum > 0 else { return momentum }
-        guard momentumDecayDuration > 0 else { return momentum }
-        let decayAmount = elapsed / momentumDecayDuration
-        guard decayAmount > 0 else { return momentum }
-        return max(0, momentum - decayAmount)
-    }
-
-    func refreshMomentumIfNeeded(now: Date = Date()) {
-        let newMomentum = computeDecayedMomentum(now: now)
-        // If nothing changes, still update lastMomentumUpdate and persist asynchronously
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            if newMomentum != self.momentum {
-                self.momentum = newMomentum
-            }
-            self.lastMomentumUpdate = now
-            self.persistMomentum()
-        }
-    }
-
-    var weeklyGoalProgress: [WeeklyGoalDayStatus] {
+    func weeklyGoalProgress(asOf referenceDate: Date = Date()) -> [WeeklyGoalDayStatus] {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        let goalMinutes = dailyMinutesGoal ?? 40
+        let referenceDay = calendar.startOfDay(for: referenceDate)
 
         let statuses: [WeeklyGoalDayStatus] = stride(from: -6, through: 0, by: 1).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: today) else { return nil }
-            let focusSecondsForDay = focusSeconds(on: date)
-            let goalHit = goalMinutes > 0 && focusSecondsForDay >= goalMinutes * 60
-            let isToday = calendar.isDate(date, inSameDayAs: today)
-            return WeeklyGoalDayStatus(date: date, goalHit: goalHit, isToday: isToday)
+            guard let date = calendar.date(byAdding: .day, value: offset, to: referenceDay) else { return nil }
+            let progress = progressForDay(date)
+            let isToday = calendar.isDate(date, inSameDayAs: referenceDay)
+            return WeeklyGoalDayStatus(date: date, goalHit: progress.reachedFocusGoal, isToday: isToday)
         }
 
         return statuses
     }
 
-    private let userDefaults: UserDefaults
-    private var lastSessionDate: Date?
-    private var lastMomentumUpdate: Date?
-    private static let progressionDefaultsKey = "progression_state_v1"
+    var weeklyGoalProgress: [WeeklyGoalDayStatus] { weeklyGoalProgress(asOf: Date()) }
 
-    private let momentumIncrement: Double = 0.25
-    private let momentumDecayDuration: TimeInterval = 4 * 60 * 60
-    private let momentumBonusMultiplier: Double = 0.2
+    func momentumTier(for referenceDate: Date = Date()) -> MomentumTier {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: referenceDate)
+
+        let activeDayCount: Int = (0...6).reduce(0) { count, offset in
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else { return count }
+            return hasSession(on: date, calendar: calendar) ? count + 1 : count
+        }
+
+        switch activeDayCount {
+        case 0:
+            return .cold
+        case 1...2:
+            return .warming
+        case 3...5:
+            return .rolling
+        default:
+            return .onFire
+        }
+    }
+
+    func momentumMultiplier(for referenceDate: Date = Date()) -> Double {
+        switch momentumTier(for: referenceDate) {
+        case .cold:
+            return 1.0
+        case .warming:
+            return 1.05
+        case .rolling:
+            return 1.10
+        case .onFire:
+            return 1.20
+        }
+    }
+
+    func momentumLabel(for referenceDate: Date = Date()) -> String {
+        switch momentumTier(for: referenceDate) {
+        case .cold:
+            return "Cold start"
+        case .warming:
+            return "Warming up"
+        case .rolling:
+            return "In the zone"
+        case .onFire:
+            return "On fire"
+        }
+    }
+
+    func momentumDescription(for referenceDate: Date = Date()) -> String {
+        switch momentumTier(for: referenceDate) {
+        case .cold:
+            return "Start a session to build Momentum."
+        case .warming:
+            return "You’ve been active lately, keep going."
+        case .rolling:
+            return "You’re in the groove."
+        case .onFire:
+            return "XP bonus for showing up every day."
+        }
+    }
+
+    private let userDefaults: UserDefaults
+    private static let progressionDefaultsKey = "progression_state_v1"
 
     private enum Keys {
         static let focusSeconds = "focusSeconds"
@@ -813,14 +936,10 @@ final class SessionStatsStore: ObservableObject {
         static let lastKnownLevel = "lastKnownLevel"
         static let totalFocusSecondsToday = "totalFocusSecondsToday"
         static let totalFocusDate = "totalFocusDate"
-        static let dailyConfig = "dailyConfig"
-        static let momentum = "momentum"
-        static let lastSessionDate = "lastSessionDate"
-        static let lastMomentumUpdate = "lastMomentumUpdate"
+        static let dailyPlan = "dailyPlan"
+        static let dailyProgressHistory = "dailyProgressHistory"
+        static let legacyDailyConfig = "dailyConfig"
         static let lastWeeklyGoalBonusAwardedDate = "lastWeeklyGoalBonusAwardedDate"
-        static let categorySessionCounts = "categorySessionCounts"
-        static let categorySessionCountsDate = "categorySessionCountsDate"
-        static let categoryComboBonusesAwarded = "categoryComboBonusesAwarded"
     }
 
     private var todaySessions: [SessionRecord] {
@@ -832,7 +951,6 @@ final class SessionStatsStore: ObservableObject {
     }
 
     private func persist() {
-        refreshDailyCategoryCountsIfNeeded()
         saveProgression()
         userDefaults.set(focusSeconds, forKey: Keys.focusSeconds)
         userDefaults.set(selfCareSeconds, forKey: Keys.selfCareSeconds)
@@ -842,35 +960,15 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
         userDefaults.set(Calendar.current.startOfDay(for: Date()), forKey: Keys.totalFocusDate)
         persistWeeklyGoalBonus()
-        persistMomentum()
-        persistDailyConfig(dailyConfig)
+        persistDailyPlan(dailyPlan)
+        persistDailyProgressHistory()
         persistSessionHistory()
-        persistCategorySessionCounts()
-        persistCategoryComboBonuses()
     }
 
     private func persistSessionHistory() {
         if let data = try? JSONEncoder().encode(sessionHistory) {
             userDefaults.set(data, forKey: Keys.sessionHistory)
         }
-    }
-
-    private func persistCategorySessionCounts(for date: Date = Calendar.current.startOfDay(for: Date())) {
-        let encoded = todayCategorySessionCounts.reduce(into: [String: Int]()) { partialResult, pair in
-            partialResult[pair.key.rawValue] = pair.value
-        }
-        if let data = try? JSONEncoder().encode(encoded) {
-            userDefaults.set(data, forKey: Keys.categorySessionCounts)
-        }
-        userDefaults.set(date, forKey: Keys.categorySessionCountsDate)
-    }
-
-    private func persistCategoryComboBonuses(for date: Date = Calendar.current.startOfDay(for: Date())) {
-        let encoded = categoryComboBonusAwardedToday.map { $0.rawValue }
-        if let data = try? JSONEncoder().encode(encoded) {
-            userDefaults.set(data, forKey: Keys.categoryComboBonusesAwarded)
-        }
-        userDefaults.set(date, forKey: Keys.categorySessionCountsDate)
     }
 
     private func refreshDailyTotalsIfNeeded() {
@@ -884,63 +982,199 @@ final class SessionStatsStore: ObservableObject {
         userDefaults.set(today, forKey: Keys.totalFocusDate)
         userDefaults.set(totalFocusSecondsToday, forKey: Keys.totalFocusSecondsToday)
         refreshDailySetupIfNeeded()
-        refreshDailyCategoryCountsIfNeeded(today: today)
+        pruneDailyProgressHistory(referenceDate: today)
+        updateDailyProgress(for: today)
     }
 
-    private func persistDailyConfig(_ config: DailyConfig?) {
-        guard let config else {
-            userDefaults.removeObject(forKey: Keys.dailyConfig)
+    private func persistDailyPlan(_ plan: DailyPlan?) {
+        guard let plan else {
+            userDefaults.removeObject(forKey: Keys.dailyPlan)
             return
         }
 
-        if let data = try? JSONEncoder().encode(config) {
-            userDefaults.set(data, forKey: Keys.dailyConfig)
+        if let data = try? JSONEncoder().encode(plan) {
+            userDefaults.set(data, forKey: Keys.dailyPlan)
         }
     }
 
-    private static func decodeConfig(from data: Data?) -> DailyConfig? {
-        guard let data else { return nil }
-        return try? JSONDecoder().decode(DailyConfig.self, from: data)
+    private func persistDailyProgressHistory() {
+        if let data = try? JSONEncoder().encode(dailyProgressHistory) {
+            userDefaults.set(data, forKey: Keys.dailyProgressHistory)
+        }
     }
 
-    private static func isConfigValidForToday(_ config: DailyConfig?, today: Date = Calendar.current.startOfDay(for: Date())) -> Bool {
-        guard let config else { return false }
-        return Calendar.current.isDate(config.date, inSameDayAs: today)
+    private static func decodePlan(from data: Data?) -> DailyPlan? {
+        guard let data else { return nil }
+        return try? JSONDecoder().decode(DailyPlan.self, from: data)
+    }
+
+    private static func decodeLegacyConfig(from data: Data?) -> DailyPlan? {
+        struct LegacyDailyConfig: Codable {
+            let date: Date
+            let focusArea: FocusArea
+            let dailyMinutesGoal: Int
+        }
+
+        guard let data else { return nil }
+        guard let legacy = try? JSONDecoder().decode(LegacyDailyConfig.self, from: data) else { return nil }
+
+        let energyLevel: EnergyLevel
+        switch legacy.dailyMinutesGoal {
+        case 60...:
+            energyLevel = .high
+        case 40...:
+            energyLevel = .medium
+        default:
+            energyLevel = .low
+        }
+
+        let normalizedDate = Calendar.current.startOfDay(for: legacy.date)
+        return DailyPlan(
+            date: normalizedDate,
+            focusArea: legacy.focusArea,
+            energyLevel: energyLevel,
+            focusGoalMinutes: legacy.dailyMinutesGoal
+        )
+    }
+
+    private static func decodeDailyProgress(from data: Data?) -> [DailyProgress]? {
+        guard let data else { return nil }
+        return try? JSONDecoder().decode([DailyProgress].self, from: data)
+    }
+
+    private static func isPlanValidForToday(_ plan: DailyPlan?, today: Date = Calendar.current.startOfDay(for: Date())) -> Bool {
+        guard let plan else { return false }
+        return Calendar.current.isDate(plan.date, inSameDayAs: today)
     }
 
     var currentStreakDays: Int { progression.streakDays }
 
-    private func persistMomentum() {
-        userDefaults.set(momentum, forKey: Keys.momentum)
-        if let lastSessionDate {
-            userDefaults.set(lastSessionDate, forKey: Keys.lastSessionDate)
-        } else {
-            userDefaults.removeObject(forKey: Keys.lastSessionDate)
+    var currentGoalStreak: Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        var streak = 0
+
+        for offset in 0..<7 {
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: today) else { break }
+            let progress = progressForDay(date)
+            guard progress.reachedFocusGoal else { break }
+            streak += 1
         }
 
-        if let lastMomentumUpdate {
-            userDefaults.set(lastMomentumUpdate, forKey: Keys.lastMomentumUpdate)
-        } else {
-            userDefaults.removeObject(forKey: Keys.lastMomentumUpdate)
-        }
+        return streak
     }
 
-    private func focusSeconds(on day: Date) -> Int {
+    func dailyProgress(for date: Date) -> DailyProgress {
+        progressForDay(date)
+    }
+
+    private func normalizedDate(_ date: Date) -> Date { Calendar.current.startOfDay(for: date) }
+
+    private func focusSessionSeconds(on day: Date) -> Int {
         let calendar = Calendar.current
         let targetDay = calendar.startOfDay(for: day)
         return sessionHistory
-            .filter { calendar.isDate($0.date, inSameDayAs: targetDay) }
+            .filter { calendar.isDate($0.date, inSameDayAs: targetDay) && $0.modeRawValue == FocusTimerMode.focus.rawValue }
             .reduce(0) { $0 + $1.durationSeconds }
     }
 
-    private func refreshDailyCategoryCountsIfNeeded(today: Date = Calendar.current.startOfDay(for: Date())) {
-        let storedDate = userDefaults.object(forKey: Keys.categorySessionCountsDate) as? Date
-        guard !Calendar.current.isDate(storedDate ?? .distantPast, inSameDayAs: today) else { return }
+    private func updateDailyProgress(
+        for date: Date = Date(),
+        focusGoalMinutes: Int? = nil,
+        questsCompleted: Int? = nil,
+        totalQuests: Int? = nil
+    ) {
+        let calendar = Calendar.current
+        let day = normalizedDate(date)
 
-        todayCategorySessionCounts = [:]
-        categoryComboBonusAwardedToday = []
-        persistCategorySessionCounts(for: today)
-        persistCategoryComboBonuses(for: today)
+        var progress = dailyProgressHistory.first { calendar.isDate($0.date, inSameDayAs: day) }
+            ?? DailyProgress(date: day, questsCompleted: 0, focusMinutes: 0, reachedFocusGoal: false)
+
+        let focusMinutes: Int
+        if calendar.isDate(day, inSameDayAs: Date()) {
+            focusMinutes = totalFocusSecondsToday / 60
+        } else {
+            focusMinutes = focusSessionSeconds(on: day) / 60
+        }
+        progress.focusMinutes = focusMinutes
+
+        if let questsCompleted {
+            progress.questsCompleted = questsCompleted
+        }
+
+        if let totalQuests {
+            progress.totalQuests = totalQuests
+        }
+
+        if let focusGoalMinutes {
+            progress.focusGoalMinutes = focusGoalMinutes
+        }
+
+        let goalMinutes = focusGoalMinutes
+            ?? progress.focusGoalMinutes
+            ?? (dailyPlan.flatMap { Calendar.current.isDate($0.date, inSameDayAs: day) ? $0.focusGoalMinutes : nil })
+
+        if let goalMinutes, goalMinutes > 0 {
+            progress.reachedFocusGoal = progress.focusMinutes >= goalMinutes
+        }
+
+        dailyProgressHistory.removeAll { calendar.isDate($0.date, inSameDayAs: day) }
+        dailyProgressHistory.append(progress)
+        pruneDailyProgressHistory(referenceDate: day)
+    }
+
+    private func progressForDay(_ date: Date) -> DailyProgress {
+        let calendar = Calendar.current
+        let day = normalizedDate(date)
+        if let existing = dailyProgressHistory.first(where: { calendar.isDate($0.date, inSameDayAs: day) }) {
+            return existing
+        }
+
+        let focusMinutes = focusSessionSeconds(on: day) / 60
+        let goalMinutes = dailyPlan.flatMap { Calendar.current.isDate($0.date, inSameDayAs: day) ? $0.focusGoalMinutes : nil }
+        let reachedGoal = (goalMinutes ?? 0) > 0 ? focusMinutes >= (goalMinutes ?? 0) : false
+        let progress = DailyProgress(
+            date: day,
+            questsCompleted: 0,
+            focusMinutes: focusMinutes,
+            reachedFocusGoal: reachedGoal,
+            totalQuests: nil,
+            focusGoalMinutes: goalMinutes
+        )
+        dailyProgressHistory.append(progress)
+        pruneDailyProgressHistory(referenceDate: day)
+        return progress
+    }
+
+    private func pruneDailyProgressHistory(referenceDate: Date = Date()) {
+        let calendar = Calendar.current
+        let cutoff = calendar.date(byAdding: .day, value: -14, to: normalizedDate(referenceDate)) ?? referenceDate
+        dailyProgressHistory = dailyProgressHistory.filter { $0.date >= cutoff }
+        persistDailyProgressHistory()
+    }
+
+    private func hasSession(on day: Date, calendar: Calendar = .current) -> Bool {
+        let targetDay = calendar.startOfDay(for: day)
+        return sessionHistory.contains { calendar.isDate($0.date, inSameDayAs: targetDay) }
+    }
+
+    private var focusSecondsThisWeek: Int {
+        sessionHistory
+            .filter { $0.modeRawValue == FocusTimerMode.focus.rawValue && isDate($0.date, inSameWeekAs: Date()) }
+            .reduce(0) { $0 + $1.durationSeconds }
+    }
+
+    private var focusSessionsThisWeek: Int {
+        sessionHistory
+            .filter { $0.modeRawValue == FocusTimerMode.focus.rawValue && isDate($0.date, inSameWeekAs: Date()) }
+            .count
+    }
+
+    private func isDate(_ date: Date, inSameWeekAs reference: Date) -> Bool {
+        let calendar = Calendar.current
+        let targetComponents = calendar.dateComponents([.weekOfYear, .yearForWeekOfYear], from: reference)
+        let dateComponents = calendar.dateComponents([.weekOfYear, .yearForWeekOfYear], from: date)
+        return targetComponents.weekOfYear == dateComponents.weekOfYear && targetComponents.yearForWeekOfYear == dateComponents.yearForWeekOfYear
     }
 
     private func evaluateWeeklyGoalBonus() {
@@ -954,7 +1188,6 @@ final class SessionStatsStore: ObservableObject {
         }
 
         lastWeeklyGoalBonusAwardedDate = mostRecentDay.date
-        grantBonusXP(120)
         persistWeeklyGoalBonus()
     }
 
@@ -978,12 +1211,6 @@ final class FocusViewModel: ObservableObject {
         let duration: Int
         let xpGained: Int
         let timestamp: Date
-    }
-
-    struct HydrationNudge: Identifiable {
-        let id = UUID()
-        let level: HydrationNudgeLevel
-        let message: String
     }
 
     enum HydrationNudgeLevel: CaseIterable {
@@ -1030,13 +1257,22 @@ final class FocusViewModel: ObservableObject {
     @Published var isShowingDurationPicker: Bool = false
     @Published var pendingDurationSeconds: Int = 0
     @Published var lastCompletedSession: SessionSummary?
-    @Published var activeHydrationNudge: HydrationNudge?
+    @Published var activeReminderEvent: ReminderEvent?
+    @Published var activeReminderMessage: String?
     @Published var lastLevelUp: SessionStatsStore.LevelUpResult?
+    private var isAppInForeground: Bool = true
+    private var pendingBackgroundReminder: (event: ReminderEvent, message: String)?
     @Published var sleepQuality: SleepQuality = .okay {
         didSet {
             guard !isLoadingSleepData else { return }
             persistSleepQualitySelection()
             evaluateHealthXPBonuses()
+        }
+    }
+    @Published var activityLevel: ActivityLevel? {
+        didSet {
+            guard !isLoadingActivityData else { return }
+            persistActivityLevelSelection()
         }
     }
     @Published var totalWaterOuncesToday: Int = 0
@@ -1045,6 +1281,13 @@ final class FocusViewModel: ObservableObject {
     @Published private var healthComboXPGrantedToday = false
     @Published var timerState: FocusTimerState = .idle
     @Published var remainingSeconds: Int = 0
+    @Published var isActiveTimerExpanded: Bool = true
+    
+    // Added published property for hydration sip feedback
+    @Published var sipFeedback: String? = nil
+    
+    @Published var hydrationNudgesEnabled: Bool = false
+    @Published var postureRemindersEnabled: Bool = false
 
     // Potion usage tracking for synergy quest
     @Published private(set) var potionsUsedToday: Set<String> = []
@@ -1063,17 +1306,33 @@ final class FocusViewModel: ObservableObject {
 
     @Published private(set) var notificationAuthorized: Bool = false
     let statsStore: SessionStatsStore
+    let playerStateStore: PlayerStateStore
+    let playerTitleStore: PlayerTitleStore
     let healthStatsStore: HealthBarIRLStatsStore
+    let hydrationReminderManager: HydrationReminderManager
     let hydrationSettingsStore: HydrationSettingsStore
+    private let reminderSettingsStore: ReminderSettingsStore
+    let reminderEventsStore: ReminderEventsStore
+    let seasonAchievementsStore: SeasonAchievementsStore
+    let sleepHistoryStore: SleepHistoryStore
+    let activityHistoryStore: ActivityHistoryStore
     private var cancellables = Set<AnyCancellable>()
     private var healthBarViewModel: HealthBarViewModel?
 
     @Published private var pausedRemainingSeconds: Int?
     @Published private var timerTick: Date = Date()
     private var timerCancellable: AnyCancellable?
-    @AppStorage("hydrateNudgesEnabled") private var hydrateNudgesEnabled: Bool = true
     private let notificationCenter = UNUserNotificationCenter.current()
     private let userDefaults = UserDefaults.standard
+    private var activeSessionCategory: TimerCategory.Kind?
+    private var hpCheckinQuestSentDate: Date?
+    private var hydrationGoalQuestSentDate: Date?
+    private var reminderTimerCancellable: AnyCancellable?
+    private var lastReminderFiredAt: [ReminderType: Date] = [:]
+    private let reminderNotificationIdentifiers: [ReminderType: String] = [
+        .hydration: "hydration_reminder_next",
+        .posture: "posture_reminder_next",
+    ]
 
     @available(iOS 16.1, *)
     private var liveActivityManager: FocusTimerLiveActivityManager? {
@@ -1089,20 +1348,46 @@ final class FocusViewModel: ObservableObject {
     private var activeSessionDuration: Int?
     private var hasLoggedSleepQualityToday = false
     private var isLoadingSleepData = false
+    private var hasLoggedActivityToday = false
+    private var isLoadingActivityData = false
 
     init(
-        statsStore: SessionStatsStore = SessionStatsStore(),
+        statsStore: SessionStatsStore = DependencyContainer.shared.sessionStatsStore,
+        playerStateStore: PlayerStateStore = DependencyContainer.shared.playerStateStore,
+        playerTitleStore: PlayerTitleStore = DependencyContainer.shared.playerTitleStore,
         healthStatsStore: HealthBarIRLStatsStore = HealthBarIRLStatsStore(),
         healthBarViewModel: HealthBarViewModel? = nil,
-        hydrationSettingsStore: HydrationSettingsStore = HydrationSettingsStore(),
+        hydrationReminderManager: HydrationReminderManager = DependencyContainer.shared.hydrationReminderManager,
+        hydrationSettingsStore: HydrationSettingsStore = DependencyContainer.shared.hydrationSettingsStore,
+        reminderSettingsStore: ReminderSettingsStore = DependencyContainer.shared.reminderSettingsStore,
+        reminderEventsStore: ReminderEventsStore = ReminderEventsStore(),
+        seasonAchievementsStore: SeasonAchievementsStore = DependencyContainer.shared.seasonAchievementsStore,
+        sleepHistoryStore: SleepHistoryStore = DependencyContainer.shared.sleepHistoryStore,
+        activityHistoryStore: ActivityHistoryStore = DependencyContainer.shared.activityHistoryStore,
         initialMode: FocusTimerMode = .focus
     ) {
         // Assign non-dependent stored properties first
         self.statsStore = statsStore
+        self.playerStateStore = playerStateStore
+        self.playerTitleStore = playerTitleStore
         self.healthStatsStore = healthStatsStore
         self.healthBarViewModel = healthBarViewModel
+        self.hydrationReminderManager = hydrationReminderManager
         self.hydrationSettingsStore = hydrationSettingsStore
+        self.reminderSettingsStore = reminderSettingsStore
+        self.reminderEventsStore = reminderEventsStore
+        self.seasonAchievementsStore = seasonAchievementsStore
+        self.sleepHistoryStore = sleepHistoryStore
+        self.activityHistoryStore = activityHistoryStore
         self.currentHP = healthStatsStore.currentHP
+        hpCheckinQuestSentDate = userDefaults.object(forKey: HealthTrackingStorageKeys.hpCheckinQuestDate) as? Date
+        // Defer syncing player HP until after initialization completes to avoid using self too early.
+        let initialHP = healthStatsStore.currentHP
+
+        self.hydrationNudgesEnabled = reminderSettingsStore.hydrationSettings.enabled
+        self.postureRemindersEnabled = reminderSettingsStore.postureSettings.enabled
+
+        // Removed assign pipelines here; will add sink pipelines after hasInitialized = true
 
         let seeded = FocusViewModel.seededCategories()
         let loadedCategories: [TimerCategory] = seeded.map { base in
@@ -1113,13 +1398,60 @@ final class FocusViewModel: ObservableObject {
         }
         self.categories = loadedCategories
 
-        let initialCategory = loadedCategories.first { $0.id.mode == initialMode } ?? loadedCategories[0]
+        let initialCategory = loadedCategories.first(where: { $0.id == .focusMode })
+            ?? loadedCategories.first { $0.id.mode == initialMode }
+            ?? loadedCategories[0]
         self.selectedCategory = initialCategory.id
         self.selectedMode = initialCategory.id.mode
         self.pausedRemainingSeconds = initialCategory.durationSeconds
         self.remainingSeconds = initialCategory.durationSeconds
 
         hasInitialized = true
+
+        // Add the new subscriptions here with sink and store
+
+        reminderSettingsStore.$hydrationSettings
+            .map { $0.enabled }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in
+                self?.hydrationNudgesEnabled = enabled
+            }
+            .store(in: &cancellables)
+
+        reminderSettingsStore.$postureSettings
+            .map { $0.enabled }
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] enabled in
+                self?.postureRemindersEnabled = enabled
+            }
+            .store(in: &cancellables)
+
+        ReminderType.allCases.forEach { type in
+            if let storedDate = userDefaults.object(forKey: Self.reminderLastFiredKey(for: type)) as? Date {
+                lastReminderFiredAt[type] = storedDate
+            }
+        }
+
+        hydrationReminderManager.$lastHydrationReminderDate
+            .receive(on: RunLoop.main)
+            .sink { [weak self] date in
+                guard let date else { return }
+                self?.lastReminderFiredAt[.hydration] = date
+            }
+            .store(in: &cancellables)
+
+        if let hydrationLast = hydrationReminderManager.lastHydrationReminderDate {
+            if let existing = lastReminderFiredAt[.hydration] {
+                lastReminderFiredAt[.hydration] = max(existing, hydrationLast)
+            } else {
+                lastReminderFiredAt[.hydration] = hydrationLast
+            }
+        }
+
+        // Now that initialization is complete, it is safe to use self in method calls.
+        syncPlayerHP(with: initialHP)
 
         // Defer side-effectful calls until after full initialization
         requestNotificationAuthorization()
@@ -1131,7 +1463,20 @@ final class FocusViewModel: ObservableObject {
 
         healthStatsStore.$currentHP
             .receive(on: RunLoop.main)
-            .sink { [weak self] in self?.currentHP = $0 }
+            .sink { [weak self] hp in
+                self?.currentHP = hp
+                self?.syncPlayerHP(with: hp)
+            }
+            .store(in: &cancellables)
+
+        reminderSettingsStore.$hydrationSettings
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.refreshReminderScheduling(shouldEvaluateImmediately: false) }
+            .store(in: &cancellables)
+
+        reminderSettingsStore.$postureSettings
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.refreshReminderScheduling(shouldEvaluateImmediately: false) }
             .store(in: &cancellables)
 
         if let healthBarViewModel {
@@ -1160,9 +1505,12 @@ final class FocusViewModel: ObservableObject {
         }
     }
 
-    var currentLevel: Int { statsStore.progression.level }
-    var xpInCurrentLevel: Int { statsStore.progression.xpInCurrentLevel }
-    var xpNeededForNextLevel: Int { statsStore.xpNeededToLevelUp(from: statsStore.progression.level) }
+    var currentLevel: Int { statsStore.level }
+    var xpInCurrentLevel: Int { statsStore.xpIntoCurrentLevel }
+    var xpNeededForNextLevel: Int { statsStore.xpNeededToLevelUp(from: statsStore.level) }
+    var playerLevel: Int { statsStore.level }
+    var playerTotalXP: Int { statsStore.totalXP }
+    var xpIntoCurrentLevel: Int { statsStore.xpIntoCurrentLevel }
     var levelProgressFraction: Double {
         let needed = max(1, xpNeededForNextLevel == Int.max ? 1 : xpNeededForNextLevel)
         return Double(xpInCurrentLevel) / Double(needed)
@@ -1170,14 +1518,6 @@ final class FocusViewModel: ObservableObject {
 
     var selectedCategoryData: TimerCategory? {
         categories.first { $0.id == selectedCategory }
-    }
-
-    var comboCountForSelectedCategory: Int {
-        statsStore.comboCount(for: selectedCategory)
-    }
-
-    var hasEarnedComboForSelectedCategory: Bool {
-        statsStore.hasEarnedComboBonus(for: selectedCategory)
     }
 
     private var gutStatus: GutStatus {
@@ -1362,7 +1702,17 @@ final class FocusViewModel: ObservableObject {
 
     var isRunning: Bool { state == .running }
 
-    var hydrationNudgesEnabled: Bool { hydrateNudgesEnabled }
+    func toggleHydrationNudges() {
+        var settings = reminderSettingsStore.hydrationSettings
+        settings.enabled.toggle()
+        reminderSettingsStore.updateSettings(settings, for: .hydration)
+    }
+
+    func togglePostureReminders() {
+        var settings = reminderSettingsStore.postureSettings
+        settings.enabled.toggle()
+        reminderSettingsStore.updateSettings(settings, for: .posture)
+    }
 
     func logHydrationPillTapped() {
         guard let healthBarViewModel else { return }
@@ -1371,7 +1721,19 @@ final class FocusViewModel: ObservableObject {
         healthBarViewModel.logHydration()
 
         updateWaterIntakeTotals()
+        let mlPerOunce = 29.57
+        let amountMl = Int((Double(hydrationSettingsStore.ouncesPerWaterTap) * mlPerOunce).rounded())
+        let totalMl = Int((Double(totalWaterOuncesToday) * mlPerOunce).rounded())
+        let percentOfGoal = waterGoalToday > 0 ? Double(totalWaterOuncesToday) / Double(waterGoalToday) : 0
+        statsStore.questEventHandler?(
+            .hydrationLogged(
+                amountMl: amountMl,
+                totalMlToday: totalMl,
+                percentOfGoal: percentOfGoal
+            )
+        )
         healthStatsStore.update(from: healthBarViewModel.inputs)
+        syncPlayerHP()
         evaluateHealthXPBonuses()
 
         // Fire quest events for hydration tap and mana potion
@@ -1460,23 +1822,30 @@ final class FocusViewModel: ObservableObject {
         let totalDuration = activeSessionDuration ?? clampedDuration
         remainingSeconds = totalDuration
 
+        let startDate = Date()
         let session = FocusSession(
             id: currentSession?.id ?? UUID(),
             type: selectedMode,
             duration: TimeInterval(totalDuration),
-            startDate: Date()
+            startDate: startDate
         )
+
+        let category = selectedCategoryData ?? TimerCategory(id: selectedCategory, durationSeconds: currentDuration)
 
         pausedRemainingSeconds = nil
         currentSession = session
+        activeSessionCategory = category.id
         timerState = .running
         state = .running
         print("[FocusTimer] Start timer for \(totalDuration)s")
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         scheduleCompletionNotification()
         startUITimer()
-        let category = selectedCategoryData ?? TimerCategory(id: selectedCategory, durationSeconds: currentDuration)
         let title = category.id.title
+        if session.type == .focus {
+            let durationMinutes = totalDuration / 60
+            statsStore.questEventHandler?(.focusSessionStarted(durationMinutes: durationMinutes))
+        }
         if #available(iOS 17.0, *) {
             Task {
                 for activity in Activity<FocusSessionAttributes>.activities {
@@ -1485,17 +1854,18 @@ final class FocusViewModel: ObservableObject {
 
                 let attributes = FocusSessionAttributes(sessionId: UUID(), totalSeconds: totalDuration)
                 let contentState = FocusSessionAttributes.ContentState(
-                    startDate: Date(),
+                    startDate: startDate,
                     endDate: session.endDate,
                     isPaused: false,
                     remainingSeconds: totalDuration,
                     title: title
                 )
+                let content = ActivityContent(state: contentState, staleDate: session.endDate)
 
                 do {
                     let activity = try Activity.request(
                         attributes: attributes,
-                        contentState: contentState,
+                        content: content,
                         pushType: nil
                     )
                     await MainActor.run {
@@ -1528,6 +1898,8 @@ final class FocusViewModel: ObservableObject {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         cancelCompletionNotifications()
         let remaining = max(Int(ceil(session.endDate.timeIntervalSinceNow)), 0)
+        let startDate = session.startDate
+        let endDate = session.endDate
         pausedRemainingSeconds = remaining
         remainingSeconds = remaining
         currentSession = nil
@@ -1537,7 +1909,15 @@ final class FocusViewModel: ObservableObject {
         state = .paused
         print("[FocusTimer] Paused with \(remaining) seconds left")
         if #available(iOS 17.0, *) {
-            updateLiveActivity(isPaused: true, remaining: remaining, title: selectedCategoryData?.id.title ?? selectedMode.title, startDate: Date(), endDate: Date())
+            updateLiveActivity(
+                isPaused: true,
+                remaining: remaining,
+                title: selectedCategoryData?.id.title ?? selectedMode.title,
+                startDate: startDate,
+                endDate: endDate
+            )
+        } else if #available(iOS 16.1, *) {
+            liveActivityManager?.pause()
         }
     }
 
@@ -1562,6 +1942,7 @@ final class FocusViewModel: ObservableObject {
             startDate: Date()
         )
         currentSession = session
+        activeSessionCategory = selectedCategory
         timerState = .running
         state = .running
         print("[FocusTimer] Resumed for \(duration)s")
@@ -1579,10 +1960,10 @@ final class FocusViewModel: ObservableObject {
             )
         } else if #available(iOS 16.1, *) {
             let category = selectedCategoryData ?? TimerCategory(id: selectedCategory, durationSeconds: currentDuration)
-            liveActivityManager?.start(
+            liveActivityManager?.update(
+                title: category.id.title,
                 endDate: session.endDate,
-                sessionType: category.id.rawValue,
-                title: category.id.title
+                isPaused: false
             )
         }
     }
@@ -1597,7 +1978,9 @@ final class FocusViewModel: ObservableObject {
         clearPersistedSession()
         timerState = .idle
         state = .idle
+        isActiveTimerExpanded = true
         remainingSeconds = 0
+        activeSessionCategory = nil
         print("[FocusTimer] Reset timer")
 
         if #available(iOS 17.0, *) {
@@ -1612,7 +1995,7 @@ final class FocusViewModel: ObservableObject {
                 }
             }
         } else if #available(iOS 16.1, *) {
-            liveActivityManager?.end()
+            liveActivityManager?.cancel()
         }
 
         clearLiveActivityState()
@@ -1630,6 +2013,7 @@ final class FocusViewModel: ObservableObject {
         activeSessionDuration = nil
         state = .idle
         timerState = .idle
+        isActiveTimerExpanded = true
     }
 
     func durationForSelectedCategory() -> Int {
@@ -1687,10 +2071,11 @@ final class FocusViewModel: ObservableObject {
             remainingSeconds: remaining,
             title: title
         )
+        let content = ActivityContent(state: contentState, staleDate: isPaused ? nil : endDate)
 
         Task {
             guard let liveActivity else { return }
-            await liveActivity.update(using: contentState)
+            await liveActivity.update(content)
             print("[FocusLiveActivity] Updated: paused=\(isPaused) remaining=\(remaining)")
         }
     }
@@ -1771,16 +2156,8 @@ final class FocusViewModel: ObservableObject {
                     let remaining = max(Int(ceil(session.endDate.timeIntervalSince(date))), 0)
                     if remaining != self.remainingSeconds {
                         self.remainingSeconds = remaining
-                        if #available(iOS 17.0, *) {
-                            let title = self.selectedCategoryData?.id.title ?? self.selectedMode.title
-                            self.updateLiveActivity(
-                                isPaused: false,
-                                remaining: remaining,
-                                title: title,
-                                startDate: session.startDate,
-                                endDate: session.endDate
-                            )
-                        }
+                        // Live Activity kit updates are throttled: avoid per-second updates from the UI timer.
+                        // We update the live activity only on start/pause/resume/finish/restoration.
                     }
                 }
                 self.handleSessionCompletionIfNeeded()
@@ -1792,18 +2169,68 @@ final class FocusViewModel: ObservableObject {
         stopUITimer()
         timerState = .idle
         state = .finished
+        isActiveTimerExpanded = true
         hasFinishedOnce = true
         if let sessionType = currentSession?.type {
             selectedMode = sessionType
         }
         statsStore.refreshDailyFocusTotal()
         let previousFocusTotal = statsStore.totalFocusSecondsToday
-        let xpBefore = statsStore.progression.totalXP
+        let xpBefore = statsStore.totalXP
         let recordedDuration = Int(currentSession?.duration ?? TimeInterval(activeSessionDuration ?? currentDuration))
         _ = statsStore.recordSession(mode: selectedMode, duration: recordedDuration)
-        _ = statsStore.recordCategorySession(categoryID: selectedCategory)
+        if currentSession?.type == .focus {
+            let durationMinutes = recordedDuration / 60
+            statsStore.questEventHandler?(.focusSessionCompleted(durationMinutes: durationMinutes))
+            if activeSessionCategory == .chores {
+                statsStore.questEventHandler?(.choresTimerCompleted(durationMinutes: durationMinutes))
+            }
+        }
+        let timerCategory = activeSessionCategory ?? selectedCategory
+        let endDate = currentSession?.endDate ?? Date()
+        statsStore.questEventHandler?(
+            .timerCompleted(
+                category: timerCategory,
+                durationMinutes: recordedDuration / 60,
+                endedAt: endDate
+            )
+        )
+        let today = Calendar.current.startOfDay(for: Date())
+        if selectedMode == .focus {
+            let durationMinutes = recordedDuration / 60
+            if durationMinutes >= 40 {
+                seasonAchievementsStore.applyProgress(
+                    conditionType: .focusSessionsLong,
+                    amount: 1,
+                    date: today
+                )
+            }
+
+            if durationMinutes >= 30, let category = activeSessionCategory {
+                seasonAchievementsStore.recordFourRealmsSessionCompletion(
+                    mode: category,
+                    date: today
+                )
+            }
+
+            if activeSessionCategory == .chores, durationMinutes >= 10 {
+                seasonAchievementsStore.applyProgress(
+                    conditionType: .choreBlitzSessions,
+                    amount: 1,
+                    date: today
+                )
+            }
+        }
+        let totalFocusMinutesToday = statsStore.totalFocusSecondsToday / 60
+        if totalFocusMinutesToday >= 60 {
+            seasonAchievementsStore.applyProgress(
+                conditionType: .dailyFocusMinutesStreak,
+                amount: 1,
+                date: today
+            )
+        }
         let streakLevelUp = statsStore.registerActiveToday()
-        let totalXPGained = statsStore.progression.totalXP - xpBefore
+        let totalXPGained = statsStore.totalXP - xpBefore
         if streakLevelUp != nil {
             lastLevelUp = streakLevelUp
         } else {
@@ -1843,6 +2270,7 @@ final class FocusViewModel: ObservableObject {
         clearLiveActivityState()
         remainingSeconds = 0
         onSessionComplete?()
+        activeSessionCategory = nil
     }
 
     /// Fires appropriate quest events when a session completes
@@ -1911,12 +2339,16 @@ final class FocusViewModel: ObservableObject {
             restorePersistedSessionIfNeeded()
             syncRemainingSecondsNow()
             startUITimer()
+            startReminderTimer()
+            refreshReminderScheduling()
             handleSessionCompletionIfNeeded()
         case .background:
             // App going to background: save state and stop UI timer
             persistCurrentSessionIfNeeded()
             scheduleCompletionNotification()
             stopUITimer()
+            stopReminderTimer()
+            scheduleBackgroundReminders()
         default:
             break
         }
@@ -1928,6 +2360,8 @@ final class FocusViewModel: ObservableObject {
         }
         // Make the in-app timer label catch up immediately
         syncRemainingSecondsNow()
+        startReminderTimer()
+        refreshReminderScheduling()
     }
 
     private func handleSessionCompletionIfNeeded() {
@@ -1988,56 +2422,43 @@ final class FocusViewModel: ObservableObject {
         userDefaults.removeObject(forKey: Self.persistedSessionKey)
     }
 
-    private func sendImmediateHydrationReminder() {
-        guard notificationAuthorized, hydrateNudgesEnabled else { return }
-        let content = UNMutableNotificationContent()
-        content.title = QuestChatStrings.Notifications.hydrateReminderTitle
-        content.body = QuestChatStrings.Notifications.hydrateReminderBody
-        content.sound = .default
+    func reminderIconName(for type: ReminderType) -> String {
+        switch type {
+        case .hydration:
+            return "drop.fill"
+        case .posture:
+            return "figure.stand"
+        }
+    }
 
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-        let request = UNNotificationRequest(identifier: "focus_timer_hydrate", content: content, trigger: trigger)
-        notificationCenter.add(request)
+    func reminderTitle(for type: ReminderType) -> String {
+        switch type {
+        case .hydration:
+            return QuestChatStrings.Reminders.hydrationTitle
+        case .posture:
+            return QuestChatStrings.Reminders.postureTitle
+        }
+    }
+
+    func reminderBody(for type: ReminderType) -> String {
+        switch type {
+        case .hydration:
+            return QuestChatStrings.Reminders.hydrationBody
+        case .posture:
+            return QuestChatStrings.Reminders.postureBody
+        }
     }
 
     private func handleHydrationThresholds(previousTotal: Int, newTotal: Int) {
-        guard hydrateNudgesEnabled, selectedMode == .focus else { return }
+        guard hydrationNudgesEnabled, selectedMode == .focus else { return }
 
         for level in HydrationNudgeLevel.allCases {
             let threshold = level.thresholdSeconds
             guard previousTotal < threshold, newTotal >= threshold else { continue }
             guard !hasTriggeredNudge(for: level) else { continue }
 
-            sendHydrationNudge(level: level)
-            markNudgeTriggered(for: level)
-        }
-    }
-
-    func sendHydrationNudge(level: HydrationNudgeLevel) {
-        guard hydrateNudgesEnabled else { return }
-
-        let content = UNMutableNotificationContent()
-        content.title = QuestChatStrings.Notifications.hydrateNudgeTitle
-        content.body = level.bodyText
-        content.sound = .default
-
-        if notificationAuthorized {
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-            let request = UNNotificationRequest(
-                identifier: "hydrate_nudge_\(level.thresholdSeconds)",
-                content: content,
-                trigger: trigger
-            )
-            notificationCenter.add(request)
-        }
-
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-            activeHydrationNudge = HydrationNudge(level: level, message: level.bodyText)
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in
-            withAnimation(.easeInOut(duration: 0.3)) {
-                self?.activeHydrationNudge = nil
+            if maybeScheduleHydrationReminder(reason: .periodic, message: level.bodyText) {
+                markNudgeTriggered(for: level)
             }
         }
     }
@@ -2049,9 +2470,18 @@ final class FocusViewModel: ObservableObject {
             .sink { [weak self] inputs in
                 self?.updateWaterIntakeTotals()
                 self?.healthStatsStore.update(from: inputs)
+                self?.syncPlayerHP()
                 self?.evaluateHealthXPBonuses()
+                self?.checkHPCheckinQuestEvent()
+                self?.evaluateWellnessAchievements()
             }
             .store(in: &cancellables)
+    }
+
+    private func syncPlayerHP(with hp: Int? = nil) {
+        let currentHP = hp ?? healthStatsStore.currentHP
+        playerStateStore.currentHP = currentHP
+        playerStateStore.maxHP = healthStatsStore.maxHP
     }
 
     private var waterGoalToday: Int { hydrationSettingsStore.dailyWaterGoalOunces }
@@ -2074,6 +2504,8 @@ final class FocusViewModel: ObservableObject {
         waterGoalXPGrantedToday = isDate(userDefaults.object(forKey: HealthTrackingStorageKeys.waterGoalAwardDate) as? Date, inSameDayAs: today)
         healthComboXPGrantedToday = isDate(userDefaults.object(forKey: HealthTrackingStorageKeys.healthComboAwardDate) as? Date, inSameDayAs: today)
         hasLoggedSleepQualityToday = isDate(userDefaults.object(forKey: HealthTrackingStorageKeys.sleepQualityLogged) as? Date, inSameDayAs: today)
+        hpCheckinQuestSentDate = userDefaults.object(forKey: HealthTrackingStorageKeys.hpCheckinQuestDate) as? Date
+        hydrationGoalQuestSentDate = userDefaults.object(forKey: HealthTrackingStorageKeys.hydrationGoalQuestDate) as? Date
         updateWaterIntakeTotals()
     }
 
@@ -2083,6 +2515,8 @@ final class FocusViewModel: ObservableObject {
         userDefaults.set(today, forKey: HealthTrackingStorageKeys.sleepQualityDate)
         userDefaults.set(today, forKey: HealthTrackingStorageKeys.sleepQualityLogged)
         hasLoggedSleepQualityToday = true
+        sleepHistoryStore.record(quality: sleepQuality, date: today)
+        checkHPCheckinQuestEvent()
     }
 
     private func loadSleepQuality() {
@@ -2104,6 +2538,48 @@ final class FocusViewModel: ObservableObject {
         isLoadingSleepData = false
     }
 
+    private func persistActivityLevelSelection() {
+        guard let activityLevel else {
+            clearActivityLevel()
+            return
+        }
+
+        let today = Calendar.current.startOfDay(for: Date())
+        userDefaults.set(activityLevel.rawValue, forKey: HealthTrackingStorageKeys.activityLevelValue)
+        userDefaults.set(today, forKey: HealthTrackingStorageKeys.activityLevelDate)
+        userDefaults.set(today, forKey: HealthTrackingStorageKeys.activityLevelLogged)
+        hasLoggedActivityToday = true
+        activityHistoryStore.record(level: activityLevel, date: today)
+    }
+
+    private func loadActivityLevel() {
+        isLoadingActivityData = true
+        let today = Calendar.current.startOfDay(for: Date())
+
+        if
+            let storedDate = userDefaults.object(forKey: HealthTrackingStorageKeys.activityLevelDate) as? Date,
+            Calendar.current.isDate(storedDate, inSameDayAs: today),
+            let storedLevel = ActivityLevel(rawValue: userDefaults.integer(forKey: HealthTrackingStorageKeys.activityLevelValue))
+        {
+            activityLevel = storedLevel
+            hasLoggedActivityToday = isDate(userDefaults.object(forKey: HealthTrackingStorageKeys.activityLevelLogged) as? Date, inSameDayAs: today)
+        } else {
+            activityLevel = nil
+            hasLoggedActivityToday = false
+        }
+
+        isLoadingActivityData = false
+    }
+
+    private func clearActivityLevel() {
+        let today = Calendar.current.startOfDay(for: Date())
+        userDefaults.removeObject(forKey: HealthTrackingStorageKeys.activityLevelValue)
+        userDefaults.removeObject(forKey: HealthTrackingStorageKeys.activityLevelDate)
+        userDefaults.removeObject(forKey: HealthTrackingStorageKeys.activityLevelLogged)
+        hasLoggedActivityToday = false
+        activityHistoryStore.removeRecord(on: today)
+    }
+
     private func evaluateHealthXPBonuses() {
         let today = Date()
         refreshDailyHealthBonusState(today: today)
@@ -2114,11 +2590,68 @@ final class FocusViewModel: ObservableObject {
             userDefaults.set(Calendar.current.startOfDay(for: today), forKey: HealthTrackingStorageKeys.waterGoalAwardDate)
         }
 
+        if didHitWaterGoalToday && !isDate(hydrationGoalQuestSentDate, inSameDayAs: today) {
+            let startOfDay = Calendar.current.startOfDay(for: today)
+            hydrationGoalQuestSentDate = startOfDay
+            userDefaults.set(startOfDay, forKey: HealthTrackingStorageKeys.hydrationGoalQuestDate)
+            statsStore.questEventHandler?(.hydrationGoalReached)
+            statsStore.questEventHandler?(.hydrationGoalDayCompleted)
+            seasonAchievementsStore.applyProgress(
+                conditionType: .hydrationDaysReached,
+                amount: 1,
+                date: startOfDay
+            )
+        }
+
         if healthComboIsComplete && !healthComboXPGrantedToday {
             statsStore.grantXP(10, reason: .healthCombo)
             healthComboXPGrantedToday = true
             userDefaults.set(Calendar.current.startOfDay(for: today), forKey: HealthTrackingStorageKeys.healthComboAwardDate)
         }
+    }
+
+    private func evaluateWellnessAchievements(today: Date = Date()) {
+        let calendar = Calendar.current
+        let day = calendar.startOfDay(for: today)
+
+        guard let todaySummary = healthStatsStore.days.first(where: { calendar.isDate($0.date, inSameDayAs: day) }) else {
+            return
+        }
+
+        let averageHPFraction = todaySummary.averageHP / Double(healthStatsStore.maxHP)
+        if averageHPFraction >= 0.70 {
+            seasonAchievementsStore.applyProgress(
+                conditionType: .hpAboveThresholdDays,
+                amount: 1,
+                date: day
+            )
+        }
+
+        if todaySummary.lastMood == .good {
+            seasonAchievementsStore.applyProgress(
+                conditionType: .moodAboveMehDaysStreak,
+                amount: 1,
+                date: day
+            )
+        }
+    }
+
+    private func checkHPCheckinQuestEvent() {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        if let hpCheckinQuestSentDate,
+           calendar.isDate(hpCheckinQuestSentDate, inSameDayAs: today) {
+            return
+        }
+
+        let hasGutStatus = gutStatus != .none
+        let hasMoodStatus = moodStatus != .none
+
+        guard hasGutStatus, hasMoodStatus, hasLoggedSleepQualityToday else { return }
+
+        hpCheckinQuestSentDate = today
+        userDefaults.set(today, forKey: HealthTrackingStorageKeys.hpCheckinQuestDate)
+        statsStore.questEventHandler?(.hpCheckinCompleted)
     }
 
     private func updateWaterIntakeTotals() {
@@ -2141,6 +2674,306 @@ final class FocusViewModel: ObservableObject {
         userDefaults.set(today, forKey: level.triggerKey)
     }
 
+    private func startReminderTimer() {
+        reminderTimerCancellable?.cancel()
+        reminderTimerCancellable = Timer.publish(every: 60, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] date in
+                self?.evaluateReminders(now: date)
+            }
+    }
+
+    private func stopReminderTimer() {
+        reminderTimerCancellable?.cancel()
+        reminderTimerCancellable = nil
+    }
+
+    private func refreshReminderScheduling(now: Date = Date(), shouldEvaluateImmediately: Bool = true) {
+        if shouldEvaluateImmediately {
+            evaluateReminders(now: now)
+        }
+        scheduleBackgroundReminders(now: now)
+    }
+
+    private func evaluateReminders(now: Date = Date()) {
+        _ = maybeScheduleHydrationReminder(reason: .periodic, now: now)
+
+        ReminderType.allCases.filter { $0 != .hydration }.forEach { type in
+            guard shouldFireReminder(for: type, at: now) else { return }
+            triggerReminder(for: type, at: now)
+        }
+    }
+
+    private func triggerReminder(
+        for type: ReminderType,
+        at date: Date = Date(),
+        message: String? = nil,
+        bypassCadence: Bool = false
+    ) {
+        let settings = reminderSettingsStore.settings(for: type)
+        guard settings.enabled else { return }
+
+        if type == .posture, settings.onlyDuringFocusSessions, !isFocusSessionActive {
+            return
+        }
+
+        if !bypassCadence, !shouldFireReminder(for: type, at: date) {
+            return
+        }
+
+        let event = ReminderEvent(
+            id: UUID(),
+            type: type,
+            firedAt: date,
+            responded: false,
+            respondedAt: nil
+        )
+        lastReminderFiredAt[type] = date
+        userDefaults.set(date, forKey: Self.reminderLastFiredKey(for: type))
+        reminderEventsStore.log(event: event)
+
+        switch type {
+        case .hydration:
+            statsStore.questEventHandler?(.hydrationReminderFired)
+        case .posture:
+            statsStore.questEventHandler?(.postureReminderFired)
+        }
+
+        // If there's already an active reminder, delay this one to avoid collision
+        if let currentEvent = activeReminderEvent {
+            // First dismiss the current one immediately
+            withAnimation(.easeInOut(duration: 0.2)) {
+                activeReminderEvent = nil
+                activeReminderMessage = nil
+            }
+            
+            // Then show the new one after a brief delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self else { return }
+                // Double check nothing else snuck in
+                if self.activeReminderEvent == nil {
+                    self.presentInAppReminder(event: event, message: message ?? self.reminderBody(for: type))
+                }
+            }
+        } else {
+            presentInAppReminder(event: event, message: message ?? reminderBody(for: type))
+        }
+        
+        scheduleLocalNotification(for: type, message: message)
+        scheduleBackgroundReminders(now: date)
+    }
+
+    private func presentInAppReminder(event: ReminderEvent, message: String) {
+        // If the app is in the background, queue it to show when user returns
+        guard isAppInForeground else {
+            pendingBackgroundReminder = (event, message)
+            return
+        }
+        
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            activeReminderEvent = event
+            activeReminderMessage = message
+        }
+
+        // Auto-dismiss after 30 seconds if not acknowledged
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in
+            guard let self else { return }
+            // Only dismiss if this is still the active reminder
+            if self.activeReminderEvent?.id == event.id {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    self.activeReminderEvent = nil
+                    self.activeReminderMessage = nil
+                }
+            }
+        }
+    }
+
+    private func scheduleLocalNotification(for type: ReminderType, message: String?) {
+        guard notificationAuthorized else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = reminderTitle(for: type)
+        content.body = message ?? reminderBody(for: type)
+        content.sound = .default
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let identifier = "reminder_fire_\(type.rawValue)_\(UUID().uuidString)"
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        notificationCenter.add(request)
+    }
+
+    @discardableResult
+    private func maybeScheduleHydrationReminder(
+        reason: HydrationReminderReason,
+        now: Date = Date(),
+        sessionCategory: TimerCategory.Kind? = nil,
+        sessionDurationMinutes: Int? = nil,
+        message: String? = nil
+    ) -> Bool {
+        return hydrationReminderManager.maybeScheduleHydrationReminder(
+            reason: reason,
+            now: now,
+            waterIntakeOuncesToday: waterIntakeOuncesToday,
+            waterGoalOunces: waterGoalToday,
+            isFocusSessionContextActive: isFocusSessionActive || reason == .timerCompleted,
+            sessionCategory: sessionCategory,
+            sessionDurationMinutes: sessionDurationMinutes
+        ) { [weak self] in
+            guard let self else { return }
+            self.triggerReminder(
+                for: .hydration,
+                at: now,
+                message: message ?? self.reminderBody(for: .hydration),
+                bypassCadence: true
+            )
+        }
+    }
+
+    private func scheduleBackgroundReminders(now: Date = Date()) {
+        scheduleNextHydrationReminder(now: now)
+
+        ReminderType.allCases
+            .filter { $0 != .hydration }
+            .forEach { type in
+                scheduleNextReminderNotification(for: type, now: now)
+            }
+    }
+
+    private func scheduleNextReminderNotification(for type: ReminderType, now: Date = Date()) {
+        let identifier = reminderNotificationIdentifiers[type] ?? "reminder_\(type.rawValue)_next"
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
+        guard notificationAuthorized else { return }
+        guard let next = nextReminderDate(for: type, from: now) else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = reminderTitle(for: type)
+        content.body = reminderBody(for: type)
+        content.sound = .default
+
+        let components = Calendar.current.dateComponents([
+            .year, .month, .day, .hour, .minute, .second
+        ], from: next)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        notificationCenter.add(request)
+    }
+
+    private func scheduleNextHydrationReminder(now: Date = Date()) {
+        let identifier = reminderNotificationIdentifiers[.hydration] ?? "hydration_reminder_next"
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
+        guard notificationAuthorized else { return }
+        guard let next = hydrationReminderManager.nextEligibleReminderDate(
+            now: now,
+            waterIntakeOuncesToday: waterIntakeOuncesToday,
+            waterGoalOunces: waterGoalToday,
+            isFocusSessionContextActive: isFocusSessionActive
+        ) else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = reminderTitle(for: .hydration)
+        content.body = reminderBody(for: .hydration)
+        content.sound = .default
+
+        let components = Calendar.current.dateComponents([
+            .year, .month, .day, .hour, .minute, .second
+        ], from: next)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        notificationCenter.add(request)
+    }
+
+    private func shouldFireReminder(for type: ReminderType, at date: Date) -> Bool {
+        if type == .hydration {
+            return hydrationReminderManager.canScheduleHydrationReminder(
+                reason: .periodic,
+                now: date,
+                waterIntakeOuncesToday: waterIntakeOuncesToday,
+                waterGoalOunces: waterGoalToday,
+                isFocusSessionContextActive: isFocusSessionActive
+            )
+        }
+
+        let settings = reminderSettingsStore.settings(for: type)
+        guard settings.enabled else { return false }
+
+        if type == .posture, settings.onlyDuringFocusSessions, !isFocusSessionActive {
+            return false
+        }
+
+        guard isWithinActiveWindow(date, settings: settings) else { return false }
+        let cadence = TimeInterval(settings.cadenceMinutes * 60)
+        let lastFired = lastReminderFiredAt[type] ?? .distantPast
+        return date.timeIntervalSince(lastFired) >= cadence
+    }
+
+    private func nextReminderDate(for type: ReminderType, from date: Date) -> Date? {
+        if type == .hydration {
+            return hydrationReminderManager.nextEligibleReminderDate(
+                now: date,
+                waterIntakeOuncesToday: waterIntakeOuncesToday,
+                waterGoalOunces: waterGoalToday,
+                isFocusSessionContextActive: isFocusSessionActive
+            )
+        }
+
+        let settings = reminderSettingsStore.settings(for: type)
+        guard settings.enabled else { return nil }
+
+        if type == .posture, settings.onlyDuringFocusSessions, !isFocusSessionActive {
+            return nil
+        }
+
+        let cadence = TimeInterval(settings.cadenceMinutes * 60)
+        let lastFired = lastReminderFiredAt[type] ?? date
+        let tentative = max(date, lastFired.addingTimeInterval(cadence))
+
+        guard isWithinActiveWindow(tentative, settings: settings) else {
+            return nextWindowStart(after: tentative, settings: settings)
+        }
+
+        return tentative
+    }
+
+    private func isWithinActiveWindow(_ date: Date, settings: ReminderSettings) -> Bool {
+        let calendar = Calendar.current
+        guard
+            let start = calendar.date(bySettingHour: settings.activeStartHour, minute: 0, second: 0, of: date),
+            let end = calendar.date(bySettingHour: settings.activeEndHour, minute: 0, second: 0, of: date)
+        else { return true }
+
+        if settings.activeStartHour == settings.activeEndHour {
+            return true
+        }
+
+        if end > start {
+            return date >= start && date <= end
+        } else {
+            return date >= start || date <= end
+        }
+    }
+
+    private func nextWindowStart(after date: Date, settings: ReminderSettings) -> Date? {
+        let calendar = Calendar.current
+        var components = calendar.dateComponents([.year, .month, .day], from: date)
+        components.hour = settings.activeStartHour
+        components.minute = 0
+        components.second = 0
+
+        guard let todayStart = calendar.date(from: components) else { return nil }
+
+        if date < todayStart {
+            return todayStart
+        }
+
+        return calendar.date(byAdding: .day, value: 1, to: todayStart)
+    }
+
+    private var isFocusSessionActive: Bool { timerState == .running }
+
+    private static func reminderLastFiredKey(for type: ReminderType) -> String {
+        "reminder_last_fired_\(type.rawValue)"
+    }
+
     private static func durationKey(for category: TimerCategory.Kind) -> String {
         "timerCategory_duration_\(category.rawValue)"
     }
@@ -2153,12 +2986,12 @@ final class FocusViewModel: ObservableObject {
 extension FocusViewModel {
     static func seededCategories() -> [TimerCategory] {
         [
-            TimerCategory(id: .deepFocus, durationSeconds: 25 * 60),
-            TimerCategory(id: .workSprint, durationSeconds: 45 * 60),
-            TimerCategory(id: .choresSprint, durationSeconds: 15 * 60),
-            TimerCategory(id: .selfCare, durationSeconds: 5 * 60),
-            TimerCategory(id: .gamingReset, durationSeconds: 10 * 60),
-            TimerCategory(id: .quickBreak, durationSeconds: 8 * 60),
+            TimerCategory(id: .create, durationSeconds: 25 * 60),
+            TimerCategory(id: .move, durationSeconds: 20 * 60), // TEMP: Move uses .quickBreak category until a dedicated movement category exists.
+            TimerCategory(id: .chores, durationSeconds: 15 * 60),
+            TimerCategory(id: .focusMode, durationSeconds: 45 * 60),
+            TimerCategory(id: .gamingReset, durationSeconds: 45 * 60),
+            TimerCategory(id: .selfCare, durationSeconds: 20 * 60),
         ]
     }
 }

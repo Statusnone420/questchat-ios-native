@@ -1,64 +1,150 @@
 import Foundation
+import SwiftUI
+import Combine
 
-/// A simple container responsible for building view models.
-/// This can later be expanded to manage shared services and dependencies.
 final class DependencyContainer {
     static let shared = DependencyContainer()
-    private init() {}
 
-    private let statsStore = SessionStatsStore()
-    private let healthBarStatsStore = HealthBarIRLStatsStore()
-    private let hydrationSettingsStore = HydrationSettingsStore()
-    private lazy var gameDataResetter = GameDataResetter(
-        healthStatsStore: healthBarStatsStore,
-        xpStore: statsStore,
-        sessionStatsStore: statsStore
-    )
-    private lazy var healthBarViewModel = HealthBarViewModel(statsStore: healthBarStatsStore)
-    private lazy var focusViewModel = FocusViewModel(
-        statsStore: statsStore,
-        healthStatsStore: healthBarStatsStore,
-        healthBarViewModel: healthBarViewModel,
-        hydrationSettingsStore: hydrationSettingsStore
-    )
-    private lazy var questsViewModel = QuestsViewModel(statsStore: statsStore)
+    let playerTitleStore: PlayerTitleStore
+    let playerStateStore: PlayerStateStore
+    let sessionStatsStore: SessionStatsStore
+    let healthStatsStore: HealthBarIRLStatsStore
+    let hydrationSettingsStore: HydrationSettingsStore
+    let reminderSettingsStore: ReminderSettingsStore
+    let reminderEventsStore: ReminderEventsStore
+    let hydrationReminderManager: HydrationReminderManager
+    let sleepHistoryStore: SleepHistoryStore
+    let activityHistoryStore: ActivityHistoryStore
+    let dailyHealthRatingsStore: DailyHealthRatingsStore
+    let seasonAchievementsStore: SeasonAchievementsStore
+    let talentTreeStore: TalentTreeStore
+    let questEngine: QuestEngine
+    let potionManager: PotionManager
 
-    func makeFocusViewModel() -> FocusViewModel {
-        focusViewModel
+    let focusViewModel: FocusViewModel
+    let healthBarViewModel: HealthBarViewModel
+    let questsViewModel: QuestsViewModel
+    let statsViewModel: StatsViewModel
+    let moreViewModel: MoreViewModel
+    let settingsViewModel: SettingsViewModel
+
+    private var cancellables = Set<AnyCancellable>()
+
+    private init() {
+        // Core stores
+        playerTitleStore = PlayerTitleStore()
+        playerStateStore = PlayerStateStore()
+        talentTreeStore = TalentTreeStore()
+        sessionStatsStore = SessionStatsStore(
+            playerStateStore: playerStateStore,
+            playerTitleStore: playerTitleStore,
+            talentTreeStore: talentTreeStore
+        )
+        healthStatsStore = HealthBarIRLStatsStore()
+        hydrationSettingsStore = HydrationSettingsStore()
+        reminderSettingsStore = ReminderSettingsStore()
+        reminderEventsStore = ReminderEventsStore()
+        hydrationReminderManager = HydrationReminderManager(reminderSettingsStore: reminderSettingsStore)
+        sleepHistoryStore = SleepHistoryStore()
+        activityHistoryStore = ActivityHistoryStore()
+        dailyHealthRatingsStore = DailyHealthRatingsStore()
+        seasonAchievementsStore = SeasonAchievementsStore()
+        questEngine = QuestEngine()
+        potionManager = PotionManager.shared
+        potionManager.start()
+
+        // View models that depend on stores
+        healthBarViewModel = HealthBarViewModel(
+            statsStore: healthStatsStore,
+            sessionStatsStore: sessionStatsStore,
+            hydrationSettingsStore: hydrationSettingsStore,
+            sleepHistoryStore: sleepHistoryStore
+        )
+        focusViewModel = FocusViewModel(
+            statsStore: sessionStatsStore,
+            playerStateStore: playerStateStore,
+            playerTitleStore: playerTitleStore,
+            healthStatsStore: healthStatsStore,
+            healthBarViewModel: healthBarViewModel,
+            hydrationReminderManager: hydrationReminderManager,
+            hydrationSettingsStore: hydrationSettingsStore,
+            reminderSettingsStore: reminderSettingsStore,
+            reminderEventsStore: reminderEventsStore,
+            seasonAchievementsStore: seasonAchievementsStore,
+            sleepHistoryStore: sleepHistoryStore,
+            activityHistoryStore: activityHistoryStore
+        )
+        questsViewModel = QuestsViewModel(statsStore: sessionStatsStore, questEngine: questEngine)
+        statsViewModel = StatsViewModel(
+            healthStore: healthStatsStore,
+            hydrationSettingsStore: hydrationSettingsStore,
+            seasonAchievementsStore: seasonAchievementsStore,
+            playerTitleStore: playerTitleStore,
+            statsStore: sessionStatsStore,
+            sleepHistoryStore: sleepHistoryStore,
+            dailyRatingsStore: dailyHealthRatingsStore
+        )
+        moreViewModel = MoreViewModel(
+            hydrationSettingsStore: hydrationSettingsStore,
+            reminderSettingsStore: reminderSettingsStore
+        )
+
+        let resetter = GameDataResetter(
+            healthStatsStore: healthStatsStore,
+            xpStore: sessionStatsStore,
+            sessionStatsStore: sessionStatsStore,
+            dailyHealthRatingsStore: dailyHealthRatingsStore
+        )
+        settingsViewModel = SettingsViewModel(resetter: resetter)
+
+        // Bind after all properties are initialized
+        bindTalentTreeAchievements()
+    }
+
+    func makeOnboardingViewModel(onCompletion: (() -> Void)? = nil) -> OnboardingViewModel {
+        OnboardingViewModel(
+            hydrationSettingsStore: hydrationSettingsStore,
+            dailyRatingsStore: dailyHealthRatingsStore,
+            healthBarViewModel: healthBarViewModel,
+            focusViewModel: focusViewModel,
+            onCompletion: onCompletion
+        )
     }
 
     func makeHealthBarViewModel() -> HealthBarViewModel {
         healthBarViewModel
     }
 
-    func makeStatsStore() -> SessionStatsStore {
-        statsStore
-    }
-
-    func makeHealthBarStatsStore() -> HealthBarIRLStatsStore {
-        healthBarStatsStore
-    }
-
-    func makeHealthStatsViewModel() -> StatsViewModel {
-        StatsViewModel(
-            healthStore: healthBarStatsStore,
-            hydrationSettingsStore: hydrationSettingsStore
+    func makeHealthBarView() -> HealthBarView {
+        HealthBarView(
+            viewModel: makeHealthBarViewModel(),
+            focusViewModel: focusViewModel,
+            statsStore: sessionStatsStore,
+            statsViewModel: statsViewModel,
+            selectedTab: .constant(.health)
         )
     }
 
-    func makeQuestsViewModel() -> QuestsViewModel {
-        questsViewModel
+    func makeDailyHealthRatingsStore() -> DailyHealthRatingsStore {
+        dailyHealthRatingsStore
     }
 
-    func makeHydrationSettingsStore() -> HydrationSettingsStore {
-        hydrationSettingsStore
+    func makeTalentsViewModel() -> TalentsViewModel {
+        TalentsViewModel(store: talentTreeStore, statsStore: sessionStatsStore)
     }
 
-    func makeMoreViewModel() -> MoreViewModel {
-        MoreViewModel(hydrationSettingsStore: hydrationSettingsStore)
-    }
+    private func bindTalentTreeAchievements() {
+        talentTreeStore.$currentRanks
+            .combineLatest(talentTreeStore.$nodes)
+            .sink { [weak self] ranks, nodes in
+                guard let self else { return }
+                guard !nodes.isEmpty else { return }
 
-    func makeSettingsViewModel() -> SettingsViewModel {
-        SettingsViewModel(resetter: gameDataResetter)
+                let allUnlocked = nodes.allSatisfy { (ranks[$0.id] ?? 0) > 0 }
+                if allUnlocked {
+                    seasonAchievementsStore.applyProgress(conditionType: .allTalentsUnlocked, amount: 1)
+                }
+            }
+            .store(in: &cancellables)
     }
 }

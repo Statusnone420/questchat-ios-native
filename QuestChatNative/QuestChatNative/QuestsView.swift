@@ -2,23 +2,21 @@ import SwiftUI
 
 struct QuestsView: View {
     @ObservedObject var viewModel: QuestsViewModel
-    @ObservedObject private var statsStore = DependencyContainer.shared.makeStatsStore()
+    @ObservedObject private var statsStore = DependencyContainer.shared.sessionStatsStore
+    private let seasonAchievementsStore = DependencyContainer.shared.seasonAchievementsStore
     @State private var bouncingQuestIDs: Set<String> = []
     @State private var showingXPBoostIDs: Set<String> = []
     @State private var showingRerollPicker = false
+    @State private var selectedScope: QuestScope = .daily
+
+    enum QuestScope {
+        case daily
+        case weekly
+    }
 
     var body: some View {
         ZStack {
             questsContent
-
-            if let levelUp = statsStore.pendingLevelUp {
-                LevelUpModalView(level: levelUp) {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        statsStore.pendingLevelUp = nil
-                    }
-                }
-                .zIndex(2)
-            }
         }
     }
 }
@@ -34,52 +32,108 @@ private extension QuestsView {
             .listRowSeparator(.hidden)
 
             Section {
-                ForEach(viewModel.dailyQuests) { quest in
-                    QuestCardView(
-                        quest: quest,
-                        tierColor: tierColor(for: quest.tier),
-                        isBouncing: bouncingQuestIDs.contains(quest.id),
-                        isShowingXPBoost: showingXPBoostIDs.contains(quest.id),
-                        onTap: {
-                            viewModel.toggleQuest(quest)
-                        }
-                    )
-                    .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
-                    .listRowSeparator(.hidden)
-                    .onChange(of: quest.isCompleted) { isCompleted in
-                        guard isCompleted else { return }
-                        triggerCheckmarkBounce(for: quest)
-                        triggerXPFlash(for: quest)
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if !quest.isCompleted && !viewModel.hasUsedRerollToday {
-                            Button {
-                                viewModel.reroll(quest: quest)
-                            } label: {
-                                Label(QuestChatStrings.QuestsView.rerollActionTitle, systemImage: "arrow.triangle.2.circlepath")
+                scopeToggle
+            }
+            .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 8, trailing: 20))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+
+            if selectedScope == .daily {
+                Section {
+                    ForEach(viewModel.sortedDailyQuests) { quest in
+                        let isEventDriven = viewModel.isEventDrivenQuest(quest)
+                        QuestCardView(
+                            quest: quest,
+                            tierColor: tierColor(for: quest.tier),
+                            isBouncing: bouncingQuestIDs.contains(quest.id),
+                            isShowingXPBoost: showingXPBoostIDs.contains(quest.id),
+                            onTap: isEventDriven ? nil : {
+                                viewModel.toggleQuest(quest)
                             }
-                            .tint(.orange)
+                        )
+                        .allowsHitTesting(!isEventDriven)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                        .listRowSeparator(.hidden)
+                        .onChange(of: quest.isCompleted) { isCompleted in
+                            guard isCompleted else { return }
+                            triggerCheckmarkBounce(for: quest)
+                            triggerXPFlash(for: quest)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if !quest.isCompleted && !viewModel.hasUsedRerollToday {
+                                Button {
+                                    viewModel.reroll(quest: quest)
+                                } label: {
+                                    Label(QuestChatStrings.QuestsView.rerollActionTitle, systemImage: "arrow.triangle.2.circlepath")
+                                }
+                                .tint(.orange)
+                            }
                         }
                     }
                 }
-            }
-            .textCase(nil)
-            .listSectionSeparator(.hidden)
+                .textCase(nil)
+                .listSectionSeparator(.hidden)
 
-            Section {
-                rerollFooter
+                Section {
+                    rerollFooter
+                }
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 20, trailing: 20))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+            } else {
+                Section {
+                    if viewModel.weeklyTotalCount > 0 {
+                        Text("\(viewModel.weeklyCompletedCount) / \(viewModel.weeklyTotalCount) weekly quests complete")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 20, bottom: 6, trailing: 20))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                    }
+
+                    ForEach(viewModel.sortedWeeklyQuests) { quest in
+                        let isEventDriven = viewModel.isEventDrivenWeeklyQuest(quest)
+                        QuestCardView(
+                            quest: quest,
+                            tierColor: tierColor(for: quest.tier),
+                            isBouncing: bouncingQuestIDs.contains(quest.id),
+                            isShowingXPBoost: showingXPBoostIDs.contains(quest.id),
+                            onTap: isEventDriven ? nil : {
+                                viewModel.toggleWeeklyQuest(quest)
+                            }
+                        )
+                        .allowsHitTesting(!isEventDriven)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                        .listRowSeparator(.hidden)
+                        .onChange(of: quest.isCompleted) { isCompleted in
+                            guard isCompleted else { return }
+                            triggerCheckmarkBounce(for: quest)
+                            triggerXPFlash(for: quest)
+                        }
+                    }
+                }
+                .textCase(nil)
+                .listSectionSeparator(.hidden)
+
             }
-            .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 20, trailing: 20))
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color.clear)
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .scrollIndicators(.hidden)
         .background(Color.black.ignoresSafeArea())
         .overlay(alignment: .center) {
-            if viewModel.hasQuestChestReady {
+            if selectedScope == .daily && viewModel.hasQuestChestReady {
                 questChestOverlay()
             }
+        }
+        .onAppear {
+            viewModel.handleQuestLogOpenedIfNeeded()
+            let today = Calendar.current.startOfDay(for: Date())
+            seasonAchievementsStore.applyProgress(
+                conditionType: .questsTabOpenedDaysStreak,
+                amount: 1,
+                date: today
+            )
         }
         .confirmationDialog(QuestChatStrings.QuestsView.rerollDialogTitle, isPresented: $showingRerollPicker, titleVisibility: .visible) {
             let incompleteQuests = viewModel.incompleteQuests
@@ -100,45 +154,79 @@ private extension QuestsView {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(QuestChatStrings.QuestsView.headerTitle)
+                    Text(selectedScope == .daily ? QuestChatStrings.QuestsView.headerTitle : "Weekly quests")
                         .font(.title2.bold())
-                    Text(QuestChatStrings.QuestsView.headerSubtitle(completed: viewModel.completedQuestsCount, total: viewModel.totalQuestsCount, totalXP: viewModel.totalDailyXP))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    if selectedScope == .daily {
+                        Text(QuestChatStrings.QuestsView.headerSubtitle(completed: viewModel.completedQuestsCount, total: viewModel.totalQuestsCount, totalXP: viewModel.totalDailyXP))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("\(viewModel.weeklyCompletedCount) / \(viewModel.weeklyTotalCount) weekly quests complete")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
             }
 
-            if viewModel.hasQuestChestReady {
-                Button {
-                    viewModel.claimQuestChest()
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "gift.fill")
-                            .foregroundStyle(.yellow)
-                        Text(QuestChatStrings.QuestsView.questChestReady)
-                            .font(.subheadline.weight(.semibold))
+            if selectedScope == .daily {
+                if viewModel.hasQuestChestReady {
+                    Button {
+                        viewModel.claimQuestChest()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "gift.fill")
+                                .foregroundStyle(.yellow)
+                            Text(QuestChatStrings.QuestsView.questChestReady)
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.yellow.opacity(0.15))
+                        .foregroundStyle(.yellow)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.yellow.opacity(0.15))
-                    .foregroundStyle(.yellow)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .buttonStyle(.plain)
+                } else if !viewModel.allQuestsComplete {
+                    Text(viewModel.allCoreDailyQuestsCompleted ? "Core quests complete – finish habits for extra XP." : QuestChatStrings.QuestsView.chestProgress(viewModel.remainingQuestsUntilChest))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(QuestChatStrings.QuestsView.chestClaimed)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
-            } else if !viewModel.allQuestsComplete {
-                Text(QuestChatStrings.QuestsView.chestProgress(viewModel.remainingQuestsUntilChest))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text(QuestChatStrings.QuestsView.chestClaimed)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
             }
         }
         .padding()
         .background(Color(uiColor: .secondarySystemBackground).opacity(0.18))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    var scopeToggle: some View {
+        HStack(spacing: 10) {
+            scopeButton(for: .daily, title: "Daily")
+            scopeButton(for: .weekly, title: "Weekly")
+        }
+    }
+
+    func scopeButton(for scope: QuestScope, title: String) -> some View {
+        let isSelected = selectedScope == scope
+
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedScope = scope
+            }
+        } label: {
+            Text(title)
+                .font(.subheadline.bold())
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(isSelected ? Color.white.opacity(0.18) : Color(uiColor: .secondarySystemBackground).opacity(0.16))
+                .foregroundStyle(isSelected ? .primary : .secondary)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     var rerollFooter: some View {
@@ -250,7 +338,7 @@ private struct QuestCardView: View {
     let tierColor: Color
     let isBouncing: Bool
     let isShowingXPBoost: Bool
-    let onTap: () -> Void
+    let onTap: (() -> Void)?
 
     /// Whether this quest is progress-based (requires multiple actions)
     private var isProgressBased: Bool {
@@ -297,11 +385,17 @@ private struct QuestCardView: View {
                             Text(quest.title)
                                 .font(.headline)
                                 .foregroundStyle(.primary)
-                                .opacity(contentOpacity)
                             Text(quest.detail)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                                .opacity(contentOpacity)
+
+                            if shouldShowProgressBar {
+                                QuestProgressView(
+                                    fraction: quest.progressFraction,
+                                    label: "\(quest.progress) / \(quest.target)"
+                                )
+                                .padding(.top, 4)
+                            }
                         }
 
                         // Progress bar for progress-based quests
@@ -412,7 +506,6 @@ private struct QuestCardView: View {
             .background(tierColor.opacity(0.18))
             .foregroundStyle(tierColor)
             .clipShape(Capsule())
-            .opacity(contentOpacity)
     }
 
     private var xpPill: some View {
@@ -423,14 +516,42 @@ private struct QuestCardView: View {
             .background(Color.mint.opacity(0.18))
             .foregroundStyle(.mint)
             .clipShape(Capsule())
-            .opacity(contentOpacity)
     }
 
-    private var contentOpacity: Double {
-        quest.isCompleted ? 0.6 : 1.0
+    private var completedPill: some View {
+        Text("Completed")
+            .font(.caption2)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(Color.secondary.opacity(0.25)))
+            .foregroundStyle(.secondary)
+    }
+
+    private var shouldShowProgressBar: Bool {
+        if quest.type == .weekly {
+            return quest.target > 1
+        }
+
+        return quest.hasProgress
+    }
+}
+
+private struct QuestProgressView: View {
+    let fraction: Double
+    let label: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ProgressView(value: fraction)
+                .progressViewStyle(.linear)
+                .tint(.mint)
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 
 #Preview {
-    QuestsView(viewModel: QuestsViewModel())
+    QuestsView(viewModel: DependencyContainer.shared.questsViewModel)
 }

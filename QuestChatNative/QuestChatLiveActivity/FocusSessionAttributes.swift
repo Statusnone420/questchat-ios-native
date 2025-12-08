@@ -1,7 +1,7 @@
 import ActivityKit
 import Foundation
 
-@available(iOS 17.0, *)
+@available(iOS 16.1, *)
 struct FocusSessionAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
         var startDate: Date
