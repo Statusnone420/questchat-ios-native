@@ -1303,6 +1303,7 @@ final class FocusViewModel: ObservableObject {
     let playerStateStore: PlayerStateStore
     let playerTitleStore: PlayerTitleStore
     let healthStatsStore: HealthBarIRLStatsStore
+    let hydrationReminderManager: HydrationReminderManager
     let hydrationSettingsStore: HydrationSettingsStore
     private let reminderSettingsStore: ReminderSettingsStore
     let reminderEventsStore: ReminderEventsStore
@@ -1350,8 +1351,9 @@ final class FocusViewModel: ObservableObject {
         playerTitleStore: PlayerTitleStore = DependencyContainer.shared.playerTitleStore,
         healthStatsStore: HealthBarIRLStatsStore = HealthBarIRLStatsStore(),
         healthBarViewModel: HealthBarViewModel? = nil,
-        hydrationSettingsStore: HydrationSettingsStore = HydrationSettingsStore(),
-        reminderSettingsStore: ReminderSettingsStore = ReminderSettingsStore(),
+        hydrationReminderManager: HydrationReminderManager = DependencyContainer.shared.hydrationReminderManager,
+        hydrationSettingsStore: HydrationSettingsStore = DependencyContainer.shared.hydrationSettingsStore,
+        reminderSettingsStore: ReminderSettingsStore = DependencyContainer.shared.reminderSettingsStore,
         reminderEventsStore: ReminderEventsStore = ReminderEventsStore(),
         seasonAchievementsStore: SeasonAchievementsStore = DependencyContainer.shared.seasonAchievementsStore,
         sleepHistoryStore: SleepHistoryStore = DependencyContainer.shared.sleepHistoryStore,
@@ -1364,6 +1366,7 @@ final class FocusViewModel: ObservableObject {
         self.playerTitleStore = playerTitleStore
         self.healthStatsStore = healthStatsStore
         self.healthBarViewModel = healthBarViewModel
+        self.hydrationReminderManager = hydrationReminderManager
         self.hydrationSettingsStore = hydrationSettingsStore
         self.reminderSettingsStore = reminderSettingsStore
         self.reminderEventsStore = reminderEventsStore
@@ -1422,6 +1425,22 @@ final class FocusViewModel: ObservableObject {
         ReminderType.allCases.forEach { type in
             if let storedDate = userDefaults.object(forKey: Self.reminderLastFiredKey(for: type)) as? Date {
                 lastReminderFiredAt[type] = storedDate
+            }
+        }
+
+        hydrationReminderManager.$lastHydrationReminderDate
+            .receive(on: RunLoop.main)
+            .sink { [weak self] date in
+                guard let date else { return }
+                self?.lastReminderFiredAt[.hydration] = date
+            }
+            .store(in: &cancellables)
+
+        if let hydrationLast = hydrationReminderManager.lastHydrationReminderDate {
+            if let existing = lastReminderFiredAt[.hydration] {
+                lastReminderFiredAt[.hydration] = max(existing, hydrationLast)
+            } else {
+                lastReminderFiredAt[.hydration] = hydrationLast
             }
         }
 
@@ -2188,7 +2207,13 @@ final class FocusViewModel: ObservableObject {
         currentSession = nil
         clearPersistedSession()
         handleHydrationThresholds(previousTotal: previousFocusTotal, newTotal: statsStore.totalFocusSecondsToday)
-        sendImmediateHydrationReminder()
+        _ = maybeScheduleHydrationReminder(
+            reason: .timerCompleted,
+            now: endDate,
+            sessionCategory: timerCategory,
+            sessionDurationMinutes: recordedDuration / 60,
+            message: QuestChatStrings.Notifications.hydrateReminderBody
+        )
         if #available(iOS 17.0, *) {
             Task {
                 for activity in Activity<FocusSessionAttributes>.activities {
@@ -2365,15 +2390,6 @@ final class FocusViewModel: ObservableObject {
         }
     }
 
-    private func sendImmediateHydrationReminder() {
-        triggerReminder(
-            for: .hydration,
-            at: Date(),
-            message: QuestChatStrings.Notifications.hydrateReminderBody,
-            bypassCadence: true
-        )
-    }
-
     private func handleHydrationThresholds(previousTotal: Int, newTotal: Int) {
         guard hydrationNudgesEnabled, selectedMode == .focus else { return }
 
@@ -2382,13 +2398,10 @@ final class FocusViewModel: ObservableObject {
             guard previousTotal < threshold, newTotal >= threshold else { continue }
             guard !hasTriggeredNudge(for: level) else { continue }
 
-            sendHydrationNudge(level: level)
-            markNudgeTriggered(for: level)
+            if maybeScheduleHydrationReminder(reason: .periodic, message: level.bodyText) {
+                markNudgeTriggered(for: level)
+            }
         }
-    }
-
-    func sendHydrationNudge(level: HydrationNudgeLevel) {
-        triggerReminder(for: .hydration, at: Date(), message: level.bodyText, bypassCadence: true)
     }
 
     private func bindHealthBarViewModel(_ healthBarViewModel: HealthBarViewModel) {
@@ -2622,7 +2635,9 @@ final class FocusViewModel: ObservableObject {
     }
 
     private func evaluateReminders(now: Date = Date()) {
-        ReminderType.allCases.forEach { type in
+        _ = maybeScheduleHydrationReminder(reason: .periodic, now: now)
+
+        ReminderType.allCases.filter { $0 != .hydration }.forEach { type in
             guard shouldFireReminder(for: type, at: now) else { return }
             triggerReminder(for: type, at: now)
         }
@@ -2692,10 +2707,41 @@ final class FocusViewModel: ObservableObject {
         notificationCenter.add(request)
     }
 
-    private func scheduleBackgroundReminders(now: Date = Date()) {
-        ReminderType.allCases.forEach { type in
-            scheduleNextReminderNotification(for: type, now: now)
+    @discardableResult
+    private func maybeScheduleHydrationReminder(
+        reason: HydrationReminderReason,
+        now: Date = Date(),
+        sessionCategory: TimerCategory.Kind? = nil,
+        sessionDurationMinutes: Int? = nil,
+        message: String? = nil
+    ) -> Bool {
+        return hydrationReminderManager.maybeScheduleHydrationReminder(
+            reason: reason,
+            now: now,
+            waterIntakeOuncesToday: waterIntakeOuncesToday,
+            waterGoalOunces: waterGoalToday,
+            isFocusSessionContextActive: isFocusSessionActive || reason == .timerCompleted,
+            sessionCategory: sessionCategory,
+            sessionDurationMinutes: sessionDurationMinutes
+        ) { [weak self] in
+            guard let self else { return }
+            self.triggerReminder(
+                for: .hydration,
+                at: now,
+                message: message ?? self.reminderBody(for: .hydration),
+                bypassCadence: true
+            )
         }
+    }
+
+    private func scheduleBackgroundReminders(now: Date = Date()) {
+        scheduleNextHydrationReminder(now: now)
+
+        ReminderType.allCases
+            .filter { $0 != .hydration }
+            .forEach { type in
+                scheduleNextReminderNotification(for: type, now: now)
+            }
     }
 
     private func scheduleNextReminderNotification(for type: ReminderType, now: Date = Date()) {
@@ -2717,7 +2763,41 @@ final class FocusViewModel: ObservableObject {
         notificationCenter.add(request)
     }
 
+    private func scheduleNextHydrationReminder(now: Date = Date()) {
+        let identifier = reminderNotificationIdentifiers[.hydration] ?? "hydration_reminder_next"
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
+        guard notificationAuthorized else { return }
+        guard let next = hydrationReminderManager.nextEligibleReminderDate(
+            now: now,
+            waterIntakeOuncesToday: waterIntakeOuncesToday,
+            waterGoalOunces: waterGoalToday,
+            isFocusSessionContextActive: isFocusSessionActive
+        ) else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = reminderTitle(for: .hydration)
+        content.body = reminderBody(for: .hydration)
+        content.sound = .default
+
+        let components = Calendar.current.dateComponents([
+            .year, .month, .day, .hour, .minute, .second
+        ], from: next)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        notificationCenter.add(request)
+    }
+
     private func shouldFireReminder(for type: ReminderType, at date: Date) -> Bool {
+        if type == .hydration {
+            return hydrationReminderManager.canScheduleHydrationReminder(
+                reason: .periodic,
+                now: date,
+                waterIntakeOuncesToday: waterIntakeOuncesToday,
+                waterGoalOunces: waterGoalToday,
+                isFocusSessionContextActive: isFocusSessionActive
+            )
+        }
+
         let settings = reminderSettingsStore.settings(for: type)
         guard settings.enabled else { return false }
 
@@ -2732,6 +2812,15 @@ final class FocusViewModel: ObservableObject {
     }
 
     private func nextReminderDate(for type: ReminderType, from date: Date) -> Date? {
+        if type == .hydration {
+            return hydrationReminderManager.nextEligibleReminderDate(
+                now: date,
+                waterIntakeOuncesToday: waterIntakeOuncesToday,
+                waterGoalOunces: waterGoalToday,
+                isFocusSessionContextActive: isFocusSessionActive
+            )
+        }
+
         let settings = reminderSettingsStore.settings(for: type)
         guard settings.enabled else { return nil }
 
@@ -2835,7 +2924,7 @@ extension FocusViewModel {
 
     func debugFireHydrationReminder() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
-            self?.triggerReminder(for: .hydration, at: Date(), bypassCadence: true)
+            _ = self?.maybeScheduleHydrationReminder(reason: .periodic)
         }
     }
 
