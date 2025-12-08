@@ -52,7 +52,7 @@ extension SeasonAchievement {
         ),
         SeasonAchievement(
             id: "deep_focus_diver",
-            title: "Deep Focus Diver",
+            title: "Focus Deep Diver",
             subtitle: "Complete 25 focus sessions of at least 40 minutes in one season.",
             iconName: "brain.head.profile",
             conditionType: .focusSessionsLong,
@@ -63,7 +63,7 @@ extension SeasonAchievement {
         ),
         SeasonAchievement(
             id: "distraction_dodger",
-            title: "Distraction Dodger",
+            title: "Consistent AF",
             subtitle: "Do 7 days in a row with at least 60 focus minutes.",
             iconName: "shield.fill",
             conditionType: .dailyFocusMinutesStreak,
@@ -74,7 +74,7 @@ extension SeasonAchievement {
         ),
         SeasonAchievement(
             id: "irl_healthbar_guardian",
-            title: "IRL HealthBar Guardian",
+            title: "Self-Care Warrior",
             subtitle: "Keep your HP above 70% for 15 days in one season.",
             iconName: "heart.fill",
             conditionType: .hpAboveThresholdDays,
@@ -96,7 +96,7 @@ extension SeasonAchievement {
         ),
         SeasonAchievement(
             id: "dungeon_janitor",
-            title: "Dungeon Janitor",
+            title: "Chores Are Fun",
             subtitle: "Complete 20 chore blitz sessions of at least 10 minutes in one season.",
             iconName: "🧹",
             conditionType: .choreBlitzSessions,
@@ -118,7 +118,7 @@ extension SeasonAchievement {
         ),
         SeasonAchievement(
             id: "four_realms_explorer",
-            title: "Four Realms Explorer",
+            title: "Timer Machine",
             subtitle: "Every day for a week, run at least one Work, Home, Health, and Chill session of 30+ minutes.",
             iconName: "globe.asia.australia.fill",
             conditionType: .fourRealmsWeek,
