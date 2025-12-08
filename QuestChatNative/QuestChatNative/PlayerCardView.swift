@@ -672,7 +672,7 @@ struct PlayerCardView: View {
     private var headerCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             let style = avatarStyles[max(0, min(avatarStyleIndex, avatarStyles.count - 1))]
-            let avatarScale: CGFloat = 2.0
+            let avatarScale: CGFloat = 1.5
             let avatarSize: CGFloat = 56 * avatarScale
 
             HStack(alignment: .top, spacing: 16) {
@@ -699,25 +699,25 @@ struct PlayerCardView: View {
                         randomizeAvatar()
                     } label: {
                         Image(systemName: "dice.fill")
-                            .font(.system(size: max(14, avatarSize * 0.15), weight: .bold))
+                            .font(.system(size: max(12, avatarSize * 0.10), weight: .bold))
                             .foregroundStyle(.white)
-                            .padding(max(8, avatarSize * 0.055))
+                            .padding(max(6, avatarSize * 0.04))
                             .background(Color.black.opacity(0.35))
                             .clipShape(Circle())
-                            .shadow(radius: 4)
-                            .frame(minWidth: 44, minHeight: 44)
+                            .shadow(radius: 3)
                             .contentShape(Circle())
                             .accessibilityLabel("Randomize avatar")
                             .accessibilityHint("Generates a new avatar style")
                     }
                     .buttonStyle(.plain)
-                    .offset(x: max(6, avatarSize * 0.075), y: -max(6, avatarSize * 0.075))
+                    .offset(x: max(6, avatarSize * 0.11), y: -max(6, avatarSize * 0.11))
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
                     TextField(QuestChatStrings.PlayerCard.namePlaceholder, text: $playerDisplayName)
                         .font(.title2.weight(.bold))
                         .textFieldStyle(.plain)
+                        .layoutPriority(1)
 
                     HStack(spacing: 8) {
                         Text("Level \(store.level)")
@@ -751,6 +751,8 @@ struct PlayerCardView: View {
                                 .font(.subheadline.weight(.semibold))
                                 .lineLimit(1)
                                 .truncationMode(.tail)
+                                .minimumScaleFactor(0.8)
+                                .allowsTightening(true)
 
                             Image(systemName: "chevron.down")
                                 .font(.caption2)
@@ -763,21 +765,43 @@ struct PlayerCardView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(.cyan)
+
+                    // Removed badges row from here
+
                 }
 
                 Spacer()
+            }
 
-                if let latest = statsViewModel.latestUnlockedSeasonAchievement {
-                    SeasonAchievementBadgeView(
-                        title: latest.title,
-                        iconName: latest.iconName,
-                        isUnlocked: true,
-                        progressFraction: 1.0,
-                        isCompact: true
-                    )
-                    .frame(width: 36, height: 36)
+            let unlockedBadges = statsViewModel.seasonAchievements.filter { $0.isUnlocked }
+            if !unlockedBadges.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(unlockedBadges) { item in
+                            SeasonAchievementBadgeView(
+                                title: item.title,
+                                iconName: item.iconName,
+                                isUnlocked: true,
+                                progressFraction: 1.0,
+                                isCompact: true
+                            )
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
                 }
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color(uiColor: .secondarySystemBackground).opacity(0.16))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
+                .padding(.horizontal, 2)
+                .transition(.opacity.combined(with: .scale))
+                .animation(.spring(response: 0.45, dampingFraction: 0.8), value: unlockedBadges.count)
             }
 
             Text("Your real-life stats, achivements, badges, and titles.")
@@ -1152,3 +1176,4 @@ struct DailyVitalsSlidersView: View {
 }
 
 // Avatar now uses a UUID-based rolled SF Symbol + gradient style.
+
