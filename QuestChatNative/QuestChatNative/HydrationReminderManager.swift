@@ -4,7 +4,6 @@ import Combine
 enum HydrationReminderReason {
     case timerCompleted
     case periodic
-    case nudge
 }
 
 final class HydrationReminderManager: ObservableObject {
@@ -53,26 +52,6 @@ final class HydrationReminderManager: ObservableObject {
         return true
     }
 
-    @discardableResult
-    func maybeScheduleHydrationNudge(
-        now: Date = Date(),
-        waterIntakeOuncesToday: Int,
-        waterGoalOunces: Int,
-        isFocusSessionContextActive: Bool,
-        schedule: () -> Void
-    ) -> Bool {
-        return maybeScheduleHydrationReminder(
-            reason: .nudge,
-            now: now,
-            waterIntakeOuncesToday: waterIntakeOuncesToday,
-            waterGoalOunces: waterGoalOunces,
-            isFocusSessionContextActive: isFocusSessionContextActive,
-            sessionCategory: nil,
-            sessionDurationMinutes: nil,
-            schedule: schedule
-        )
-    }
-
     func nextEligibleReminderDate(
         now: Date = Date(),
         waterIntakeOuncesToday: Int,
@@ -115,8 +94,10 @@ final class HydrationReminderManager: ObservableObject {
         let last = lastHydrationReminderDate ?? .distantPast
         guard now.timeIntervalSince(last) >= cadence else { return false }
 
-        // No additional constraints per reason; rely solely on settings.onlyDuringFocusSessions,
-        // cadence, active window, and goal checks above.
+        if case .timerCompleted = reason {
+            guard let category = sessionCategory, category.mode == .focus else { return false }
+            guard (sessionDurationMinutes ?? 0) >= 20 else { return false }
+        }
 
         return true
     }
@@ -162,4 +143,3 @@ private extension HydrationReminderManager {
         return calendar.date(byAdding: .day, value: 1, to: todayStart)
     }
 }
-
