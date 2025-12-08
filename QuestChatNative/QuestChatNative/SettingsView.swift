@@ -324,6 +324,27 @@ struct SettingsView: View {
                 resetButton(title: "Reset today", window: .today)
                 resetButton(title: "Reset last 7 days", window: .last7Days)
                 resetButton(title: "Full reset", window: .full, role: .destructive)
+
+                Divider().padding(.vertical, 2)
+
+                Button {
+                    // Manually re-open Daily Setup for today
+                    DependencyContainer.shared.sessionStatsStore.shouldShowDailySetup = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sun.max.circle")
+                            .foregroundStyle(.mint)
+                        Text("Re-open Daily Setup for today")
+                            .font(.subheadline.bold())
+                        Spacer()
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.mint.opacity(0.18))
+                    .foregroundStyle(.mint)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+                .buttonStyle(.plain)
             }
             .font(.subheadline)
 

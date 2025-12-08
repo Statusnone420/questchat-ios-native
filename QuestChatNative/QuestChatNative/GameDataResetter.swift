@@ -82,6 +82,12 @@ final class GameDataResetter {
         // Weekly quest progress/boards for any week touched
         let weekKeys = Set(days.map { weeklyKey(for: $0) })
         for key in weekKeys { clearWeeklyQuests(forWeekKey: key) }
+        
+        // Daily Setup: if today is among the reset days, re-open the Daily Setup sheet
+        let today = calendar.startOfDay(for: Date())
+        if days.contains(where: { calendar.isDate($0, inSameDayAs: today) }) {
+            sessionStatsStore.shouldShowDailySetup = true
+        }
     }
 
     private func resetAllLocalData() {

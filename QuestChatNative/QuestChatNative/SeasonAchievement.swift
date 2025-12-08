@@ -23,7 +23,7 @@ struct SeasonAchievement: Identifiable, Hashable {
     let isSecret: Bool
 }
 
-struct SeasonAchievementProgress: Identifiable, Hashable {
+struct SeasonAchievementProgress: Identifiable, Hashable, Codable {
     let id: String
     let achievementId: String
     var currentValue: Int

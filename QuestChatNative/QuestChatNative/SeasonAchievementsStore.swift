@@ -8,6 +8,10 @@ extension Notification.Name {
 final class SeasonAchievementsStore: ObservableObject {
     @Published private(set) var achievements: [SeasonAchievement]
     @Published private(set) var progressById: [String: SeasonAchievementProgress]
+    
+    private let progressKey = "season_achievements_progress_v1"
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
 
     private var streaks: [SeasonAchievementConditionType: Int] = [:]
     private var lastProgressDates: [SeasonAchievementConditionType: Date] = [:]
@@ -23,8 +27,26 @@ final class SeasonAchievementsStore: ObservableObject {
 
     init(achievements: [SeasonAchievement] = SeasonAchievement.allSeasonOne) {
         self.achievements = achievements
-        self.progressById = Self.initialProgress(for: achievements)
-        // TODO: persistence
+        // Attempt to load persisted progress and merge with current achievements
+        let defaults = UserDefaults.standard
+        if let data = defaults.data(forKey: progressKey),
+           let saved = try? decoder.decode([String: SeasonAchievementProgress].self, from: data) {
+            // Build merged dictionary ensuring every current achievement has an entry
+            var merged: [String: SeasonAchievementProgress] = [:]
+            for ach in achievements {
+                if let existing = saved[ach.id] {
+                    merged[ach.id] = existing
+                } else {
+                    merged[ach.id] = SeasonAchievementsStore.defaultProgress(for: ach)
+                }
+            }
+            // Optionally drop progress for achievements that no longer exist (ignored by not copying extras)
+            self.progressById = merged
+        } else {
+            self.progressById = Self.initialProgress(for: achievements)
+        }
+        // Persist after initialization to ensure key exists and any migrations are saved
+        persistProgress()
     }
 
     func progress(for achievement: SeasonAchievement) -> SeasonAchievementProgress {
@@ -83,6 +105,9 @@ final class SeasonAchievementsStore: ObservableObject {
             progressById[achievement.id] = progress
         }
 
+        // Save progress after applying updates
+        persistProgress()
+
         if let unlocked = unlockedAchievement {
             NotificationCenter.default.post(
                 name: .seasonAchievementUnlocked,
@@ -96,14 +121,18 @@ final class SeasonAchievementsStore: ObservableObject {
 
     private static func initialProgress(for achievements: [SeasonAchievement]) -> [String: SeasonAchievementProgress] {
         Dictionary(uniqueKeysWithValues: achievements.map { achievement in
-            (achievement.id, SeasonAchievementProgress(
-                id: achievement.id,
-                achievementId: achievement.id,
-                currentValue: 0,
-                unlockedAt: nil,
-                lastUpdatedAt: nil
-            ))
+            (achievement.id, defaultProgress(for: achievement))
         })
+    }
+    
+    private static func defaultProgress(for achievement: SeasonAchievement) -> SeasonAchievementProgress {
+        SeasonAchievementProgress(
+            id: achievement.id,
+            achievementId: achievement.id,
+            currentValue: 0,
+            unlockedAt: nil,
+            lastUpdatedAt: nil
+        )
     }
 
     private func recordFourRealmsCategoryCompletion(
@@ -190,6 +219,20 @@ final class SeasonAchievementsStore: ObservableObject {
             windowStart = nextStart
         }
     }
+    
+    private func persistProgress() {
+        if let data = try? encoder.encode(progressById) {
+            UserDefaults.standard.set(data, forKey: progressKey)
+        }
+    }
+    
+#if DEBUG
+    func resetAllSeasonProgress() {
+        self.progressById = Self.initialProgress(for: achievements)
+        UserDefaults.standard.removeObject(forKey: progressKey)
+        persistProgress()
+    }
+#endif
 }
 
 private extension SeasonAchievementsStore.FourRealmsCategory {
