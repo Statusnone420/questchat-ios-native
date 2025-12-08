@@ -9,6 +9,7 @@ enum SeasonAchievementConditionType: String, Hashable {
     case choreBlitzSessions
     case moodAboveMehDaysStreak
     case fourRealmsWeek
+    case allTalentsUnlocked
 }
 
 struct SeasonAchievement: Identifiable, Hashable {
@@ -131,6 +132,17 @@ extension SeasonAchievement {
             threshold: 1,
             seasonId: currentSeasonId,
             xpReward: 1000,
+            isSecret: false
+        ),
+        SeasonAchievement(
+            id: "tree_of_life",
+            title: "Tree of Life",
+            subtitle: "Fully blossom your talent tree by unlocking every node at least once.",
+            iconName: "tree.circle",
+            conditionType: .allTalentsUnlocked,
+            threshold: 1,
+            seasonId: currentSeasonId,
+            xpReward: 750,
             isSecret: false
         )
     ]

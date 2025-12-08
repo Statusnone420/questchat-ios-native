@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 
 final class DependencyContainer {
     static let shared = DependencyContainer()
@@ -27,6 +28,8 @@ final class DependencyContainer {
     let moreViewModel: MoreViewModel
     let settingsViewModel: SettingsViewModel
 
+    private var cancellables = Set<AnyCancellable>()
+
     private init() {
         // Core stores
         playerTitleStore = PlayerTitleStore()
@@ -49,6 +52,8 @@ final class DependencyContainer {
         questEngine = QuestEngine()
         potionManager = PotionManager.shared
         potionManager.start()
+
+        bindTalentTreeAchievements()
 
         // View models that depend on stores
         healthBarViewModel = HealthBarViewModel(
@@ -125,5 +130,20 @@ final class DependencyContainer {
 
     func makeTalentsViewModel() -> TalentsViewModel {
         TalentsViewModel(store: talentTreeStore, statsStore: sessionStatsStore)
+    }
+
+    private func bindTalentTreeAchievements() {
+        talentTreeStore.$currentRanks
+            .combineLatest(talentTreeStore.$nodes)
+            .sink { [weak self] ranks, nodes in
+                guard let self else { return }
+                guard !nodes.isEmpty else { return }
+
+                let allUnlocked = nodes.allSatisfy { (ranks[$0.id] ?? 0) > 0 }
+                if allUnlocked {
+                    seasonAchievementsStore.applyProgress(conditionType: .allTalentsUnlocked, amount: 1)
+                }
+            }
+            .store(in: &cancellables)
     }
 }
