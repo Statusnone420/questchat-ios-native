@@ -214,23 +214,31 @@ enum QuestChatStrings {
     }
 
     enum QuestsPool {
-        static let dailyCheckInTitle = "Load today’s quest log"
+        static let dailyCheckInTitle = "Load today's quest log"
         static let dailyCheckInDescription = "Take 30 seconds to decide what actually matters."
 
-        static let hydrateTitle = "Hydrate checkpoint"
-        static let hydrateDescription = "Drink a real glass of water before you start."
+        static let hydrateTitle = "Hydration run"
+        static let hydrateDescription = "Log 3 water taps. Your HP will thank you."
 
         static let stretchTitle = "IRL patch update"
-        static let stretchDescription = "Stretch for 2 minutes and un-gremlin your spine."
+        static let stretchDescription = "Complete a self-care timer to un-gremlin your spine."
 
-        static let planTitle = "Plan one focus session"
-        static let planDescription = "Pick a timer and commit to at least one run today."
+        static let planTitle = "Execute a focus run"
+        static let planDescription = "Complete any focus timer to check this off."
 
         static let deepFocusTitle = "Deep focus"
-        static let deepFocusDescription = "Commit to 25 distraction-free minutes."
+        static let deepFocusDescription = "Finish a Deep Focus session (25+ min)."
 
         static let gratitudeTitle = "Gratitude note"
         static let gratitudeDescription = "Write down one thing you're grateful for."
+
+        // NEW: Potion synergy quest
+        static let potionMasterTitle = "Potion master"
+        static let potionMasterDescription = "Use all 3 potion types today. Buff yourself up."
+
+        // NEW: Focus streak quest
+        static let focusStreakTitle = "Double down"
+        static let focusStreakDescription = "Complete 2 focus sessions. Momentum is everything."
 
         static let coreTier = "Core"
         static let habitTier = "Habit"

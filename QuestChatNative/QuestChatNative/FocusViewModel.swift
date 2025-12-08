@@ -1046,7 +1046,11 @@ final class FocusViewModel: ObservableObject {
     @Published var timerState: FocusTimerState = .idle
     @Published var remainingSeconds: Int = 0
 
+    // Potion usage tracking for synergy quest
+    @Published private(set) var potionsUsedToday: Set<String> = []
+
     var onSessionComplete: (() -> Void)?
+    var onQuestEvent: ((QuestEventID) -> Void)?
 
     enum TimerState {
         case idle
@@ -1140,6 +1144,7 @@ final class FocusViewModel: ObservableObject {
 
         refreshDailyHealthBonusState()
         loadSleepQuality()
+        loadPotionUsage()
     }
 
     var timerStatusText: String {
@@ -1368,6 +1373,11 @@ final class FocusViewModel: ObservableObject {
         updateWaterIntakeTotals()
         healthStatsStore.update(from: healthBarViewModel.inputs)
         evaluateHealthXPBonuses()
+
+        // Fire quest events for hydration tap and mana potion
+        onQuestEvent?(.hydrationTap)
+        onQuestEvent?(.manaPotionUsed)
+        trackPotionUsed("mana")
     }
 
     func logComfortBeverageTapped() {
@@ -1378,12 +1388,53 @@ final class FocusViewModel: ObservableObject {
 
         totalComfortOuncesToday += hydrationSettingsStore.ouncesPerComfortTap
         healthStatsStore.update(from: healthBarViewModel.inputs)
+
+        // Fire quest event for health potion
+        onQuestEvent?(.healthPotionUsed)
+        trackPotionUsed("health")
     }
 
     func logStaminaPotionTapped() {
         guard let healthBarViewModel else { return }
 
         healthBarViewModel.logFocusSprint()
+
+        // Fire quest event for stamina potion
+        onQuestEvent?(.staminaPotionUsed)
+        trackPotionUsed("stamina")
+    }
+
+    /// Track potion usage for synergy quest
+    private func trackPotionUsed(_ potionType: String) {
+        let wasEmpty = potionsUsedToday.isEmpty
+        potionsUsedToday.insert(potionType)
+
+        // Persist to UserDefaults
+        let key = potionUsageKey
+        userDefaults.set(Array(potionsUsedToday), forKey: key)
+
+        // Fire potion-any event for each unique potion used
+        if !wasEmpty || potionsUsedToday.count == 1 {
+            // Notify quest system about potion progress
+            // The potion-master quest listens for "potion-any" events
+            NotificationCenter.default.post(name: .potionUsedForQuest, object: potionType)
+        }
+    }
+
+    private var potionUsageKey: String {
+        let today = Calendar.current.startOfDay(for: Date())
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return "potions-used-\(formatter.string(from: today))"
+    }
+
+    private func loadPotionUsage() {
+        let key = potionUsageKey
+        if let saved = userDefaults.stringArray(forKey: key) {
+            potionsUsedToday = Set(saved)
+        } else {
+            potionsUsedToday = []
+        }
     }
 
     /// Starts the timer if currently idle or paused.
@@ -1772,6 +1823,10 @@ final class FocusViewModel: ObservableObject {
         clearPersistedSession()
         handleHydrationThresholds(previousTotal: previousFocusTotal, newTotal: statsStore.totalFocusSecondsToday)
         sendImmediateHydrationReminder()
+
+        // Fire quest events based on session type
+        fireQuestEventsForCompletedSession(mode: selectedMode, category: selectedCategory, durationMinutes: recordedDuration / 60)
+
         if #available(iOS 17.0, *) {
             Task {
                 for activity in Activity<FocusSessionAttributes>.activities {
@@ -1788,6 +1843,25 @@ final class FocusViewModel: ObservableObject {
         clearLiveActivityState()
         remainingSeconds = 0
         onSessionComplete?()
+    }
+
+    /// Fires appropriate quest events when a session completes
+    private func fireQuestEventsForCompletedSession(mode: FocusTimerMode, category: TimerCategory.Kind, durationMinutes: Int) {
+        switch mode {
+        case .focus:
+            // Any focus session completes the "plan" quest and counts toward focus-streak
+            onQuestEvent?(.focusSessionComplete)
+
+            // Deep focus specifically (25+ min)
+            if category == .deepFocus || durationMinutes >= 25 {
+                onQuestEvent?(.deepFocusComplete)
+            }
+
+        case .selfCare:
+            // Self-care sessions complete the stretch quest
+            onQuestEvent?(.selfCareComplete)
+            onQuestEvent?(.stretchComplete)
+        }
     }
 
     private func resetForModeChange() {
@@ -2097,5 +2171,10 @@ private extension FocusViewModel.HydrationNudgeLevel {
         case .ninetyMinutes: return "hydrateNudge90Date"
         }
     }
+}
+
+// MARK: - Notification Names for Quest Events
+extension Notification.Name {
+    static let potionUsedForQuest = Notification.Name("potionUsedForQuest")
 }
 
