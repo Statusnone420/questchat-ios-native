@@ -115,7 +115,7 @@ extension SeasonAchievement {
             id: "ray_of_sunshine",
             title: "Ray of Sunshine",
             subtitle: "Keep your mood above ‘Okay’ for 3 days in a row. (Not as hard as it sounds)",
-            iconName: "rainbow",
+            iconName: "sun.max",
             conditionType: .moodAboveMehDaysStreak,
             threshold: 3,
             seasonId: currentSeasonId,
