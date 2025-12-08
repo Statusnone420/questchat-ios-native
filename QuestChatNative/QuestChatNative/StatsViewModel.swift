@@ -326,6 +326,14 @@ final class StatsViewModel: ObservableObject {
         playerTitleStore.equipOverride(title: achievement.title)
     }
 
+    func achievement(for id: String) -> SeasonAchievement? {
+        seasonAchievementsStore.achievements.first { $0.id == id }
+    }
+
+    func progress(for achievement: SeasonAchievement) -> SeasonAchievementProgress {
+        seasonAchievementsStore.progress(for: achievement)
+    }
+
 #if DEBUG
     var hasLockedSeasonAchievements: Bool {
         seasonAchievements.contains { !$0.isUnlocked }

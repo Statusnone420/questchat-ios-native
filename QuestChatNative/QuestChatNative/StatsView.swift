@@ -7,6 +7,7 @@ struct StatsView: View {
     @ObservedObject var healthBarViewModel: HealthBarViewModel
     @ObservedObject var focusViewModel: FocusViewModel
     @State private var selectedScope: StatsScope = .today
+    @State private var selectedAchievement: SeasonAchievement?
     @State private var isShowingDailySetup = false
 #if DEBUG
     @State private var shouldPostAchievementNotifications = false
@@ -187,6 +188,13 @@ struct StatsView: View {
             }
             .presentationDetents([.medium])
             .interactiveDismissDisabled()
+        }
+        .sheet(item: $selectedAchievement) { achievement in
+            SeasonAchievementDetailView(
+                achievement: achievement,
+                progress: viewModel.progress(for: achievement)
+            )
+            .presentationDetents([.medium, .large])
         }
     }
 
@@ -404,12 +412,17 @@ struct StatsView: View {
             } else {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
                     ForEach(viewModel.yesterdayUnlockedAchievements) { item in
-                        SeasonAchievementBadgeView(
-                            title: item.title,
-                            iconName: item.iconName,
-                            isUnlocked: item.isUnlocked,
-                            progressFraction: CGFloat(item.progressFraction)
-                        )
+                        Button {
+                            selectAchievement(item)
+                        } label: {
+                            SeasonAchievementBadgeView(
+                                title: item.title,
+                                iconName: item.iconName,
+                                isUnlocked: item.isUnlocked,
+                                progressFraction: CGFloat(item.progressFraction)
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.vertical, 8)
@@ -443,6 +456,11 @@ struct StatsView: View {
                 .accessibilityValue(day.goalHit ? QuestChatStrings.StatsView.weeklyGoalMet : QuestChatStrings.StatsView.weeklyGoalNotMet)
             }
         }
+    }
+
+    private func selectAchievement(_ item: StatsViewModel.SeasonAchievementItemViewModel) {
+        guard let achievement = viewModel.achievement(for: item.id) else { return }
+        selectedAchievement = achievement
     }
 
     private var summaryTiles: some View {
@@ -481,6 +499,9 @@ struct StatsView: View {
             } else {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
                     ForEach(viewModel.seasonAchievements) { item in
+                        Button {
+                            selectAchievement(item)
+                        } label: {
                             SeasonAchievementBadgeView(
                                 title: item.title,
                                 iconName: item.iconName,
@@ -488,7 +509,9 @@ struct StatsView: View {
                                 progressFraction: CGFloat(item.progressFraction)
                             )
                         }
+                        .buttonStyle(.plain)
                     }
+                }
                 .padding(.vertical, 8)
             }
         }

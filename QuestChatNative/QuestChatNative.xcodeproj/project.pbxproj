@@ -11,8 +11,9 @@
 		338792A9E2C5427181113F47 /* SeasonAchievement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76CAEBCF8CD8432DA6BB0E0E /* SeasonAchievement.swift */; };
 		399C54D99232406C91BC2260 /* QuestCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */; };
 		406E12E6210741BE9D78BF76 /* TalentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07ABB3956AAA4BF8A7FC1CE0 /* TalentsView.swift */; };
-		62AF60BC4FB94EEE88C1F25F /* SeasonAchievementBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */; };
-		89E44CEDEBE9438A8087E956 /* TalentsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCA726367C92483F9DBAEF65 /* TalentsViewModel.swift */; };
+                62AF60BC4FB94EEE88C1F25F /* SeasonAchievementBadgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */; };
+                D8F0A4112F12400000AAAAAA /* SeasonAchievementDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F0A4102F12400000AAAAAA /* SeasonAchievementDetailView.swift */; };
+                89E44CEDEBE9438A8087E956 /* TalentsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCA726367C92483F9DBAEF65 /* TalentsViewModel.swift */; };
 		D80A60BD2EE1397D003C5262 /* QuestEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80A60BC2EE1397D003C5262 /* QuestEngine.swift */; };
 		D80A60E12EE13C6D003C5262 /* PlayerProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */; };
 		D83AE0022EE38504000217E6 /* SleepHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83AE0012EE38504000217E6 /* SleepHistoryStore.swift */; };
@@ -99,9 +100,10 @@
 /* Begin PBXFileReference section */
 		07ABB3956AAA4BF8A7FC1CE0 /* TalentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalentsView.swift; sourceTree = "<group>"; };
 		2A1BDF6F83A546F0B90DA4A3 /* SeasonAchievementsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievementsStore.swift; sourceTree = "<group>"; };
-		3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievementBadgeView.swift; sourceTree = "<group>"; };
-		76CAEBCF8CD8432DA6BB0E0E /* SeasonAchievement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievement.swift; sourceTree = "<group>"; };
-		7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestCatalog.swift; sourceTree = "<group>"; };
+                3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievementBadgeView.swift; sourceTree = "<group>"; };
+                76CAEBCF8CD8432DA6BB0E0E /* SeasonAchievement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievement.swift; sourceTree = "<group>"; };
+                D8F0A4102F12400000AAAAAA /* SeasonAchievementDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonAchievementDetailView.swift; sourceTree = "<group>"; };
+                7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestCatalog.swift; sourceTree = "<group>"; };
 		D80A60BC2EE1397D003C5262 /* QuestEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestEngine.swift; sourceTree = "<group>"; };
 		D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProgress.swift; sourceTree = "<group>"; };
 		D83AE0012EE38504000217E6 /* SleepHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHistoryStore.swift; sourceTree = "<group>"; };
@@ -289,11 +291,12 @@
 				D8A1A0082EDE07B400A6A008 /* QuestsViewModel.swift */,
 				D8F0A1052F12345000AAAAAA /* RatingSliderRow.swift */,
 				D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */,
-				D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */,
-				76CAEBCF8CD8432DA6BB0E0E /* SeasonAchievement.swift */,
-				3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */,
-				2A1BDF6F83A546F0B90DA4A3 /* SeasonAchievementsStore.swift */,
-				D8A1A00B2EDE07B400A6A00B /* SettingsView.swift */,
+                                D8A1A0012EDE07B400A6A001 /* RPGStatBar.swift */,
+                                76CAEBCF8CD8432DA6BB0E0E /* SeasonAchievement.swift */,
+                                3F7C807E72624B1B8A7D9214 /* SeasonAchievementBadgeView.swift */,
+                                D8F0A4102F12400000AAAAAA /* SeasonAchievementDetailView.swift */,
+                                2A1BDF6F83A546F0B90DA4A3 /* SeasonAchievementsStore.swift */,
+                                D8A1A00B2EDE07B400A6A00B /* SettingsView.swift */,
 				D8A1A01F2EDE07B400A6A01F /* SettingsViewModel.swift */,
 				D83AE0012EE38504000217E6 /* SleepHistoryStore.swift */,
 				D8A1A01A2EDE07B400A6A01A /* StatsView.swift */,
@@ -477,10 +480,11 @@
 				D83AE0022EE38504000217E6 /* SleepHistoryStore.swift in Sources */,
 				D8F0A2012F12345000AAAAAA /* ActivityHistoryStore.swift in Sources */,
 				D8F0A2032F12345000AAAAAA /* HealthRatingMapper.swift in Sources */,
-				D8F0A2052F12345000AAAAAA /* RatingSliderRow.swift in Sources */,
-				1B7E1189235249C2ACB10CF1 /* SeasonAchievementsStore.swift in Sources */,
-				62AF60BC4FB94EEE88C1F25F /* SeasonAchievementBadgeView.swift in Sources */,
-			);
+                                D8F0A2052F12345000AAAAAA /* RatingSliderRow.swift in Sources */,
+                                1B7E1189235249C2ACB10CF1 /* SeasonAchievementsStore.swift in Sources */,
+                                D8F0A4112F12400000AAAAAA /* SeasonAchievementDetailView.swift in Sources */,
+                                62AF60BC4FB94EEE88C1F25F /* SeasonAchievementBadgeView.swift in Sources */,
+                        );
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
