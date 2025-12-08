@@ -95,3 +95,24 @@ final class QuestEngine: ObservableObject {
         return updated
     }
 }
+
+extension QuestEngine {
+    func handle(event: QuestEvent) {
+        switch event {
+        case .focusSessionCompleted(let minutes):
+            handleFocusSessionCompleted(durationMinutes: minutes)
+        default:
+            break
+        }
+    }
+
+    private func handleFocusSessionCompleted(durationMinutes: Int) {
+        guard durationMinutes >= 25 else { return }
+        guard let index = dailyQuests.firstIndex(where: { $0.definitionId == "finish-focus-session" }) else { return }
+
+        var updatedQuest = dailyQuests[index]
+        updatedQuest.progress = max(updatedQuest.progress, updatedQuest.target)
+        updatedQuest = normalizeStatus(for: updatedQuest)
+        dailyQuests[index] = updatedQuest
+    }
+}

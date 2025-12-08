@@ -1312,6 +1312,7 @@ final class FocusViewModel: ObservableObject {
     let seasonAchievementsStore: SeasonAchievementsStore
     let sleepHistoryStore: SleepHistoryStore
     let activityHistoryStore: ActivityHistoryStore
+    let questEngine: QuestEngine
     private var cancellables = Set<AnyCancellable>()
     private var healthBarViewModel: HealthBarViewModel?
 
@@ -1360,6 +1361,7 @@ final class FocusViewModel: ObservableObject {
         seasonAchievementsStore: SeasonAchievementsStore = DependencyContainer.shared.seasonAchievementsStore,
         sleepHistoryStore: SleepHistoryStore = DependencyContainer.shared.sleepHistoryStore,
         activityHistoryStore: ActivityHistoryStore = DependencyContainer.shared.activityHistoryStore,
+        questEngine: QuestEngine = DependencyContainer.shared.questEngine,
         initialMode: FocusTimerMode = .focus
     ) {
         // Assign non-dependent stored properties first
@@ -1375,6 +1377,7 @@ final class FocusViewModel: ObservableObject {
         self.seasonAchievementsStore = seasonAchievementsStore
         self.sleepHistoryStore = sleepHistoryStore
         self.activityHistoryStore = activityHistoryStore
+        self.questEngine = questEngine
         self.currentHP = healthStatsStore.currentHP
         hpCheckinQuestSentDate = userDefaults.object(forKey: HealthTrackingStorageKeys.hpCheckinQuestDate) as? Date
         // Defer syncing player HP until after initialization completes to avoid using self too early.
@@ -2145,6 +2148,7 @@ final class FocusViewModel: ObservableObject {
             if activeSessionCategory == .chores {
                 statsStore.questEventHandler?(.choresTimerCompleted(durationMinutes: durationMinutes))
             }
+            questEngine.handle(event: .focusSessionCompleted(durationMinutes: durationMinutes))
         }
         let timerCategory = activeSessionCategory ?? selectedCategory
         let endDate = currentSession?.endDate ?? Date()
