@@ -425,6 +425,7 @@ final class QuestsViewModel: ObservableObject {
             registerHPCheckinDayIfNeeded()
         case .hydrationLogged(_, let totalMlToday, let percentOfGoal):
             guard totalMlToday > 0 else { return }
+            completeQuestIfNeeded(id: "DAILY_HB_FIRST_POTION")
             // Easy sip at >= 4oz (118 ml exact)
             if totalMlToday >= 118 {
                 completeQuestIfNeeded(id: "DAILY_EASY_HYDRATION_SIP")
@@ -433,10 +434,8 @@ final class QuestsViewModel: ObservableObject {
             if totalMlToday >= 473 {
                 completeQuestIfNeeded(id: "hydrate-checkpoint")
             }
-            completeQuestIfNeeded(id: "DAILY_HB_FIRST_POTION")
         case .hydrationGoalReached:
             completeQuestIfNeeded(id: "hydration-goal")
-            // Removed reference to DAILY_HB_HYDRATION_COMPLETE (not in new pool)
             registerHydrationGoalDayIfNeeded()
         case .hydrationGoalDayCompleted:
             registerHydrationGoalDayIfNeeded()
@@ -1458,3 +1457,4 @@ extension QuestsViewModel {
     // Expose hint accessor for UI convenience
     func hint(for quest: Quest) -> String? { dailyHints[quest.id] }
 }
+

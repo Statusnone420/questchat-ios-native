@@ -1122,8 +1122,12 @@ struct DailyVitalsSlidersView: View {
         Binding<Int?>(
             get: { dailyRatingsStore.ratings().sleep },
             set: { newValue in
+                let previous = dailyRatingsStore.ratings().sleep
                 dailyRatingsStore.setSleep(newValue)
                 focusViewModel.sleepQuality = HealthRatingMapper.sleepQuality(for: newValue ?? 3) ?? .okay
+                if previous == nil, newValue != nil {
+                    DependencyContainer.shared.questsViewModel.completeQuestIfNeeded(id: "DAILY_HB_SLEEP_LOG")
+                }
             }
         )
     }
@@ -1147,9 +1151,13 @@ struct DailyVitalsSlidersView: View {
         Binding<Int?>(
             get: { dailyRatingsStore.ratings().gut },
             set: { newValue in
+                let previous = dailyRatingsStore.ratings().gut
                 dailyRatingsStore.setGut(newValue)
                 let status = HealthRatingMapper.gutStatus(for: newValue)
                 healthBarViewModel.setGutStatus(status)
+                if previous == nil, newValue != nil {
+                    DependencyContainer.shared.questsViewModel.completeQuestIfNeeded(id: "DAILY_HB_GUT_CHECK")
+                }
             }
         )
     }

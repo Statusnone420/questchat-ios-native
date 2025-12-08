@@ -48,6 +48,7 @@ private extension QuestsView {
                             tierColor: tierColor(for: quest.tier),
                             isBouncing: bouncingQuestIDs.contains(quest.id),
                             isShowingXPBoost: showingXPBoostIDs.contains(quest.id),
+                            hint: viewModel.hint(for: quest),
                             isMystery: viewModel.isMysteryQuest(quest),
                             onTap: isEventDriven ? nil : {
                                 viewModel.toggleQuest(quest)
@@ -103,6 +104,7 @@ private extension QuestsView {
                             tierColor: tierColor(for: quest.tier),
                             isBouncing: bouncingQuestIDs.contains(quest.id),
                             isShowingXPBoost: showingXPBoostIDs.contains(quest.id),
+                            hint: nil,
                             isMystery: false,
                             onTap: isEventDriven ? nil : {
                                 viewModel.toggleWeeklyQuest(quest)
@@ -376,6 +378,7 @@ private struct QuestCardView: View {
     let tierColor: Color
     let isBouncing: Bool
     let isShowingXPBoost: Bool
+    let hint: String?
     let isMystery: Bool
     let onTap: (() -> Void)?
 
@@ -413,6 +416,21 @@ private struct QuestCardView: View {
                                 Text(quest.detail)
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
+                                
+                                HStack(spacing: 6) {
+                                    if isMystery && !quest.isCompleted {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "star.fill").foregroundStyle(.yellow)
+                                            Text("Mystery")
+                                                .font(.caption2.bold())
+                                        }
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.yellow.opacity(0.18))
+                                        .clipShape(Capsule())
+                                    }
+                                }
+                                .padding(.top, 2)
 
                                 if shouldShowProgressBar {
                                     QuestProgressView(
@@ -429,18 +447,7 @@ private struct QuestCardView: View {
                     .background(Color(uiColor: .secondarySystemBackground).opacity(0.2))
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                    if isMystery && !quest.isCompleted {
-                        HStack(spacing: 6) {
-                            Image(systemName: "star.fill").foregroundStyle(.yellow)
-                            Text("Mystery").font(.caption2.bold())
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.yellow.opacity(0.18))
-                        .clipShape(Capsule())
-                        .offset(x: 8, y: 8)
-                        .transition(.opacity.combined(with: .scale))
-                    }
+                    // Removed the overlay-based Mystery badge entirely here
                 }
 
                 // Keep XP flash at top-right
