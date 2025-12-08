@@ -1465,12 +1465,12 @@ final class FocusViewModel: ObservableObject {
 
         reminderSettingsStore.$hydrationSettings
             .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.refreshReminderScheduling() }
+            .sink { [weak self] _ in self?.refreshReminderScheduling(shouldEvaluateImmediately: false) }
             .store(in: &cancellables)
 
         reminderSettingsStore.$postureSettings
             .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.refreshReminderScheduling() }
+            .sink { [weak self] _ in self?.refreshReminderScheduling(shouldEvaluateImmediately: false) }
             .store(in: &cancellables)
 
         if let healthBarViewModel {
@@ -2629,8 +2629,10 @@ final class FocusViewModel: ObservableObject {
         reminderTimerCancellable = nil
     }
 
-    private func refreshReminderScheduling(now: Date = Date()) {
-        evaluateReminders(now: now)
+    private func refreshReminderScheduling(now: Date = Date(), shouldEvaluateImmediately: Bool = true) {
+        if shouldEvaluateImmediately {
+            evaluateReminders(now: now)
+        }
         scheduleBackgroundReminders(now: now)
     }
 
@@ -2923,9 +2925,9 @@ extension FocusViewModel {
     }
 
     func debugFireHydrationReminder() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
-            _ = self?.maybeScheduleHydrationReminder(reason: .periodic)
-        }
+        #if DEBUG
+        hydrationReminderManager.scheduleDebugHydrationNudgeNow()
+        #endif
     }
 
     func debugFirePostureReminder() {

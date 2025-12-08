@@ -1,5 +1,8 @@
 import Foundation
 import Combine
+#if DEBUG
+import UserNotifications
+#endif
 
 enum HydrationReminderReason {
     case timerCompleted
@@ -101,6 +104,23 @@ final class HydrationReminderManager: ObservableObject {
 
         return true
     }
+
+#if DEBUG
+    func scheduleDebugHydrationNudgeNow() {
+        let identifier = "hydration_reminder_next"
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+
+        let content = UNMutableNotificationContent()
+        content.title = QuestChatStrings.Reminders.hydrationTitle
+        content.body = QuestChatStrings.Reminders.hydrationBody
+        content.sound = .default
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        center.add(request)
+    }
+#endif
 }
 
 private extension HydrationReminderManager {
