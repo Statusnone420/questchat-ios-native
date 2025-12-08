@@ -11,6 +11,7 @@ final class DependencyContainer {
     let hydrationSettingsStore: HydrationSettingsStore
     let reminderSettingsStore: ReminderSettingsStore
     let reminderEventsStore: ReminderEventsStore
+    let hydrationReminderManager: HydrationReminderManager
     let sleepHistoryStore: SleepHistoryStore
     let activityHistoryStore: ActivityHistoryStore
     let dailyHealthRatingsStore: DailyHealthRatingsStore
@@ -40,6 +41,7 @@ final class DependencyContainer {
         hydrationSettingsStore = HydrationSettingsStore()
         reminderSettingsStore = ReminderSettingsStore()
         reminderEventsStore = ReminderEventsStore()
+        hydrationReminderManager = HydrationReminderManager(reminderSettingsStore: reminderSettingsStore)
         sleepHistoryStore = SleepHistoryStore()
         activityHistoryStore = ActivityHistoryStore()
         dailyHealthRatingsStore = DailyHealthRatingsStore()
@@ -61,6 +63,7 @@ final class DependencyContainer {
             playerTitleStore: playerTitleStore,
             healthStatsStore: healthStatsStore,
             healthBarViewModel: healthBarViewModel,
+            hydrationReminderManager: hydrationReminderManager,
             hydrationSettingsStore: hydrationSettingsStore,
             reminderSettingsStore: reminderSettingsStore,
             reminderEventsStore: reminderEventsStore,
