@@ -24,11 +24,6 @@ struct HealthBarView: View {
                 VStack(spacing: 20) {
                     healthHeaderCard
                     vitalsCard
-                    PotionsCard(
-                        onHealthTap: { focusViewModel.logComfortBeverageTapped() },
-                        onManaTap: { focusViewModel.logHydrationPillTapped() },
-                        onStaminaTap: { focusViewModel.logStaminaPotionTapped() }
-                    )
                     if questsViewModel.dailyQuests.first != nil {
                         Divider()
                             .padding(.vertical, 8)

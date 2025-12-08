@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 struct LevelTitleDefinition {
     let minLevel: Int
@@ -43,6 +44,226 @@ enum PlayerTitleConfig {
     }
 }
 
+private struct Buff: Identifiable, Equatable, Codable {
+    let id: UUID
+    let name: String
+    let description: String
+    let icon: String
+    let color: Color
+    let duration: TimeInterval
+    let startedAt: Date
+
+    var remaining: TimeInterval { max(0, duration - Date().timeIntervalSince(startedAt)) }
+    var progress: CGFloat { duration > 0 ? CGFloat(remaining / duration) : 0 }
+
+    enum CodingKeys: String, CodingKey { case id, name, description, icon, colorHex, duration, startedAt }
+
+    // Encode Color as RGBA hex string
+    private static func colorToHex(_ color: Color) -> String {
+        #if canImport(UIKit)
+        let ui = UIColor(color)
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        ui.getRed(&r, green: &g, blue: &b, alpha: &a)
+        let ri = Int(round(r * 255)), gi = Int(round(g * 255)), bi = Int(round(b * 255)), ai = Int(round(a * 255))
+        return String(format: "%02X%02X%02X%02X", ri, gi, bi, ai)
+        #else
+        return "FFFFFFFF"
+        #endif
+    }
+
+    private static func colorFromHex(_ hex: String) -> Color {
+        var hexStr = hex
+        if hexStr.count == 6 { hexStr += "FF" }
+        let scanner = Scanner(string: hexStr)
+        var value: UInt64 = 0
+        guard scanner.scanHexInt64(&value) else { return .white }
+        let r = Double((value >> 24) & 0xFF) / 255.0
+        let g = Double((value >> 16) & 0xFF) / 255.0
+        let b = Double((value >> 8) & 0xFF) / 255.0
+        let a = Double(value & 0xFF) / 255.0
+        #if canImport(UIKit)
+        return Color(UIColor(red: CGFloat(r), green: CGFloat(g), blue: CGFloat(b), alpha: CGFloat(a)))
+        #else
+        return Color(red: r, green: g, blue: b).opacity(a)
+        #endif
+    }
+
+    init(name: String, description: String, icon: String, color: Color, duration: TimeInterval, startedAt: Date = Date()) {
+        self.id = UUID()
+        self.name = name
+        self.description = description
+        self.icon = icon
+        self.color = color
+        self.duration = duration
+        self.startedAt = startedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        let name = try container.decode(String.self, forKey: .name)
+        let description = try container.decode(String.self, forKey: .description)
+        let icon = try container.decode(String.self, forKey: .icon)
+        let colorHex = try container.decode(String.self, forKey: .colorHex)
+        let duration = try container.decode(TimeInterval.self, forKey: .duration)
+        let startedAt = try container.decode(Date.self, forKey: .startedAt)
+        self.id = id
+        self.name = name
+        self.description = description
+        self.icon = icon
+        self.color = Buff.colorFromHex(colorHex)
+        self.duration = duration
+        self.startedAt = startedAt
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(description, forKey: .description)
+        try container.encode(icon, forKey: .icon)
+        try container.encode(Buff.colorToHex(color), forKey: .colorHex)
+        try container.encode(duration, forKey: .duration)
+        try container.encode(startedAt, forKey: .startedAt)
+    }
+}
+
+private final class PotionManager: ObservableObject {
+    @Published var activeBuffs: [Buff] = []
+    @Published var isHealthOnCooldown: Bool = false
+    @Published var isManaOnCooldown: Bool = false
+    @Published var isStaminaOnCooldown: Bool = false
+    
+    @Published var healthReadyAt: Date? = nil
+    @Published var manaReadyAt: Date? = nil
+    @Published var staminaReadyAt: Date? = nil
+
+    private let buffsKey = "player.activeBuffs.v1"
+    private let cooldownsKey = "player.cooldowns.v1"
+
+    private struct CooldownState: Codable {
+        let healthReadyAt: Date?
+        let manaReadyAt: Date?
+        let staminaReadyAt: Date?
+    }
+
+    private var timer: Timer?
+
+    private func loadState() {
+        let defaults = UserDefaults.standard
+        if let data = defaults.data(forKey: buffsKey) {
+            if let decoded = try? JSONDecoder().decode([Buff].self, from: data) {
+                // Drop expired buffs on load
+                self.activeBuffs = decoded.filter { $0.remaining > 0 }
+            }
+        }
+        if let data = defaults.data(forKey: cooldownsKey) {
+            if let decoded = try? JSONDecoder().decode(CooldownState.self, from: data) {
+                self.healthReadyAt = decoded.healthReadyAt
+                self.manaReadyAt = decoded.manaReadyAt
+                self.staminaReadyAt = decoded.staminaReadyAt
+                self.isHealthOnCooldown = (decoded.healthReadyAt ?? .distantPast) > Date()
+                self.isManaOnCooldown = (decoded.manaReadyAt ?? .distantPast) > Date()
+                self.isStaminaOnCooldown = (decoded.staminaReadyAt ?? .distantPast) > Date()
+            }
+        }
+    }
+
+    private func saveState() {
+        let defaults = UserDefaults.standard
+        if let data = try? JSONEncoder().encode(self.activeBuffs) {
+            defaults.set(data, forKey: buffsKey)
+        }
+        let cooldowns = CooldownState(healthReadyAt: self.healthReadyAt, manaReadyAt: self.manaReadyAt, staminaReadyAt: self.staminaReadyAt)
+        if let data = try? JSONEncoder().encode(cooldowns) {
+            defaults.set(data, forKey: cooldownsKey)
+        }
+    }
+
+    func cooldownProgress(readyAt: Date?, total: TimeInterval) -> CGFloat {
+        guard let readyAt else { return 0 }
+        let remaining = max(0, readyAt.timeIntervalSinceNow)
+        guard total > 0 else { return 0 }
+        return CGFloat(remaining / total) // 1 -> 0 as time elapses
+    }
+
+    func start() {
+        stop()
+        loadState()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            self?.tick()
+        }
+    }
+
+    func stop() { timer?.invalidate(); timer = nil }
+
+    private func tick() {
+        let before = activeBuffs
+        activeBuffs.removeAll { $0.remaining <= 0 }
+        if before != activeBuffs { saveState() }
+        // Check cooldowns finishing and persist
+        if let ready = healthReadyAt, ready <= Date() {
+            isHealthOnCooldown = false; healthReadyAt = nil; saveState()
+        }
+        if let ready = manaReadyAt, ready <= Date() {
+            isManaOnCooldown = false; manaReadyAt = nil; saveState()
+        }
+        if let ready = staminaReadyAt, ready <= Date() {
+            isStaminaOnCooldown = false; staminaReadyAt = nil; saveState()
+        }
+    }
+    
+    func upsertBuff(name: String, description: String, icon: String, color: Color, duration: TimeInterval) {
+        if let idx = activeBuffs.firstIndex(where: { $0.name == name }) {
+            // Refresh by replacing with a new instance that restarts the timer
+            let refreshed = Buff(name: name, description: description, icon: icon, color: color, duration: duration)
+            activeBuffs[idx] = refreshed
+        } else {
+            let buff = Buff(name: name, description: description, icon: icon, color: color, duration: duration)
+            activeBuffs.append(buff)
+        }
+        saveState()
+    }
+}
+
+private struct BuffBarView: View {
+    @ObservedObject var manager: PotionManager
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(manager.activeBuffs) { buff in
+                    VStack(spacing: 4) {
+                        ZStack {
+                            Circle().stroke(buff.color.opacity(0.25), lineWidth: 4)
+                            Circle()
+                                .trim(from: 0, to: buff.progress)
+                                .stroke(AngularGradient(colors: [buff.color, .white, buff.color], center: .center), lineWidth: 4)
+                                .rotationEffect(.degrees(-90))
+                                .animation(.linear(duration: 0.5), value: buff.progress)
+                            Image(systemName: buff.icon).font(.caption.bold())
+                        }
+                        .frame(width: 28, height: 28)
+
+                        Text(buff.name)
+                            .font(.caption2.weight(.semibold))
+                            .lineLimit(1)
+                            .foregroundStyle(buff.color)
+                        
+                        Text("\(max(1, Int(ceil(buff.remaining / 60))))m")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(6)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.1)))
+                    .accessibilityLabel("\(buff.name): \(buff.description). \(Int(buff.remaining))s remaining")
+                }
+            }
+        }
+    }
+}
+
 struct PlayerCardView: View {
     @ObservedObject var store: SessionStatsStore
     @ObservedObject var statsViewModel: StatsViewModel
@@ -55,6 +276,21 @@ struct PlayerCardView: View {
     @State private var gutSliderValue: Int?
     @State private var sleepSliderValue: Int?
     @State private var avatarSpin: Double = 0
+
+    @StateObject private var potionManager = PotionManager()
+    @State private var auraColor: Color? = nil
+    
+    @State private var showHealthPopover = false
+    @State private var showManaPopover = false
+    @State private var showStaminaPopover = false
+    
+    @State private var suppressNextTap = false
+    
+    private let healthCooldown: TimeInterval = 30
+    private let manaCooldown: TimeInterval = 30
+    private let staminaCooldown: TimeInterval = 45
+    
+    private let defaultBuffDuration: TimeInterval = 30 * 60 // 30 minutes
 
     @AppStorage("playerDisplayName") private var playerDisplayName: String = QuestChatStrings.PlayerCard.defaultName
     @AppStorage("playerId") private var playerIdString: String = UUID().uuidString
@@ -126,6 +362,49 @@ struct PlayerCardView: View {
 
             playerHUDSection
 
+            // Active buffs
+            if !potionManager.activeBuffs.isEmpty {
+                BuffBarView(manager: potionManager)
+                    .padding(.horizontal, 4)
+            }
+
+            // Quick potions row
+            HStack(spacing: 12) {
+                cooldownPotionButton(label: "Health", systemImage: "cross.case.fill", color: .green, cooldown: healthCooldown, readyAt: $potionManager.healthReadyAt, isCooling: $potionManager.isHealthOnCooldown, showPopover: $showHealthPopover) {
+                    useHealthPotion()
+                }
+                .popover(isPresented: $showHealthPopover, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
+                    potionPopover(title: "Regeneration", subtitle: "Food time! A good meal heals over time and leaves you feeling refreshed.", color: .green, icon: "leaf.fill")
+                        .presentationCompactAdaptation(.none)
+                        .onDisappear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { suppressNextTap = false }
+                        }
+                }
+
+                cooldownPotionButton(label: "Mana", systemImage: "drop.fill", color: .cyan, cooldown: manaCooldown, readyAt: $potionManager.manaReadyAt, isCooling: $potionManager.isManaOnCooldown, showPopover: $showManaPopover) {
+                    useManaPotion()
+                }
+                .popover(isPresented: $showManaPopover, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
+                    potionPopover(title: "Clarity", subtitle: "Logs hydration and boosts clarity for a short while.", color: .cyan, icon: "sparkles")
+                        .presentationCompactAdaptation(.none)
+                        .onDisappear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { suppressNextTap = false }
+                        }
+                }
+
+                cooldownPotionButton(label: "Stamina", systemImage: "bolt.fill", color: .orange, cooldown: staminaCooldown, readyAt: $potionManager.staminaReadyAt, isCooling: $potionManager.isStaminaOnCooldown, showPopover: $showStaminaPopover) {
+                    useStaminaPotion()
+                }
+                .popover(isPresented: $showStaminaPopover, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
+                    potionPopover(title: "Second Wind", subtitle: "A burst of energy that helps you push through.", color: .orange, icon: "bolt.fill")
+                        .presentationCompactAdaptation(.none)
+                        .onDisappear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { suppressNextTap = false }
+                        }
+                }
+            }
+            .accessibilityElement(children: .contain)
+
             VStack(alignment: .leading, spacing: 12) {
                 statRow(label: QuestChatStrings.PlayerCard.levelLabel, value: "\(store.level)", tint: .mint)
                 statRow(label: QuestChatStrings.PlayerCard.totalXPLabel, value: "\(store.xp)", tint: .cyan)
@@ -173,6 +452,14 @@ struct PlayerCardView: View {
                 }
                 .zIndex(100)
                 .transition(.opacity.combined(with: .scale))
+            }
+
+            if let aura = auraColor {
+                Color.clear
+                    .background(aura)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                    .zIndex(200)
             }
         }
         .background(Color.black.ignoresSafeArea())
@@ -230,6 +517,8 @@ struct PlayerCardView: View {
                 }
             }
         }
+        .onAppear { potionManager.start() }
+        .onDisappear { potionManager.stop() }
     }
 
     private var headerCard: some View {
@@ -377,6 +666,191 @@ struct PlayerCardView: View {
             Spacer()
             Text(value)
                 .font(.title3.bold())
+        }
+    }
+
+    private func potionButton(label: String, systemImage: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(label, systemImage: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .background(color.opacity(0.22))
+                .foregroundStyle(color)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func cooldownPotionButton(
+        label: String,
+        systemImage: String,
+        color: Color,
+        cooldown: TimeInterval,
+        readyAt: Binding<Date?>,
+        isCooling: Binding<Bool>,
+        showPopover: Binding<Bool>,
+        action: @escaping () -> Void
+    ) -> some View {
+        let progress = potionManager.cooldownProgress(readyAt: readyAt.wrappedValue, total: cooldown)
+
+        return Button {
+            if suppressNextTap {
+                suppressNextTap = false
+                return
+            }
+            guard !isCooling.wrappedValue else { return }
+            action()
+            // start cooldown
+            isCooling.wrappedValue = true
+            readyAt.wrappedValue = Date().addingTimeInterval(cooldown)
+            // Persist cooldowns immediately
+            potionManager.healthReadyAt = potionManager.healthReadyAt
+            potionManager.manaReadyAt = potionManager.manaReadyAt
+            potionManager.staminaReadyAt = potionManager.staminaReadyAt
+            // The manager's tick will clear and persist when cooldowns finish
+            DispatchQueue.main.asyncAfter(deadline: .now() + cooldown) {
+                isCooling.wrappedValue = false
+                readyAt.wrappedValue = nil
+            }
+        } label: {
+            ZStack {
+                Label(label, systemImage: systemImage)
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, minHeight: 36)
+                    .background(color.opacity(0.22))
+                    .foregroundStyle(color)
+                    .clipShape(Capsule())
+
+                if isCooling.wrappedValue {
+                    GeometryReader { proxy in
+                        let lineWidth: CGFloat = 3
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .stroke(color.opacity(0.25), lineWidth: lineWidth)
+                            Capsule()
+                                .trim(from: 0, to: max(0, min(1, progress)))
+                                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                                .animation(.linear(duration: 0.3), value: progress)
+                        }
+                    }
+                    .allowsHitTesting(false)
+                    .padding(2)
+                }
+            }
+            .frame(height: 36)
+        }
+        .highPriorityGesture(
+            LongPressGesture(minimumDuration: 0.25)
+                .onEnded { _ in
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    showPopover.wrappedValue = true
+                    // Suppress the next tap that can be generated on gesture end or popover dismiss
+                    suppressNextTap = true
+                }
+        )
+        .buttonStyle(.plain)
+    }
+
+    private func potionPopover(title: String, subtitle: String, color: Color, icon: String) -> some View {
+        VStack(alignment: .center, spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(color.opacity(0.16))
+                    .frame(width: 44, height: 44)
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(color)
+            }
+            Text(title)
+                .font(.subheadline.bold())
+                .multilineTextAlignment(.center)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(1)
+            Text(subtitle)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: 360)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground).opacity(0.22))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+        )
+    }
+
+    private func addAura(_ color: Color) {
+        auraColor = color
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { auraColor = nil }
+    }
+
+    private func useHealthPotion() {
+        guard !potionManager.isHealthOnCooldown else { return }
+        // Refresh the buff duration instead of stacking
+        potionManager.upsertBuff(name: "Regeneration", description: "Heals over time.", icon: "leaf.fill", color: .green, duration: defaultBuffDuration)
+        potionManager.isHealthOnCooldown = true
+        if potionManager.healthReadyAt == nil { potionManager.healthReadyAt = Date().addingTimeInterval(healthCooldown) }
+        // Persist state
+        // The manager will save on next tick, but force an immediate save by calling a tiny state change
+        potionManager.activeBuffs = potionManager.activeBuffs
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        addAura(.green.opacity(0.35))
+        // Soft periodic heal (visual): ask IRL store to update from inputs to keep system coherent.
+        // We simulate by logging a self-care session which already recalculates HP in HealthBarViewModel.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            healthBarViewModel.logSelfCareSession()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 20) {
+            potionManager.isHealthOnCooldown = false
+        }
+    }
+
+    private func useManaPotion() {
+        guard !potionManager.isManaOnCooldown else { return }
+        // Refresh the buff duration instead of stacking
+        potionManager.upsertBuff(name: "Clarity", description: "Hydration boost + focus.", icon: "sparkles", color: .cyan, duration: defaultBuffDuration)
+        potionManager.isManaOnCooldown = true
+        if potionManager.manaReadyAt == nil { potionManager.manaReadyAt = Date().addingTimeInterval(manaCooldown) }
+        // Persist state
+        // The manager will save on next tick, but force an immediate save by calling a tiny state change
+        potionManager.activeBuffs = potionManager.activeBuffs
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred(intensity: 0.8)
+        addAura(.cyan.opacity(0.35))
+        // Log hydration through existing focusViewModel pathway so quests and stats update.
+        focusViewModel.logHydrationPillTapped()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+            potionManager.isManaOnCooldown = false
+        }
+    }
+
+    private func useStaminaPotion() {
+        guard !potionManager.isStaminaOnCooldown else { return }
+        // Refresh the buff duration instead of stacking
+        potionManager.upsertBuff(name: "Second Wind", description: "Temporary stamina surge.", icon: "bolt.fill", color: .orange, duration: defaultBuffDuration)
+        potionManager.isStaminaOnCooldown = true
+        if potionManager.staminaReadyAt == nil { potionManager.staminaReadyAt = Date().addingTimeInterval(staminaCooldown) }
+        // Persist state
+        // The manager will save on next tick, but force an immediate save by calling a tiny state change
+        potionManager.activeBuffs = potionManager.activeBuffs
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        addAura(.orange.opacity(0.35))
+        // Register a focus sprint to reflect stamina energy in your existing model.
+        healthBarViewModel.logFocusSprint()
+        // Also let quests know something fun happened via existing event hooks if available.
+        DependencyContainer.shared.questsViewModel.syncQuestProgress()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 25) {
+            potionManager.isStaminaOnCooldown = false
         }
     }
 
