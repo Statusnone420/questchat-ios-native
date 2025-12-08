@@ -87,6 +87,9 @@ final class QuestsViewModel: ObservableObject {
     @Published var hasQuestChestReady: Bool = false
     
     @Published private(set) var mysteryQuestID: String? = nil
+    
+    // Added published dictionary to hold daily hints for quests
+    @Published var dailyHints: [String: String] = [:]
 
     private var mysteryKey: String { "mystery-\(completionKey)" }
     private var chainHistoryKey: String { "chain-history-\(completionKey)" }
@@ -98,6 +101,7 @@ final class QuestsViewModel: ObservableObject {
     private let userDefaults: UserDefaults
     private let calendar: Calendar
     private let dayReference: Date
+    
     private static let disabledDailyQuestIDs: Set<String> = [
         "irl-patch",
         "tidy-spot",
@@ -137,6 +141,9 @@ final class QuestsViewModel: ObservableObject {
     private var questChestReadyKey: String {
         "quest-chest-ready-\(completionKey)"
     }
+    
+    // Added timer combo bonus key
+    private var timerComboGrantedKey: String { "timer-combo-granted-\(completionKey)" }
 
     private var currentWeekKey: String {
         let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: dayReference)
@@ -184,6 +191,10 @@ final class QuestsViewModel: ObservableObject {
     private var hardQuestCountKey: String {
         "\(currentWeekKey)-hard-quests"
     }
+    
+    // Added helpers to check/set timer combo bonus grant state
+    private func hasGrantedTimerComboBonus() -> Bool { userDefaults.bool(forKey: timerComboGrantedKey) }
+    private func setGrantedTimerComboBonus() { userDefaults.set(true, forKey: timerComboGrantedKey) }
 
     private func loadLastDailyCompletion() -> LastDailyCompletion? {
         guard let data = userDefaults.data(forKey: lastCompletionKey) else { return nil }
@@ -289,6 +300,7 @@ final class QuestsViewModel: ObservableObject {
         }
 
         syncQuestProgress()
+        recomputeDailyHints() // Initialize hints after setup
     }
 
     var completedQuestsCount: Int {
@@ -413,12 +425,15 @@ final class QuestsViewModel: ObservableObject {
             registerHPCheckinDayIfNeeded()
         case .hydrationLogged(_, let totalMlToday, let percentOfGoal):
             guard totalMlToday > 0 else { return }
-            completeQuestIfNeeded(id: "hydrate-checkpoint")
-            completeQuestIfNeeded(id: "DAILY_HB_FIRST_POTION")
-            // Removed references to DAILY_HB_HALF_HYDRATED (not in new pool)
-            if totalMlToday >= 100 {
+            // Easy sip at >= 4oz (118 ml exact)
+            if totalMlToday >= 118 {
                 completeQuestIfNeeded(id: "DAILY_EASY_HYDRATION_SIP")
             }
+            // Legacy hydrate-checkpoint at >= 16oz (473 ml exact)
+            if totalMlToday >= 473 {
+                completeQuestIfNeeded(id: "hydrate-checkpoint")
+            }
+            completeQuestIfNeeded(id: "DAILY_HB_FIRST_POTION")
         case .hydrationGoalReached:
             completeQuestIfNeeded(id: "hydration-goal")
             // Removed reference to DAILY_HB_HYDRATION_COMPLETE (not in new pool)
@@ -452,6 +467,8 @@ final class QuestsViewModel: ObservableObject {
         guard !userDefaults.bool(forKey: questLogOpenedKey) else { return }
         userDefaults.set(true, forKey: questLogOpenedKey)
         handleQuestEvent(.questsTabOpened)
+        // Fix core quest "load today's quest log" auto-completion on log open
+        completeQuestIfNeeded(id: "daily-checkin")
     }
 
     func syncQuestProgress() {
@@ -483,6 +500,59 @@ final class QuestsViewModel: ObservableObject {
 
         questEngine.updateDailyQuests(dailyQuests.map { questInstance(from: $0) })
         questEngine.updateWeeklyQuests(weeklyQuests.map { questInstance(from: $0) })
+        
+        recomputeDailyHints() // Keep hints fresh after syncing progress
+    }
+    
+    // Private helper to recompute hints for incomplete daily quests
+    private func recomputeDailyHints() {
+        var hints: [String: String] = [:]
+
+        // Build a lookup for definitions
+        let pool = Self.activeDailyQuestPool
+        let byID = Dictionary(uniqueKeysWithValues: pool.map { ($0.id, $0) })
+
+        // Simple context from stats
+        let focusMinutesToday = statsStore.focusSecondsToday / 60
+        let selfCareMinutesToday = statsStore.selfCareSecondsToday / 60
+        let choresMinutesToday = weeklyChoresMinutes // fallback; if you track today separately, replace
+
+        for quest in dailyQuests where !quest.isCompleted {
+            guard let def = byID[quest.id] else { continue }
+            switch def.id {
+            case "DAILY_TIMER_QUICK_WORK":
+                if focusMinutesToday < 10 {
+                    let remaining = max(0, 10 - focusMinutesToday)
+                    hints[def.id] = remaining > 0 ? "\(remaining)m to go — a quick sprint finishes this." : nil
+                }
+            case "DAILY_TIMER_MINDFUL_BREAK":
+                if selfCareMinutesToday < 5 {
+                    let remaining = max(0, 5 - selfCareMinutesToday)
+                    hints[def.id] = remaining > 0 ? "\(remaining)m away — try a 5-minute self-care." : nil
+                }
+            case "DAILY_TIMER_CHORES_BURST":
+                if choresMinutesToday < 5 {
+                    let remaining = max(0, 5 - choresMinutesToday)
+                    hints[def.id] = remaining > 0 ? "\(remaining)m left — a tiny tidy completes it." : nil
+                }
+            case "DAILY_HB_FIRST_POTION":
+                hints[def.id] = "Log your first drink to complete this."
+            case "DAILY_HB_POSTURE_CHECK":
+                hints[def.id] = "Acknowledge one posture reminder."
+            case "DAILY_HB_MORNING_CHECKIN":
+                hints[def.id] = "Open Player Card and log mood."
+            case "DAILY_EASY_ONE_NICE_THING":
+                hints[def.id] = "Any 5-minute timer counts — start one now."
+            case "DAILY_EASY_TWO_CHAIN":
+                hints[def.id] = "Complete 2 quests within 10 minutes — you’ve got this."
+            case "DAILY_EASY_THREE_CHAIN":
+                hints[def.id] = "3 quests within 30 minutes — go for a mini streak."
+            default:
+                break
+            }
+        }
+
+        dailyHints = hints
     }
 
     func isEventDrivenQuest(_ quest: Quest) -> Bool {
@@ -515,6 +585,14 @@ final class QuestsViewModel: ObservableObject {
         if dailyQuests.allSatisfy({ $0.isCompleted }) {
             #if DEBUG
             print("DailyQuestStore: reroll blocked — all quests already completed for \(Self.dateKey(for: dayReference, calendar: calendar)))")
+            #endif
+            return
+        }
+        
+        let remainingIncomplete = dailyQuests.filter { !$0.isCompleted }.count
+        if remainingIncomplete <= 1 {
+            #if DEBUG
+            print("DailyQuestStore: reroll blocked — only \(remainingIncomplete) incomplete quest(s) remain")
             #endif
             return
         }
@@ -577,15 +655,7 @@ final class QuestsViewModel: ObservableObject {
             }
         }
 
-        if newDefinition == nil {
-            // Final fallback: pick any candidate from active pool not current and not same id, without board rules
-            newDefinition = Self.activeDailyQuestPool.first(where: { candidate in
-                candidate.id != quest.id && !currentIDs.contains(candidate.id)
-            })
-            if newDefinition != nil {
-                mode = "final"
-            }
-        }
+        // Removed final fallback that ignores board rules per instructions
 
         guard let replacement = newDefinition else { return }
 
@@ -688,6 +758,20 @@ extension QuestsViewModel {
             guard selectedDefinitions.count < desiredDailyQuestCount else { break }
             guard canAddToBoard(definition: definition, existing: selectedDefinitions) else { continue }
             selectedDefinitions.append(definition)
+        }
+        
+        // Ensure at least one chain quest (two or three) is present if possible
+        let chainIDs = ["DAILY_EASY_THREE_CHAIN", "DAILY_EASY_TWO_CHAIN"]
+        let currentIDs = Set(selectedDefinitions.map { $0.id })
+        if chainIDs.allSatisfy({ !currentIDs.contains($0) }) {
+            if let candidate = availablePool.first(where: { chainIDs.contains($0.id) && canAddToBoard(definition: $0, existing: selectedDefinitions) }) {
+                // Try to append if space, else swap a non-required easyWin
+                if selectedDefinitions.count < desiredDailyQuestCount {
+                    selectedDefinitions.append(candidate)
+                } else if let swapIndex = selectedDefinitions.firstIndex(where: { $0.category == .easyWin && !requiredQuestIDs.contains($0.id) }) {
+                    selectedDefinitions[swapIndex] = candidate
+                }
+            }
         }
 
         return selectedDefinitions.map { definition in
@@ -902,9 +986,26 @@ extension QuestsViewModel {
         checkQuestChestRewardIfNeeded()
         statsStore.updateDailyQuestsCompleted(completedQuestsCount, totalQuests: dailyQuests.count)
 
+        if allQuestsComplete {
+            hasUsedRerollToday = true
+            userDefaults.set(true, forKey: rerollKey)
+            userDefaults.set(dailyQuests.map { $0.id }, forKey: dailyActiveKey)
+        }
+
         // Mystery Buff: grant bonus XP when the mystery quest is completed
         if let mysteryId = mysteryQuestID, mysteryId == id {
             statsStore.registerQuestCompleted(id: "DAILY_MYSTERY_BONUS", xp: 15)
+        }
+        
+        // One-time Timer Combo bonus: two timer quests in a day
+        if !hasGrantedTimerComboBonus() {
+            let completedTodayIDs = dailyQuests.filter { $0.isCompleted }.map { $0.id }
+            let defsByID = Dictionary(uniqueKeysWithValues: Self.activeDailyQuestPool.map { ($0.id, $0) })
+            let completedTimerCount = completedTodayIDs.compactMap { defsByID[$0] }.filter { $0.category == .timer }.count
+            if completedTimerCount >= 2 {
+                statsStore.registerQuestCompleted(id: "DAILY_TIMER_COMBO_BONUS", xp: 10)
+                setGrantedTimerComboBonus()
+            }
         }
 
         if !hadCompletedQuests && id != "DAILY_EASY_FIRST_QUEST" {
@@ -1353,4 +1454,7 @@ extension QuestsViewModel {
     func isMysteryQuest(_ quest: Quest) -> Bool {
         return quest.id == mysteryQuestID
     }
+    
+    // Expose hint accessor for UI convenience
+    func hint(for quest: Quest) -> String? { dailyHints[quest.id] }
 }

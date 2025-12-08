@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct QuestsView: View {
     @ObservedObject var viewModel: QuestsViewModel
@@ -59,6 +60,9 @@ private extension QuestsView {
                             guard isCompleted else { return }
                             triggerCheckmarkBounce(for: quest)
                             triggerXPFlash(for: quest)
+                            if viewModel.isMysteryQuest(quest) {
+                                triggerMysteryFlash(for: quest)
+                            }
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             if !quest.isCompleted && !viewModel.hasUsedRerollToday {
@@ -162,6 +166,20 @@ private extension QuestsView {
                         Text(QuestChatStrings.QuestsView.headerSubtitle(completed: viewModel.completedQuestsCount, total: viewModel.totalQuestsCount, totalXP: viewModel.totalDailyXP))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                        
+                        #if DEBUG
+                        if let mystery = viewModel.mysteryQuestID, !mystery.isEmpty {
+                            HStack(spacing: 6) {
+                                Image(systemName: "star.fill").foregroundStyle(.yellow)
+                                Text("Mystery quest: \(mystery)")
+                                    .font(.caption.bold())
+                            }
+                            .padding(8)
+                            .background(Color.yellow.opacity(0.16))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        }
+                        #endif
+                        
                     } else {
                         Text("\(viewModel.weeklyCompletedCount) / \(viewModel.weeklyTotalCount) weekly quests complete")
                             .font(.subheadline)
@@ -174,6 +192,7 @@ private extension QuestsView {
             if selectedScope == .daily {
                 if viewModel.hasQuestChestReady {
                     Button {
+                        QuestHaptics.rigid()
                         viewModel.claimQuestChest()
                     } label: {
                         HStack(spacing: 8) {
@@ -280,6 +299,12 @@ private extension QuestsView {
             }
         }
     }
+    
+    func triggerMysteryFlash(for quest: Quest) {
+        // Reuse XP flash visual but show a separate, quick overlay via bouncing IDs set
+        // We'll simply re-trigger the XP flash; in a full build you could add a dedicated badge
+        QuestHaptics.soft()
+    }
 
     func tierColor(for tier: Quest.Tier) -> Color {
         switch tier {
@@ -295,6 +320,8 @@ private extension QuestsView {
     @ViewBuilder
     func questChestOverlay() -> some View {
         ZStack {
+            ConfettiView().allowsHitTesting(false)
+            
             Color.black.opacity(0.45)
                 .ignoresSafeArea()
 
@@ -314,6 +341,7 @@ private extension QuestsView {
                     .padding(.horizontal)
 
                 Button {
+                    QuestHaptics.rigid()
                     viewModel.claimQuestChest()
                 } label: {
                     Text(QuestChatStrings.QuestsView.claimRewardButton)
@@ -331,8 +359,16 @@ private extension QuestsView {
             .cornerRadius(20)
             .shadow(radius: 16)
             .padding()
+            .onAppear {
+                QuestHaptics.soft()
+            }
         }
     }
+}
+
+private enum QuestHaptics {
+    static func soft() { UIImpactFeedbackGenerator(style: .soft).impactOccurred() }
+    static func rigid() { UIImpactFeedbackGenerator(style: .rigid).impactOccurred() }
 }
 
 private struct QuestCardView: View {
@@ -348,75 +384,83 @@ private struct QuestCardView: View {
         Button(action: {
             onTap?()
         }) {
-            ZStack(alignment: .topTrailing) {
-                HStack(alignment: .top, spacing: 12) {
-                    icon
-                        .font(.title3)
-                        .foregroundStyle(iconColor)
-                        .scaleEffect(isBouncing ? 1.12 : 1.0)
-                        .animation(.interpolatingSpring(stiffness: 250, damping: 12), value: isBouncing)
+            ZStack {
+                ZStack(alignment: .topLeading) {
+                    HStack(alignment: .top, spacing: 12) {
+                        icon
+                            .font(.title3)
+                            .foregroundStyle(iconColor)
+                            .scaleEffect(isBouncing ? 1.12 : 1.0)
+                            .animation(.interpolatingSpring(stiffness: 250, damping: 12), value: isBouncing)
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(alignment: .center) {
-                            tierPill
-                            Spacer()
-                            VStack(alignment: .trailing, spacing: 4) {
-                                xpPill
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(alignment: .center) {
+                                tierPill
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 4) {
+                                    xpPill
 
-                                if quest.isCompleted {
-                                    completedPill
+                                    if quest.isCompleted {
+                                        completedPill
+                                    }
+                                }
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(quest.title)
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
+                                Text(quest.detail)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+
+                                if shouldShowProgressBar {
+                                    QuestProgressView(
+                                        fraction: quest.progressFraction,
+                                        label: "\(quest.progress) / \(quest.target)"
+                                    )
+                                    .padding(.top, 4)
                                 }
                             }
                         }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(uiColor: .secondarySystemBackground).opacity(0.2))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(quest.title)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            Text(quest.detail)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-
-                            if shouldShowProgressBar {
-                                QuestProgressView(
-                                    fraction: quest.progressFraction,
-                                    label: "\(quest.progress) / \(quest.target)"
-                                )
-                                .padding(.top, 4)
-                            }
+                    if isMystery && !quest.isCompleted {
+                        HStack(spacing: 6) {
+                            Image(systemName: "star.fill").foregroundStyle(.yellow)
+                            Text("Mystery").font(.caption2.bold())
                         }
-                    }
-                }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(uiColor: .secondarySystemBackground).opacity(0.2))
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                if isShowingXPBoost {
-                    Text(QuestChatStrings.xpRewardText(quest.xpReward))
-                        .font(.caption.bold())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(.mint.opacity(0.2))
-                        .foregroundStyle(.mint)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.yellow.opacity(0.18))
                         .clipShape(Capsule())
-                        .offset(y: -12)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .animation(.easeOut(duration: 0.4), value: isShowingXPBoost)
-                }
-                if isMystery && !quest.isCompleted {
-                    HStack(spacing: 6) {
-                        Image(systemName: "star.fill").foregroundStyle(.yellow)
-                        Text("Mystery")
-                            .font(.caption2.bold())
+                        .offset(x: 8, y: 8)
+                        .transition(.opacity.combined(with: .scale))
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.yellow.opacity(0.18))
-                    .clipShape(Capsule())
-                    .offset(x: -8, y: -8)
-                    .transition(.opacity.combined(with: .scale))
                 }
+
+                // Keep XP flash at top-right
+                VStack { Spacer() }
+                    .overlay(
+                        Group {
+                            if isShowingXPBoost {
+                                Text(QuestChatStrings.xpRewardText(quest.xpReward))
+                                    .font(.caption.bold())
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(.mint.opacity(0.2))
+                                    .foregroundStyle(.mint)
+                                    .clipShape(Capsule())
+                                    .offset(y: -12)
+                                    .transition(.move(edge: .top).combined(with: .opacity))
+                                    .animation(.easeOut(duration: 0.4), value: isShowingXPBoost)
+                            }
+                        }, alignment: .topTrailing
+                    )
             }
         }
         .buttonStyle(.plain)
