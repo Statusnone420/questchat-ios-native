@@ -98,6 +98,9 @@ struct FocusView: View {
         viewModel.onSessionComplete = { [weak healthBarViewModel] in
             healthBarViewModel?.logFocusSession()
         }
+
+        // Note: onQuestEvent is wired up in .onAppear since questsViewModel
+        // is an @EnvironmentObject and not available during init
     }
 
     var body: some View {
@@ -137,9 +140,32 @@ struct FocusView: View {
                     )
                     .zIndex(2)
             }
+            
+            if let levelUp = statsStore.pendingLevelUp {
+                LevelUpModalView(level: levelUp) {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        statsStore.pendingLevelUp = nil
+                    }
+                }
+                .zIndex(3)
+            }
+
+            // Mid-timer engagement prompt
+            if let prompt = questsViewModel.pendingMidTimerPrompt {
+                midTimerPromptOverlay(prompt: prompt)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                        removal: .opacity
+                    ))
+                    .zIndex(4)
+            }
         }
         .onAppear {
             viewModel.handleAppear()
+            // Wire up quest events now that questsViewModel is available
+            viewModel.onQuestEvent = { [weak questsViewModel] eventID in
+                questsViewModel?.handleEvent(eventID)
+            }
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
         .animation(.spring(), value: viewModel.activeReminderEvent != nil)
@@ -150,7 +176,15 @@ struct FocusView: View {
         .onChange(of: scenePhase) {
             viewModel.handleScenePhaseChange(scenePhase)
         }
-        .onChange(of: viewModel.selectedCategory) {
+        .onChange(of: viewModel.remainingSeconds) { remaining in
+            // Check for mid-timer engagement prompt during active sessions
+            if viewModel.timerState == .running, let categoryData = viewModel.selectedCategoryData {
+                let elapsed = categoryData.durationSeconds - remaining
+                questsViewModel.considerMidTimerPrompt(elapsedSeconds: elapsed, totalSeconds: categoryData.durationSeconds)
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: questsViewModel.pendingMidTimerPrompt?.id)
+        .onChange(of: viewModel.selectedCategory) { _ in
             heroCardScale = 0.98
             heroCardOpacity = 0.92
             withAnimation(.spring(response: 0.45, dampingFraction: 0.78)) {
@@ -729,6 +763,60 @@ struct FocusView: View {
 
     private func minutes(from seconds: Int) -> Int {
         seconds / 60
+    }
+
+    private func midTimerPromptOverlay(prompt: QuestsViewModel.MidTimerPrompt) -> some View {
+        VStack {
+            Spacer()
+
+            VStack(spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(.yellow)
+                    Text(prompt.message)
+                        .font(.subheadline.weight(.semibold))
+                        .multilineTextAlignment(.center)
+                }
+
+                HStack(spacing: 12) {
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            questsViewModel.claimMidTimerBonus()
+                        }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        Label("+\(prompt.xpReward) XP", systemImage: "plus.circle.fill")
+                            .font(.subheadline.bold())
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.mint)
+
+                    Button {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            questsViewModel.dismissMidTimerPrompt()
+                        }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(10)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(16)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Color.mint.opacity(0.3), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 10)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 100)
+        }
     }
 
     private func sessionCompleteOverlay(summary: FocusViewModel.SessionSummary) -> some View {

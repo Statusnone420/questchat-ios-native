@@ -340,10 +340,28 @@ private struct QuestCardView: View {
     let isShowingXPBoost: Bool
     let onTap: (() -> Void)?
 
+    /// Whether this quest is progress-based (requires multiple actions)
+    private var isProgressBased: Bool {
+        if case .progress = quest.completionType {
+            return true
+        }
+        return false
+    }
+
+    /// Whether this quest can be manually tapped to complete
+    private var isManual: Bool {
+        if case .manual = quest.completionType {
+            return true
+        }
+        return false
+    }
+
     var body: some View {
-        let isCompleted = quest.isCompleted
         Button(action: {
-            onTap?()
+            // Only allow manual tap completion for manual quests
+            if isManual {
+                onTap()
+            }
         }) {
             ZStack(alignment: .topTrailing) {
                 HStack(alignment: .top, spacing: 12) {
@@ -357,13 +375,10 @@ private struct QuestCardView: View {
                         HStack(alignment: .center) {
                             tierPill
                             Spacer()
-                            VStack(alignment: .trailing, spacing: 4) {
-                                xpPill
-
-                                if quest.isCompleted {
-                                    completedPill
-                                }
+                            if let progressText = quest.progressText, !quest.isCompleted {
+                                progressPill(text: progressText)
                             }
+                            xpPill
                         }
 
                         VStack(alignment: .leading, spacing: 4) {
@@ -382,12 +397,34 @@ private struct QuestCardView: View {
                                 .padding(.top, 4)
                             }
                         }
+
+                        // Progress bar for progress-based quests
+                        if isProgressBased && !quest.isCompleted {
+                            progressBar
+                        }
                     }
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(uiColor: .secondarySystemBackground).opacity(0.2))
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    // Show indicator for auto-complete quests
+                    Group {
+                        if !isManual && !quest.isCompleted {
+                            HStack {
+                                Spacer()
+                                Image(systemName: "bolt.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(.yellow.opacity(0.7))
+                                    .padding(6)
+                            }
+                            .padding(.trailing, 8)
+                            .padding(.top, 8)
+                        }
+                    },
+                    alignment: .topTrailing
+                )
 
                 if isShowingXPBoost {
                     Text(QuestChatStrings.xpRewardText(quest.xpReward))
@@ -404,7 +441,39 @@ private struct QuestCardView: View {
             }
         }
         .buttonStyle(.plain)
-        .opacity(isCompleted ? 0.6 : 1.0)
+        .disabled(!isManual && !quest.isCompleted)
+    }
+
+    private var progressBar: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(height: 6)
+
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(
+                        LinearGradient(
+                            colors: [.mint, .cyan],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: geo.size.width * quest.progressFraction, height: 6)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: quest.progressFraction)
+            }
+        }
+        .frame(height: 6)
+    }
+
+    private func progressPill(text: String) -> some View {
+        Text(text)
+            .font(.caption2.bold())
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.cyan.opacity(0.18))
+            .foregroundStyle(.cyan)
+            .clipShape(Capsule())
     }
 
     private var icon: some View {

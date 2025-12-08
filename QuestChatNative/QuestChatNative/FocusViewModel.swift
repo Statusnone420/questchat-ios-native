@@ -1289,7 +1289,11 @@ final class FocusViewModel: ObservableObject {
     @Published var hydrationNudgesEnabled: Bool = false
     @Published var postureRemindersEnabled: Bool = false
 
+    // Potion usage tracking for synergy quest
+    @Published private(set) var potionsUsedToday: Set<String> = []
+
     var onSessionComplete: (() -> Void)?
+    var onQuestEvent: ((QuestEventID) -> Void)?
 
     enum TimerState {
         case idle
@@ -1485,8 +1489,7 @@ final class FocusViewModel: ObservableObject {
 
         refreshDailyHealthBonusState()
         loadSleepQuality()
-        loadActivityLevel()
-        refreshReminderScheduling()
+        loadPotionUsage()
     }
 
     var timerStatusText: String {
@@ -1732,6 +1735,11 @@ final class FocusViewModel: ObservableObject {
         healthStatsStore.update(from: healthBarViewModel.inputs)
         syncPlayerHP()
         evaluateHealthXPBonuses()
+
+        // Fire quest events for hydration tap and mana potion
+        onQuestEvent?(.hydrationTap)
+        onQuestEvent?(.manaPotionUsed)
+        trackPotionUsed("mana")
     }
 
     func logComfortBeverageTapped() {
@@ -1742,20 +1750,52 @@ final class FocusViewModel: ObservableObject {
 
         totalComfortOuncesToday += hydrationSettingsStore.ouncesPerComfortTap
         healthStatsStore.update(from: healthBarViewModel.inputs)
-        syncPlayerHP()
+
+        // Fire quest event for health potion
+        onQuestEvent?(.healthPotionUsed)
+        trackPotionUsed("health")
     }
 
     func logStaminaPotionTapped() {
         guard let healthBarViewModel else { return }
 
-        healthBarViewModel.logFocusSession()
+        healthBarViewModel.logFocusSprint()
+
+        // Fire quest event for stamina potion
+        onQuestEvent?(.staminaPotionUsed)
+        trackPotionUsed("stamina")
     }
-    
-    // Added method to show sip feedback with auto-dismiss
-    func showSipFeedback(_ text: String) {
-        sipFeedback = text
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { [weak self] in
-            self?.sipFeedback = nil
+
+    /// Track potion usage for synergy quest
+    private func trackPotionUsed(_ potionType: String) {
+        let wasEmpty = potionsUsedToday.isEmpty
+        potionsUsedToday.insert(potionType)
+
+        // Persist to UserDefaults
+        let key = potionUsageKey
+        userDefaults.set(Array(potionsUsedToday), forKey: key)
+
+        // Fire potion-any event for each unique potion used
+        if !wasEmpty || potionsUsedToday.count == 1 {
+            // Notify quest system about potion progress
+            // The potion-master quest listens for "potion-any" events
+            NotificationCenter.default.post(name: .potionUsedForQuest, object: potionType)
+        }
+    }
+
+    private var potionUsageKey: String {
+        let today = Calendar.current.startOfDay(for: Date())
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return "potions-used-\(formatter.string(from: today))"
+    }
+
+    private func loadPotionUsage() {
+        let key = potionUsageKey
+        if let saved = userDefaults.stringArray(forKey: key) {
+            potionsUsedToday = Set(saved)
+        } else {
+            potionsUsedToday = []
         }
     }
 
@@ -2209,13 +2249,11 @@ final class FocusViewModel: ObservableObject {
         currentSession = nil
         clearPersistedSession()
         handleHydrationThresholds(previousTotal: previousFocusTotal, newTotal: statsStore.totalFocusSecondsToday)
-        _ = maybeScheduleHydrationReminder(
-            reason: .timerCompleted,
-            now: endDate,
-            sessionCategory: timerCategory,
-            sessionDurationMinutes: recordedDuration / 60,
-            message: QuestChatStrings.Notifications.hydrateReminderBody
-        )
+        sendImmediateHydrationReminder()
+
+        // Fire quest events based on session type
+        fireQuestEventsForCompletedSession(mode: selectedMode, category: selectedCategory, durationMinutes: recordedDuration / 60)
+
         if #available(iOS 17.0, *) {
             Task {
                 for activity in Activity<FocusSessionAttributes>.activities {
@@ -2233,6 +2271,25 @@ final class FocusViewModel: ObservableObject {
         remainingSeconds = 0
         onSessionComplete?()
         activeSessionCategory = nil
+    }
+
+    /// Fires appropriate quest events when a session completes
+    private func fireQuestEventsForCompletedSession(mode: FocusTimerMode, category: TimerCategory.Kind, durationMinutes: Int) {
+        switch mode {
+        case .focus:
+            // Any focus session completes the "plan" quest and counts toward focus-streak
+            onQuestEvent?(.focusSessionComplete)
+
+            // Deep focus specifically (25+ min)
+            if category == .deepFocus || durationMinutes >= 25 {
+                onQuestEvent?(.deepFocusComplete)
+            }
+
+        case .selfCare:
+            // Self-care sessions complete the stretch quest
+            onQuestEvent?(.selfCareComplete)
+            onQuestEvent?(.stretchComplete)
+        }
     }
 
     private func resetForModeChange() {
@@ -2949,63 +3006,8 @@ private extension FocusViewModel.HydrationNudgeLevel {
     }
 }
 
-import SwiftUI
-
-extension FocusViewModel {
-    func acknowledgeReminder(_ event: ReminderEvent) {
-        reminderEventsStore.markResponded(eventId: event.id)
-        withAnimation(.easeInOut(duration: 0.2)) {
-            activeReminderEvent = nil
-            activeReminderMessage = nil
-        }
-    }
-    
-    func dismissReminder() {
-        // Dismiss without marking as responded - for swipe dismissal
-        withAnimation(.easeInOut(duration: 0.2)) {
-            activeReminderEvent = nil
-            activeReminderMessage = nil
-        }
-    }
-    
-    func updateScenePhase(_ phase: ScenePhase) {
-        let wasInForeground = isAppInForeground
-        isAppInForeground = (phase == .active)
-        
-        // If we just came back to foreground and there's a pending reminder, show it
-        if isAppInForeground && !wasInForeground, let pending = pendingBackgroundReminder {
-            pendingBackgroundReminder = nil
-            // Small delay to let the app settle
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                self?.presentInAppReminder(event: pending.event, message: pending.message)
-            }
-        }
-    }
-
-    func debugFireHydrationReminder() {
-        #if DEBUG
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
-            self?.triggerReminder(for: .hydration, at: Date(), bypassCadence: true)
-        }
-        #endif
-    }
-
-    func debugFirePostureReminder() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
-            self?.triggerReminder(for: .posture, at: Date(), bypassCadence: true)
-        }
-    }
-    
-    // Added method to log a 1 oz hydration "sip"
-    func logHydrationSip() {
-        // Minimal, 1 oz increment for banner taps.
-        recordHydration(ounces: 1)
-    }
-}
-
-private extension FocusViewModel {
-    func recordHydration(ounces: Int) {
-        healthBarViewModel?.logHydration(ounces: ounces)
-    }
+// MARK: - Notification Names for Quest Events
+extension Notification.Name {
+    static let potionUsedForQuest = Notification.Name("potionUsedForQuest")
 }
 
