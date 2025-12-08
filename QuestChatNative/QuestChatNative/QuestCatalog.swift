@@ -289,7 +289,7 @@ enum QuestCatalog {
             difficulty: .easy,
             xpReward: 20,
             title: "Daily Setup Complete",
-            subtitle: "Finish the Daily Setup flow (sleep + mood + hydration).",
+            subtitle: "Finish the Daily Setup flow for today.",
             isOncePerDay: true,
             tier: .core
         ),
@@ -428,8 +428,8 @@ enum QuestCatalog {
             category: .timer,
             difficulty: .easy,
             xpReward: 15,
-            title: "Quick Focus Sprint",
-            subtitle: "Complete a focus timer for 10+ minutes.",
+            title: "Self Care Aficionado",
+            subtitle: "Complete a Create, Self-Care, or Move session for 10 or more minutes.",
             isOncePerDay: true,
             tier: .habit
         ),
@@ -462,7 +462,18 @@ enum QuestCatalog {
             difficulty: .easy,
             xpReward: 15,
             title: "Guilt-Free Chill",
-            subtitle: "Finish a Chill timer for 10+ minutes.",
+            subtitle: "Complete a 10-minute Gaming, Self-Care, or Move session.",
+            isOncePerDay: true,
+            tier: .habit
+        ),
+        QuestDefinition(
+            id: "DAILY_TIMER_GAMING_SESSION",
+            type: .daily,
+            category: .timer,
+            difficulty: .easy,
+            xpReward: 15,
+            title: "Guilt-Free Gaming",
+            subtitle: "Complete a 5 or more minute gaming session timer.",
             isOncePerDay: true,
             tier: .habit
         ),
@@ -937,7 +948,7 @@ enum QuestCatalog {
             difficulty: .medium,
             xpReward: 140,
             title: "Balanced Bar",
-            subtitle: "On 3 days, keep mood, sleep, and hydration above thresholds.",
+            subtitle: "On 3 days this week: log mood and sleep, and reach at least 50% of your water goal.",
             isOncePerDay: false,
             tier: .habit
         ),

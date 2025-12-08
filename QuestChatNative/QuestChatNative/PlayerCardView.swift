@@ -1127,6 +1127,9 @@ struct DailyVitalsSlidersView: View {
                 focusViewModel.sleepQuality = HealthRatingMapper.sleepQuality(for: newValue ?? 3) ?? .okay
                 if previous == nil, newValue != nil {
                     DependencyContainer.shared.questsViewModel.completeQuestIfNeeded(id: "DAILY_HB_SLEEP_LOG")
+                    if dailyRatingsStore.ratings().mood != nil && dailyRatingsStore.ratings().gut != nil && dailyRatingsStore.ratings().sleep != nil {
+                        DependencyContainer.shared.questsViewModel.handleQuestEvent(.hpCheckinCompleted)
+                    }
                 }
             }
         )
@@ -1142,6 +1145,9 @@ struct DailyVitalsSlidersView: View {
                 healthBarViewModel.setMoodStatus(status)
                 if previous == nil, newValue != nil {
                     DependencyContainer.shared.questsViewModel.completeQuestIfNeeded(id: "DAILY_HB_MORNING_CHECKIN")
+                    if dailyRatingsStore.ratings().mood != nil && dailyRatingsStore.ratings().gut != nil && dailyRatingsStore.ratings().sleep != nil {
+                        DependencyContainer.shared.questsViewModel.handleQuestEvent(.hpCheckinCompleted)
+                    }
                 }
             }
         )
@@ -1157,6 +1163,9 @@ struct DailyVitalsSlidersView: View {
                 healthBarViewModel.setGutStatus(status)
                 if previous == nil, newValue != nil {
                     DependencyContainer.shared.questsViewModel.completeQuestIfNeeded(id: "DAILY_HB_GUT_CHECK")
+                    if dailyRatingsStore.ratings().mood != nil && dailyRatingsStore.ratings().gut != nil && dailyRatingsStore.ratings().sleep != nil {
+                        DependencyContainer.shared.questsViewModel.handleQuestEvent(.hpCheckinCompleted)
+                    }
                 }
             }
         )
@@ -1184,4 +1193,5 @@ struct DailyVitalsSlidersView: View {
 }
 
 // Avatar now uses a UUID-based rolled SF Symbol + gradient style.
+
 

@@ -851,6 +851,7 @@ extension QuestsViewModel {
 
         if isChillCategory(category) {
             if durationMinutes >= 10 { completeQuestIfNeeded(id: "DAILY_TIMER_CHILL_CHOICE") }
+            if durationMinutes >= 5 { completeQuestIfNeeded(id: "DAILY_TIMER_GAMING_SESSION") }
         }
 
         if durationMinutes >= 5 {
