@@ -8,6 +8,9 @@ struct StatsView: View {
     @ObservedObject var focusViewModel: FocusViewModel
     @State private var selectedScope: StatsScope = .today
     @State private var isShowingDailySetup = false
+#if DEBUG
+    @State private var shouldPostAchievementNotifications = false
+#endif
 
     private var focusMinutes: Int { store.focusSeconds / 60 }
     private var selfCareMinutes: Int { store.selfCareSeconds / 60 }
@@ -90,11 +93,7 @@ struct StatsView: View {
             sessionHistorySection
 
 #if DEBUG
-            Section {
-                Button("Simulate Achievement Unlock") {
-                    viewModel.simulateAchievementUnlock()
-                }
-            }
+            debugSeasonAchievementsSection
 #endif
         }
     }
@@ -662,6 +661,33 @@ struct StatsView: View {
     private func modeTitle(for rawValue: String) -> String {
         FocusTimerMode(rawValue: rawValue)?.title ?? rawValue.capitalized
     }
+
+#if DEBUG
+    private var debugSeasonAchievementsSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                Toggle("Post notifications", isOn: $shouldPostAchievementNotifications)
+                    .tint(.mint)
+
+                Button {
+                    viewModel.unlockAllSeasonAchievementsForDebug(
+                        postNotifications: shouldPostAchievementNotifications
+                    )
+                } label: {
+                    Label("Unlock all Season Achievement Progress", systemImage: "sparkles")
+                }
+                .disabled(!viewModel.hasLockedSeasonAchievements)
+
+                Text("Unlocks every remaining Season achievement for debugging. Enable notifications to preview unlock overlays; tap slowly to avoid spamming.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } header: {
+            Text("Debug: Season Achievement Progress")
+        }
+    }
+#endif
 }
 
 #Preview {

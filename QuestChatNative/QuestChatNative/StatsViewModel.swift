@@ -326,6 +326,16 @@ final class StatsViewModel: ObservableObject {
         playerTitleStore.equipOverride(title: achievement.title)
     }
 
+#if DEBUG
+    var hasLockedSeasonAchievements: Bool {
+        seasonAchievements.contains { !$0.isUnlocked }
+    }
+
+    func unlockAllSeasonAchievementsForDebug(postNotifications: Bool = false) {
+        seasonAchievementsStore.unlockAllSeasonAchievementsForDebug(postNotifications: postNotifications)
+    }
+#endif
+
     private var todaySummary: HealthDaySummary? {
         let today = calendar.startOfDay(for: Date())
         return healthStore.days.first { calendar.isDate($0.date, inSameDayAs: today) }

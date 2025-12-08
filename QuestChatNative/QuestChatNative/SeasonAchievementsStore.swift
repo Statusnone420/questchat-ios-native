@@ -232,6 +232,33 @@ final class SeasonAchievementsStore: ObservableObject {
         UserDefaults.standard.removeObject(forKey: progressKey)
         persistProgress()
     }
+
+    func unlockAllSeasonAchievementsForDebug(postNotifications: Bool = false) {
+        var didChange = false
+
+        for achievement in achievements {
+            guard var progress = progressById[achievement.id] else { continue }
+            guard !progress.isUnlocked else { continue }
+
+            progress.currentValue = achievement.threshold
+            progress.unlockedAt = Date()
+            progress.lastUpdatedAt = Date()
+            progressById[achievement.id] = progress
+            didChange = true
+
+            if postNotifications {
+                NotificationCenter.default.post(
+                    name: .seasonAchievementUnlocked,
+                    object: self,
+                    userInfo: ["achievementId": achievement.id]
+                )
+            }
+        }
+
+        if didChange {
+            persistProgress()
+        }
+    }
 #endif
 }
 
