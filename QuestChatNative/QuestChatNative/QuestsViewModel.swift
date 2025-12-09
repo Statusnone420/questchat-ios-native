@@ -1466,7 +1466,7 @@ extension SessionStatsStore {
     var xpBoostLabel: String? {
         guard xpGlobalMultiplier > 1.0 else { return nil }
         let percent = Int(round((xpGlobalMultiplier - 1.0) * 100))
-        return "Season 1 XP Boost +\(percent)%"
+        return "XP Boost +\(percent)%"
     }
 
     /// Centralized XP grant that scales the base amount and routes through existing quest XP logic

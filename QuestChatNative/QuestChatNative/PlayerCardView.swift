@@ -725,13 +725,37 @@ struct PlayerCardView: View {
                             .foregroundStyle(.secondary)
 
                         if let label = statsViewModel.xpBoostLabel {
-                            Text(label)
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(.ultraThinMaterial)
-                                .clipShape(Capsule())
+                            HStack(spacing: 4) {
+                                Image(systemName: "sparkles")
+                                    .font(.caption2)
+
+                                Text(label)
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .lineLimit(1)              // never wrap
+                                    .minimumScaleFactor(0.9)   // tiny shrink instead of wrapping if needed
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [
+                                                Color.cyan.opacity(0.7),
+                                                Color.purple.opacity(0.7)
+                                            ]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                            )
+                            .overlay(
+                                Capsule()
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 0.5)
+                            )
+                            .foregroundColor(.white)
+                            .fixedSize(horizontal: true, vertical: true) // size just to its content
                         }
 
                         Spacer()
