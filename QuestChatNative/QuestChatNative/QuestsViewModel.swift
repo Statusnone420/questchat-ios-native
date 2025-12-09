@@ -377,7 +377,7 @@ final class QuestsViewModel: ObservableObject {
         dailyQuests[index].isCompleted.toggle()
 
         if dailyQuests[index].isCompleted && !wasCompleted {
-            statsStore.registerQuestCompleted(id: dailyQuests[index].id, xp: dailyQuests[index].xpReward)
+            statsStore.grantXP(dailyQuests[index].xpReward, source: dailyQuests[index].id)
             updateWeeklyDailyQuestCompletionProgress()
             trackHardQuestCompletion(for: dailyQuests[index])
         }
@@ -570,7 +570,7 @@ final class QuestsViewModel: ObservableObject {
         weeklyQuests[index].isCompleted.toggle()
 
         if weeklyQuests[index].isCompleted && !wasCompleted {
-            statsStore.registerQuestCompleted(id: weeklyQuests[index].id, xp: weeklyQuests[index].xpReward)
+            statsStore.grantXP(weeklyQuests[index].xpReward, source: weeklyQuests[index].id)
             trackHardQuestCompletion(for: weeklyQuests[index])
         }
 
@@ -978,7 +978,7 @@ extension QuestsViewModel {
         }
 
         dailyQuests[index].isCompleted = true
-        statsStore.registerQuestCompleted(id: dailyQuests[index].id, xp: dailyQuests[index].xpReward)
+        statsStore.grantXP(dailyQuests[index].xpReward, source: dailyQuests[index].id)
         trackHardQuestCompletion(for: dailyQuests[index])
         updateWeeklyDailyQuestCompletionProgress()
 
@@ -994,7 +994,7 @@ extension QuestsViewModel {
 
         // Mystery Buff: grant bonus XP when the mystery quest is completed
         if let mysteryId = mysteryQuestID, mysteryId == id {
-            statsStore.registerQuestCompleted(id: "DAILY_MYSTERY_BONUS", xp: 15)
+            statsStore.grantXP(15, source: "DAILY_MYSTERY_BONUS")
         }
         
         // One-time Timer Combo bonus: two timer quests in a day
@@ -1003,7 +1003,7 @@ extension QuestsViewModel {
             let defsByID = Dictionary(uniqueKeysWithValues: Self.activeDailyQuestPool.map { ($0.id, $0) })
             let completedTimerCount = completedTodayIDs.compactMap { defsByID[$0] }.filter { $0.category == .timer }.count
             if completedTimerCount >= 2 {
-                statsStore.registerQuestCompleted(id: "DAILY_TIMER_COMBO_BONUS", xp: 10)
+                statsStore.grantXP(10, source: "DAILY_TIMER_COMBO_BONUS")
                 setGrantedTimerComboBonus()
             }
         }
@@ -1051,7 +1051,7 @@ extension QuestsViewModel {
         guard !userDefaults.bool(forKey: questChestGrantedKey) else { return }
         guard dailyQuests.allSatisfy({ $0.isCompleted }) else { return }
 
-        statsStore.registerQuestCompleted(id: "quest-chest", xp: Self.questChestBonusXP)
+        statsStore.grantXP(Self.questChestBonusXP, source: "quest-chest")
         userDefaults.set(true, forKey: questChestGrantedKey)
         hasQuestChestReady = true
         userDefaults.set(true, forKey: questChestReadyKey)
@@ -1267,7 +1267,7 @@ extension QuestsViewModel {
         guard !weeklyQuests[index].isCompleted else { return }
 
         weeklyQuests[index].isCompleted = true
-        statsStore.registerQuestCompleted(id: weeklyQuests[index].id, xp: weeklyQuests[index].xpReward)
+        statsStore.grantXP(weeklyQuests[index].xpReward, source: weeklyQuests[index].id)
         persistWeeklyCompletions()
 
         // Defer sync to next runloop tick so any state updates (counters/sets) settle before recomputing progress.
@@ -1459,3 +1459,30 @@ extension QuestsViewModel {
     func hint(for quest: Quest) -> String? { dailyHints[quest.id] }
 }
 
+extension SessionStatsStore {
+    // Global XP multiplier (tweakable)
+    private var xpGlobalMultiplier: Double { 1.7 }
+
+    /// Centralized XP grant that scales the base amount and routes through existing quest XP logic
+    /// - Parameters:
+    ///   - baseAmount: The base XP amount before scaling
+    ///   - source: Optional identifier to propagate to existing quest XP flow
+    func grantXP(_ baseAmount: Int, source: String? = nil) {
+        guard baseAmount > 0 else { return }
+        let scaledAmount = Int((Double(baseAmount) * xpGlobalMultiplier).rounded())
+        let previousLevel = self.level
+
+        if let id = source {
+            // Reuse existing XP + level-up + persistence logic
+            self.registerQuestCompleted(id: id, xp: scaledAmount)
+        } else {
+            self.registerQuestCompleted(id: "xp-grant", xp: scaledAmount)
+        }
+
+        // Belt-and-suspenders: if level increased but pendingLevelUp wasn't set by the underlying logic,
+        // set it here so the celebration overlay appears.
+        if self.level > previousLevel && self.pendingLevelUp == nil {
+            self.pendingLevelUp = self.level
+        }
+    }
+}

@@ -267,7 +267,7 @@ struct MoreView: View {
                 let stats = DependencyContainer.shared.sessionStatsStore
                 let xpRemainingInLevel = max(stats.xpNeededToLevelUp(from: stats.level) - stats.xpIntoCurrentLevel, 0)
                 let xpGrant = max(xpRemainingInLevel, 1)
-                stats.registerQuestCompleted(id: "DEBUG_SIMULATE_LEVEL_UP", xp: xpGrant)
+                stats.grantXP(xpGrant, source: "DEBUG_SIMULATE_LEVEL_UP")
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "sparkles")
@@ -286,7 +286,7 @@ struct MoreView: View {
 
             Button {
                 let stats = DependencyContainer.shared.sessionStatsStore
-                stats.registerQuestCompleted(id: "DEBUG_XP_GRANT", xp: 500)
+                stats.grantXP(500, source: "DEBUG_XP_GRANT")
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "plus.circle.fill")
