@@ -68,6 +68,7 @@ extension Quest {
     }
 }
 
+@MainActor
 final class QuestsViewModel: ObservableObject {
     struct LastDailyCompletion: Codable, Equatable {
         let id: String
@@ -672,6 +673,12 @@ final class QuestsViewModel: ObservableObject {
             isCoreToday: false
         )
 
+        // Update mystery quest if we rerolled it
+        if mysteryQuestID == quest.id {
+            mysteryQuestID = replacement.id
+            userDefaults.set(replacement.id, forKey: mysteryKey)
+        }
+
         hasUsedRerollToday = true
         userDefaults.set(true, forKey: rerollKey)
         persistCompletions()
@@ -1045,6 +1052,10 @@ extension QuestsViewModel {
     func persistCompletions() {
         let completed = dailyQuests.filter { $0.isCompleted }.map { $0.id }
         userDefaults.set(completed, forKey: completionKey)
+        
+        #if DEBUG
+        print("DailyQuestStore: persisted \(completed.count)/\(dailyQuests.count) completions for \(completionKey)")
+        #endif
     }
 
     func checkQuestChestRewardIfNeeded() {
@@ -1477,6 +1488,12 @@ extension SessionStatsStore {
         guard baseAmount > 0 else { return }
         let scaledAmount = Int((Double(baseAmount) * xpGlobalMultiplier).rounded())
         let previousLevel = self.level
+
+        #if DEBUG
+        if xpGlobalMultiplier != 1.0 {
+            print("XP: \(baseAmount) → \(scaledAmount) (\(source ?? "unknown"))")
+        }
+        #endif
 
         if let id = source {
             // Reuse existing XP + level-up + persistence logic
