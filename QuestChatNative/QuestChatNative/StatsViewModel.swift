@@ -187,6 +187,10 @@ final class StatsViewModel: ObservableObject {
         statsStore.momentumMultiplier()
     }
 
+    var xpBoostLabel: String? {
+        statsStore.xpBoostLabel
+    }
+
     var yesterdaySummary: DailyStatsSummary? {
         let yesterday = yesterdayDate
         let progress = statsStore.dailyProgress(for: yesterday)

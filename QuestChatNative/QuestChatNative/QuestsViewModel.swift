@@ -1461,7 +1461,13 @@ extension QuestsViewModel {
 
 extension SessionStatsStore {
     // Global XP multiplier (tweakable)
-    private var xpGlobalMultiplier: Double { 1.7 }
+    private var xpGlobalMultiplier: Double { 1.5 } // Season 1 XP Boost (+50%)
+
+    var xpBoostLabel: String? {
+        guard xpGlobalMultiplier > 1.0 else { return nil }
+        let percent = Int(round((xpGlobalMultiplier - 1.0) * 100))
+        return "Season 1 XP Boost +\(percent)%"
+    }
 
     /// Centralized XP grant that scales the base amount and routes through existing quest XP logic
     /// - Parameters:
