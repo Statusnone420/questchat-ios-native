@@ -231,6 +231,14 @@ final class QuestsViewModel: ObservableObject {
         self.calendar = calendar
         dayReference = calendar.startOfDay(for: Date())
         
+        #if DEBUG
+        let now = Date()
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        print("QuestsViewModel init at \(dateFormatter.string(from: now))")
+        print("  dayReference: \(Self.dateKey(for: dayReference, calendar: calendar))")
+        #endif
+        
         let completedToday = Self.completedQuestIDs(for: dayReference, calendar: calendar, userDefaults: userDefaults)
         if let activeIDs = userDefaults.stringArray(forKey: dailyActiveKey), !activeIDs.isEmpty {
             // Restore exact board
