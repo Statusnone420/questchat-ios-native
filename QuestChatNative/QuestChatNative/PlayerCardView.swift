@@ -505,7 +505,9 @@ struct PlayerCardView: View {
     }
 
     private var content: some View {
-        VStack(spacing: 20) {
+        let screenHeight = UIScreen.main.bounds.height
+        
+        return VStack(spacing: screenHeight < 900 ? 10 : 20) {
             headerCard
 
             playerHUDSection
@@ -513,7 +515,6 @@ struct PlayerCardView: View {
             // Active buffs
             if !potionManager.activeBuffs.isEmpty {
                 BuffBarView(manager: potionManager)
-                    .padding(.horizontal, 4)
             }
 
             // Quick potions row
@@ -574,7 +575,8 @@ struct PlayerCardView: View {
 
             Spacer(minLength: 0)
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical)
     }
 
     var body: some View {
@@ -670,9 +672,10 @@ struct PlayerCardView: View {
     }
 
     private var headerCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        let screenHeight = UIScreen.main.bounds.height
+        
+        return VStack(alignment: .leading, spacing: screenHeight < 900 ? 8 : 16) {
             let style = avatarStyles[max(0, min(avatarStyleIndex, avatarStyles.count - 1))]
-            let screenHeight = UIScreen.main.bounds.height
             let avatarScale: CGFloat = screenHeight < 900 ? 1.2 : 1.5
             let avatarSize: CGFloat = 56 * avatarScale
 
@@ -848,7 +851,7 @@ struct PlayerCardView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
-        .padding(16)
+        .padding(screenHeight < 900 ? 12 : 16)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(
@@ -866,8 +869,6 @@ struct PlayerCardView: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(Color.white.opacity(0.06), lineWidth: 1)
         )
-        .padding(.horizontal)
-        .padding(.top, 16)
     }
 
     private func statRow(label: String, value: String, tint: Color) -> some View {
