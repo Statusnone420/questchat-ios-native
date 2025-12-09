@@ -43,6 +43,7 @@ struct FocusSession: Codable, Identifiable {
     let type: FocusSessionType
     let duration: TimeInterval
     let startDate: Date
+    let category: TimerCategory.Kind?  // Added: track which specific timer was running
 
     var endDate: Date { startDate.addingTimeInterval(duration) }
 }
@@ -1783,14 +1784,15 @@ final class FocusViewModel: ObservableObject {
         remainingSeconds = totalDuration
 
         let startDate = Date()
+        let category = selectedCategoryData ?? TimerCategory(id: selectedCategory, durationSeconds: currentDuration)
+        
         let session = FocusSession(
             id: currentSession?.id ?? UUID(),
             type: selectedMode,
             duration: TimeInterval(totalDuration),
-            startDate: startDate
+            startDate: startDate,
+            category: category.id  // Capture category at session start
         )
-
-        let category = selectedCategoryData ?? TimerCategory(id: selectedCategory, durationSeconds: currentDuration)
 
         pausedRemainingSeconds = nil
         currentSession = session
@@ -1867,6 +1869,7 @@ final class FocusViewModel: ObservableObject {
         clearPersistedSession()
         timerState = .paused
         state = .paused
+        // NOTE: activeSessionCategory is intentionally NOT cleared here - we preserve it for resume
         print("[FocusTimer] Paused with \(remaining) seconds left")
         if #available(iOS 17.0, *) {
             updateLiveActivity(
@@ -1899,10 +1902,11 @@ final class FocusViewModel: ObservableObject {
             id: UUID(),
             type: selectedMode,
             duration: TimeInterval(duration),
-            startDate: Date()
+            startDate: Date(),
+            category: activeSessionCategory  // Preserve the original category from when timer started
         )
         currentSession = session
-        activeSessionCategory = selectedCategory
+        // Do NOT reassign activeSessionCategory here - it should already be set from the original start
         timerState = .running
         state = .running
         print("[FocusTimer] Resumed for \(duration)s")
@@ -2066,11 +2070,14 @@ final class FocusViewModel: ObservableObject {
 
                 if remaining > 0 {
                     // Still in progress → recreate the session and resume UI timer
+                    // Use selectedCategory as fallback; the correct category will be restored from
+                    // persisted session data in handleScenePhaseChange > restorePersistedSessionIfNeeded
                     let session = FocusSession(
                         id: UUID(),
                         type: selectedMode,
                         duration: TimeInterval(totalDuration),
-                        startDate: contentState.startDate
+                        startDate: contentState.startDate,
+                        category: selectedCategory  // Fallback, will be overwritten by persisted data
                     )
                     currentSession = session
                     timerState = .running
@@ -2138,6 +2145,10 @@ final class FocusViewModel: ObservableObject {
         let previousFocusTotal = statsStore.totalFocusSecondsToday
         let xpBefore = statsStore.totalXP
         let recordedDuration = Int(currentSession?.duration ?? TimeInterval(activeSessionDuration ?? currentDuration))
+        
+        // Log for debugging quest progression
+        print("[FocusTimer] Finishing session - category: \(String(describing: activeSessionCategory)), duration: \(recordedDuration)s")
+        
         _ = statsStore.recordSession(mode: selectedMode, duration: recordedDuration)
         if currentSession?.type == .focus {
             let durationMinutes = recordedDuration / 60
@@ -2146,7 +2157,8 @@ final class FocusViewModel: ObservableObject {
                 statsStore.questEventHandler?(.choresTimerCompleted(durationMinutes: durationMinutes))
             }
         }
-        let timerCategory = activeSessionCategory ?? selectedCategory
+        // Use category in priority order: 1) activeSessionCategory, 2) session.category, 3) selectedCategory fallback
+        let timerCategory = activeSessionCategory ?? currentSession?.category ?? selectedCategory
         let endDate = currentSession?.endDate ?? Date()
         statsStore.questEventHandler?(
             .timerCompleted(
@@ -2356,6 +2368,12 @@ final class FocusViewModel: ObservableObject {
         currentSession = session
         activeSessionDuration = Int(session.duration)
         selectedMode = session.type
+        
+        // Restore the category if it was saved with the session
+        if let savedCategory = session.category {
+            activeSessionCategory = savedCategory
+        }
+        
         timerState = .running
         state = .running
         remainingSeconds = max(Int(ceil(session.endDate.timeIntervalSinceNow)), 0)
