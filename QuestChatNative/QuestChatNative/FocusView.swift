@@ -140,13 +140,11 @@ struct FocusView: View {
         }
         .onAppear {
             viewModel.handleAppear()
+            viewModel.handleScenePhaseChange(scenePhase)
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.lastCompletedSession?.timestamp)
         .animation(.spring(), value: viewModel.activeReminderEvent != nil)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: viewModel.selectedCategory)
-        .onAppear {
-            viewModel.handleScenePhaseChange(scenePhase)
-        }
         .onChange(of: scenePhase) {
             viewModel.handleScenePhaseChange(scenePhase)
         }

@@ -1284,6 +1284,9 @@ final class FocusViewModel: ObservableObject {
     @Published var remainingSeconds: Int = 0
     @Published var isActiveTimerExpanded: Bool = true
     
+    // Track last scene phase to avoid redundant handling on tab switches
+    private var lastScenePhase: ScenePhase?
+    
     // Added published property for hydration sip feedback
     @Published var sipFeedback: String? = nil
     
@@ -1862,6 +1865,24 @@ final class FocusViewModel: ObservableObject {
         let remaining = max(Int(ceil(session.endDate.timeIntervalSinceNow)), 0)
         let startDate = session.startDate
         let endDate = session.endDate
+        
+        // Calculate elapsed time for partial quest credit
+        let totalDuration = Int(session.duration)
+        let elapsed = totalDuration - remaining
+        let elapsedMinutes = elapsed / 60
+        
+        // Award quest credit for completed time (but don't record as full session)
+        if elapsedMinutes > 0, let category = activeSessionCategory {
+            print("[FocusTimer] Paused after \(elapsedMinutes)m - awarding partial quest credit")
+            statsStore.questEventHandler?(
+                .timerCompleted(
+                    category: category,
+                    durationMinutes: elapsedMinutes,
+                    endedAt: Date()
+                )
+            )
+        }
+        
         pausedRemainingSeconds = remaining
         remainingSeconds = remaining
         currentSession = nil
@@ -1933,6 +1954,37 @@ final class FocusViewModel: ObservableObject {
     }
 
     func resetTimer() {
+        // Award credit for any time spent before reset
+        if let session = currentSession, timerState == .running {
+            let elapsed = max(0, Int(Date().timeIntervalSince(session.startDate)))
+            let elapsedMinutes = elapsed / 60
+            if elapsedMinutes > 0, let category = activeSessionCategory {
+                print("[FocusTimer] Reset after \(elapsedMinutes)m - awarding partial quest credit")
+                statsStore.questEventHandler?(
+                    .timerCompleted(
+                        category: category,
+                        durationMinutes: elapsedMinutes,
+                        endedAt: Date()
+                    )
+                )
+            }
+        } else if timerState == .paused, let paused = pausedRemainingSeconds, let category = activeSessionCategory {
+            // If paused, calculate from what was saved
+            let totalDuration = currentDuration
+            let elapsed = max(0, totalDuration - paused)
+            let elapsedMinutes = elapsed / 60
+            if elapsedMinutes > 0 {
+                print("[FocusTimer] Reset from paused state after \(elapsedMinutes)m - awarding partial quest credit")
+                statsStore.questEventHandler?(
+                    .timerCompleted(
+                        category: category,
+                        durationMinutes: elapsedMinutes,
+                        endedAt: Date()
+                    )
+                )
+            }
+        }
+        
         cancelCompletionNotifications()
         pausedRemainingSeconds = nil
         currentSession = nil
@@ -2049,6 +2101,17 @@ final class FocusViewModel: ObservableObject {
     @available(iOS 17.0, *)
     func restoreLiveActivityIfNeeded() {
         Task {
+            // ⚠️ Don't restore if we already have a timer state (running, paused, or finished)
+            // Only restore on cold start when timer is idle and we have no active/paused session
+            await MainActor.run {
+                guard self.timerState == .idle,
+                      self.currentSession == nil,
+                      self.pausedRemainingSeconds == nil else {
+                    print("[FocusLiveActivity] Skipping restore - app already has timer state")
+                    return
+                }
+            }
+            
             // Grab the first active FocusSession Live Activity, if any
             guard let activity = Activity<FocusSessionAttributes>.activities.first else { return }
 
@@ -2338,6 +2401,19 @@ final class FocusViewModel: ObservableObject {
     }
 
     func handleScenePhaseChange(_ phase: ScenePhase) {
+        // Only handle actual scene phase changes, not redundant calls
+        // (e.g., when switching tabs within the app, phase stays .active)
+        guard phase != lastScenePhase else {
+            // Same phase as before - just ensure UI timer is running if needed
+            if timerState == .running && currentSession != nil {
+                startUITimer()
+            }
+            return
+        }
+        
+        let previousPhase = lastScenePhase
+        lastScenePhase = phase
+        
         switch phase {
         case .active:
             // App came to the foreground: restore and snap timer into sync
@@ -2372,9 +2448,11 @@ final class FocusViewModel: ObservableObject {
         //     return  // Don't restore if we're killing everything
         // }
         
-        if #available(iOS 17.0, *) {
+        // Only restore Live Activity if we don't already have timer state
+        if #available(iOS 17.0, *), timerState == .idle, currentSession == nil, pausedRemainingSeconds == nil {
             restoreLiveActivityIfNeeded()
         }
+        
         // Make the in-app timer label catch up immediately
         syncRemainingSecondsNow()
         startReminderTimer()
