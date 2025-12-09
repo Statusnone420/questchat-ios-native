@@ -683,7 +683,7 @@ struct StatsView: View {
 
     private var weeklyPathCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Weekly streak", systemImage: "chart.dots.scatter")
+            Label("Focus Goal Streak", systemImage: "chart.dots.scatter")
                 .font(.headline)
                 .foregroundStyle(.mint)
 
