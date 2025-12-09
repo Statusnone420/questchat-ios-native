@@ -1009,10 +1009,20 @@ enum QuestCatalog {
         )
     ]
 
-    static var allDailyQuests: [QuestDefinition] { expandedDailyQuests + legacyDailyQuests }
+    static let disabledLegacyDailyQuestIDs: Set<String> = [
+        "irl-patch",
+        "tidy-spot",
+        "step-outside",
+        "quick-self-care",
+    ]
+
+    static var allDailyQuests: [QuestDefinition] {
+        let activeLegacyQuests = legacyDailyQuests.filter { !disabledLegacyDailyQuestIDs.contains($0.id) }
+        return expandedDailyQuests + activeLegacyQuests
+    }
     static var allWeeklyQuests: [QuestDefinition] { expandedWeeklyQuests + legacyWeeklyQuests }
 
-    static var activeWeeklyQuestPool: [QuestDefinition] { expandedWeeklyQuests + legacyWeeklyQuests }
+    static var activeWeeklyQuestPool: [QuestDefinition] { expandedWeeklyQuests }
 
     static let coreWeeklyQuestIDs: [String] = [
         "WEEK_HYDRATION_HERO_PLUS",

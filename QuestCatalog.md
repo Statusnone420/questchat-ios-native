@@ -63,7 +63,7 @@ The app uses these timer categories for quest tracking:
 
 ## Daily Quests - Active Pool (v1.6.2)
 
-### Streamlined Daily Quests (17 quests)
+### Streamlined Daily Quests (19 quests)
 These are quick, dopamine-hit quests with low XP (10-20). The system picks 5 per day.
 
 #### Timer Category (5 quests)
