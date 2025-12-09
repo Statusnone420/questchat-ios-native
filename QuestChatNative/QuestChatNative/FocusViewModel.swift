@@ -1805,10 +1805,8 @@ final class FocusViewModel: ObservableObject {
         scheduleCompletionNotification()
         startUITimer()
         let title = category.id.title
-        if session.type == .focus {
-            let durationMinutes = totalDuration / 60
-            statsStore.questEventHandler?(.focusSessionStarted(durationMinutes: durationMinutes))
-        }
+        let durationMinutes = totalDuration / 60
+        statsStore.questEventHandler?(.focusSessionStarted(durationMinutes: durationMinutes))
         if #available(iOS 17.0, *) {
             Task {
                 for activity in Activity<FocusSessionAttributes>.activities {
