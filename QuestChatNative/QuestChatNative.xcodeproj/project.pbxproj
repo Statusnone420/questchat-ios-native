@@ -16,6 +16,9 @@
 		D80A60BD2EE1397D003C5262 /* QuestEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80A60BC2EE1397D003C5262 /* QuestEngine.swift */; };
 		D80A60E12EE13C6D003C5262 /* PlayerProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */; };
 		D83AE0022EE38504000217E6 /* SleepHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83AE0012EE38504000217E6 /* SleepHistoryStore.swift */; };
+		D846BF842EE8A28F00E5A440 /* LottieView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D846BF832EE8A28F00E5A440 /* LottieView.swift */; };
+		D846BF872EE8A30D00E5A440 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = D846BF862EE8A30D00E5A440 /* Lottie */; };
+		D846BF892EE8A4C900E5A440 /* TreasureChest.json in Resources */ = {isa = PBXBuildFile; fileRef = D846BF882EE8A4C900E5A440 /* TreasureChest.json */; };
 		D87C18822EDFA74B00438C3A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D87C182B2EDF9B6F00438C3A /* WidgetKit.framework */; };
 		D87C18832EDFA74B00438C3A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D87C182D2EDF9B6F00438C3A /* SwiftUI.framework */; };
 		D87C18942EDFA74C00438C3A /* QuestChatLiveActivityExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D87C18812EDFA74B00438C3A /* QuestChatLiveActivityExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -107,6 +110,8 @@
 		D80A60BC2EE1397D003C5262 /* QuestEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestEngine.swift; sourceTree = "<group>"; };
 		D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProgress.swift; sourceTree = "<group>"; };
 		D83AE0012EE38504000217E6 /* SleepHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHistoryStore.swift; sourceTree = "<group>"; };
+		D846BF832EE8A28F00E5A440 /* LottieView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LottieView.swift; sourceTree = "<group>"; };
+		D846BF882EE8A4C900E5A440 /* TreasureChest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = TreasureChest.json; sourceTree = "<group>"; };
 		D87C182B2EDF9B6F00438C3A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		D87C182D2EDF9B6F00438C3A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		D87C18812EDFA74B00438C3A /* QuestChatLiveActivityExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = QuestChatLiveActivityExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -210,6 +215,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D846BF872EE8A30D00E5A440 /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -260,6 +266,7 @@
 				D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */,
 				D87C18BB2EDFB72100438C3A /* FocusLiveActivityManager.swift */,
 				D8F1C0022F0A2F1B00D6C8EA /* FocusSharedComponents.swift */,
+				D846BF882EE8A4C900E5A440 /* TreasureChest.json */,
 				D8A1A0122EDE07B400A6A012 /* FocusTimerLiveActivity.swift */,
 				D8A1A0032EDE07B400A6A003 /* FocusView.swift */,
 				D8A1A01C2EDE07B400A6A01C /* FocusViewModel.swift */,
@@ -309,6 +316,7 @@
 				D8D444A72EE4C65F00CA06DE /* TalentTreeModels.swift */,
 				D8D444A82EE4C65F00CA06DE /* TalentTreeStore.swift */,
 				D8A1A0162EDE07B400A6A016 /* TodaySummaryView.swift */,
+				D846BF832EE8A28F00E5A440 /* LottieView.swift */,
 			);
 			path = QuestChatNative;
 			sourceTree = "<group>";
@@ -354,6 +362,7 @@
 			);
 			name = QuestChatNative;
 			packageProductDependencies = (
+				D846BF862EE8A30D00E5A440 /* Lottie */,
 			);
 			productName = QuestChatNative;
 			productReference = D881CF932EDD1BC200A8A09F /* QuestChatNative.app */;
@@ -386,6 +395,9 @@
 			);
 			mainGroup = D881CF8A2EDD1BC200A8A09F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D846BF852EE8A30D00E5A440 /* XCRemoteSwiftPackageReference "lottie-spm" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D881CF942EDD1BC200A8A09F /* Products */;
 			projectDirPath = "";
@@ -409,6 +421,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D846BF892EE8A4C900E5A440 /* TreasureChest.json in Resources */,
 				D8A200202EDE07B400A6A001 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -437,6 +450,7 @@
 				D8F1D4012F2B000100D6C8EB /* HydrationReminderManager.swift in Sources */,
 				D8A200182EDE07B400A6A001 /* HealthBarIRLStatsStore.swift in Sources */,
 				D8A200172EDE07B400A6A001 /* AboutHealthBarView.swift in Sources */,
+				D846BF842EE8A28F00E5A440 /* LottieView.swift in Sources */,
 				D899A6D22EDF6D6500F90F46 /* PlayerStatusBarsView.swift in Sources */,
 				D8D444A92EE4C65F00CA06DE /* TalentTreeModels.swift in Sources */,
 				D8D444AA2EE4C65F00CA06DE /* TalentTreeStore.swift in Sources */,
@@ -788,6 +802,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D846BF852EE8A30D00E5A440 /* XCRemoteSwiftPackageReference "lottie-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-spm";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.5.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D846BF862EE8A30D00E5A440 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D846BF852EE8A30D00E5A440 /* XCRemoteSwiftPackageReference "lottie-spm" */;
+			productName = Lottie;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D881CF8B2EDD1BC200A8A09F /* Project object */;
 }

@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import Lottie
 
 struct QuestsView: View {
     @ObservedObject var viewModel: QuestsViewModel
@@ -9,6 +10,7 @@ struct QuestsView: View {
     @State private var showingXPBoostIDs: Set<String> = []
     @State private var showingRerollPicker = false
     @State private var selectedScope: QuestScope = .daily
+    @State private var chestAnimationTrigger = UUID()
 
     enum QuestScope {
         case daily
@@ -256,6 +258,17 @@ private extension QuestsView {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+                
+                #if DEBUG
+                // Temporary: Test treasure chest animation
+                Button("🎁 Test Chest Animation") {
+                    viewModel.hasQuestChestReady = true
+                }
+                .font(.caption)
+                .padding(8)
+                .background(Color.orange.opacity(0.2))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                #endif
             }
         }
         .padding()
@@ -365,9 +378,19 @@ private extension QuestsView {
                 .ignoresSafeArea()
 
             VStack(spacing: 16) {
-                Image(systemName: "gift.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.yellow)
+                // Treasure chest animation - tap to replay!
+                LottieView(
+                    animationName: "TreasureChest",
+                    loopMode: .playOnce,
+                    animationSpeed: 1.0,
+                    animationTrigger: chestAnimationTrigger
+                )
+                .frame(width: 180, height: 180)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    QuestHaptics.soft()
+                    chestAnimationTrigger = UUID() // Replay animation
+                }
 
                 Text(QuestChatStrings.QuestsView.questChestClearedTitle)
                     .font(.title2.bold())
