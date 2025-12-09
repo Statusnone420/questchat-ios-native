@@ -672,7 +672,8 @@ struct PlayerCardView: View {
     private var headerCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             let style = avatarStyles[max(0, min(avatarStyleIndex, avatarStyles.count - 1))]
-            let avatarScale: CGFloat = 1.5
+            let screenHeight = UIScreen.main.bounds.height
+            let avatarScale: CGFloat = screenHeight < 900 ? 1.2 : 1.5
             let avatarSize: CGFloat = 56 * avatarScale
 
             HStack(alignment: .top, spacing: 16) {
