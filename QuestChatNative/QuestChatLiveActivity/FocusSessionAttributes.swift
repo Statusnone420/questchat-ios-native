@@ -9,6 +9,7 @@ struct FocusSessionAttributes: ActivityAttributes {
         var isPaused: Bool
         var remainingSeconds: Int
         var title: String
+        var category: String  // Store the category raw value
     }
 
     var sessionId: UUID

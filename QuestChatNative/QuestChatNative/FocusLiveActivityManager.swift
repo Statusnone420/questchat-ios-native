@@ -6,7 +6,7 @@ enum FocusLiveActivityManager {
     private static var activity: Activity<FocusSessionAttributes>?
     private static var currentContentState: FocusSessionAttributes.ContentState?
 
-    static func start(title: String, totalSeconds: Int) {
+    static func start(title: String, category: String, totalSeconds: Int) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
         let startDate = Date()
@@ -17,7 +17,8 @@ enum FocusLiveActivityManager {
             endDate: endDate,
             isPaused: false,
             remainingSeconds: totalSeconds,
-            title: title
+            title: title,
+            category: category
         )
         currentContentState = contentState
 
@@ -33,7 +34,7 @@ enum FocusLiveActivityManager {
         }
     }
 
-    static func update(remainingSeconds: Int, totalSeconds: Int, title: String) {
+    static func update(remainingSeconds: Int, totalSeconds: Int, title: String, category: String) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         guard let activity else { return }
 
@@ -44,7 +45,8 @@ enum FocusLiveActivityManager {
             endDate: endDate,
             isPaused: false,
             remainingSeconds: remainingSeconds,
-            title: title
+            title: title,
+            category: category
         )
         currentContentState = contentState
 
@@ -65,7 +67,8 @@ enum FocusLiveActivityManager {
                 endDate: current.endDate,
                 isPaused: false,
                 remainingSeconds: 0,
-                title: current.title
+                title: current.title,
+                category: current.category
             )
         } else {
             finalState = FocusSessionAttributes.ContentState(
@@ -73,7 +76,8 @@ enum FocusLiveActivityManager {
                 endDate: Date(),
                 isPaused: false,
                 remainingSeconds: 0,
-                title: ""
+                title: "",
+                category: ""
             )
         }
 
@@ -96,7 +100,8 @@ enum FocusLiveActivityManager {
                     endDate: Date(),
                     isPaused: false,
                     remainingSeconds: 0,
-                    title: ""
+                    title: "",
+                    category: ""
                 )
                 let content = ActivityContent(state: finalState, staleDate: nil)
                 await existing.end(content, dismissalPolicy: .immediate)
@@ -104,3 +109,4 @@ enum FocusLiveActivityManager {
         }
     }
 }
+

@@ -495,7 +495,8 @@ struct FocusSessionLiveActivityWidget: Widget {
         endDate: Date().addingTimeInterval(1500),
         isPaused: false,
         remainingSeconds: 1500,
-        title: "Deep Work"
+        title: "Deep Work",
+        category: "work"
     )
 }
 #endif

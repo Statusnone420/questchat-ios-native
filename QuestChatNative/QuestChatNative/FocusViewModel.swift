@@ -1820,7 +1820,8 @@ final class FocusViewModel: ObservableObject {
                     endDate: session.endDate,
                     isPaused: false,
                     remainingSeconds: totalDuration,
-                    title: title
+                    title: title,
+                    category: category.id.rawValue
                 )
                 let content = ActivityContent(state: contentState, staleDate: session.endDate)
 
@@ -2028,12 +2029,14 @@ final class FocusViewModel: ObservableObject {
         startDate: Date,
         endDate: Date
     ) {
+        let categoryRawValue = activeSessionCategory?.rawValue ?? selectedCategory.rawValue
         let contentState = FocusSessionAttributes.ContentState(
             startDate: startDate,
             endDate: endDate,
             isPaused: isPaused,
             remainingSeconds: remaining,
-            title: title
+            title: title,
+            category: categoryRawValue
         )
         let content = ActivityContent(state: contentState, staleDate: isPaused ? nil : endDate)
 
@@ -2057,6 +2060,9 @@ final class FocusViewModel: ObservableObject {
             let now = Date()
             let isPaused = contentState.isPaused
             var remaining: Int
+            
+            // ✅ Restore the category from the Live Activity
+            let restoredCategory = TimerCategory.Kind(rawValue: contentState.category) ?? .focusMode
 
             if isPaused {
                 // Paused session: just restore remaining seconds and paused state
@@ -2064,24 +2070,37 @@ final class FocusViewModel: ObservableObject {
                 timerState = .paused
                 self.state = .paused
                 currentSession = nil
+                
+                // ✅ Set the restored category
+                await MainActor.run {
+                    self.selectedCategory = restoredCategory
+                    self.selectedMode = restoredCategory.mode
+                    self.activeSessionCategory = restoredCategory
+                }
             } else {
                 // Running session: compute remaining based on endDate
                 remaining = max(Int(ceil(contentState.endDate.timeIntervalSince(now))), 0)
 
                 if remaining > 0 {
                     // Still in progress → recreate the session and resume UI timer
-                    // Use selectedCategory as fallback; the correct category will be restored from
-                    // persisted session data in handleScenePhaseChange > restorePersistedSessionIfNeeded
                     let session = FocusSession(
                         id: UUID(),
-                        type: selectedMode,
+                        type: restoredCategory.mode,
                         duration: TimeInterval(totalDuration),
                         startDate: contentState.startDate,
-                        category: selectedCategory  // Fallback, will be overwritten by persisted data
+                        category: restoredCategory
                     )
                     currentSession = session
                     timerState = .running
                     self.state = .running
+                    
+                    // ✅ Set the restored category
+                    await MainActor.run {
+                        self.selectedCategory = restoredCategory
+                        self.selectedMode = restoredCategory.mode
+                        self.activeSessionCategory = restoredCategory
+                    }
+                    
                     startUITimer()
                 } else {
                     // ⛔️ Timer already finished while the app was gone.
@@ -2107,7 +2126,7 @@ final class FocusViewModel: ObservableObject {
             await MainActor.run {
                 self.liveActivity = activity
             }
-            print("[FocusLiveActivity] Restored existing activity \(activity.id) paused=\(isPaused) remaining=\(remaining)")
+            print("[FocusLiveActivity] Restored existing activity \(activity.id) paused=\(isPaused) remaining=\(remaining) category=\(restoredCategory)")
         }
     }
 
@@ -2310,6 +2329,18 @@ final class FocusViewModel: ObservableObject {
     }
 
     func handleAppear() {
+        // 🚨 NUCLEAR OPTION: Uncomment these lines to kill all Live Activities on startup
+        // This prevents category mismatch issues but means users lose their running timers
+        // if #available(iOS 17.0, *) {
+        //     Task {
+        //         for activity in Activity<FocusSessionAttributes>.activities {
+        //             await activity.end(nil, dismissalPolicy: .immediate)
+        //             print("[FocusLiveActivity] Killed stale activity \(activity.id) on app start")
+        //         }
+        //     }
+        //     return  // Don't restore if we're killing everything
+        // }
+        
         if #available(iOS 17.0, *) {
             restoreLiveActivityIfNeeded()
         }
