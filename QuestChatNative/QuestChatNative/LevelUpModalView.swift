@@ -15,6 +15,7 @@ struct LevelUpModalView: View {
     @State private var iconScale: CGFloat = 0.0
     @State private var iconRotation: Double = 0.0
     @State private var showLevelBadge: Bool = false
+    @State private var contentHeight: CGFloat = 0
     
     // Randomized once and persisted for the lifetime of this modal
     @State private var randomHeadline: String
@@ -32,7 +33,7 @@ struct LevelUpModalView: View {
 
     var body: some View {
         ZStack {
-            // dimmed background
+            // Dimmed background
             Color.black.opacity(0.55)
                 .ignoresSafeArea()
 
@@ -43,91 +44,132 @@ struct LevelUpModalView: View {
                     .ignoresSafeArea()
             }
 
-            ZStack {
-                // Randomized gradient glow ring
-                RadialGradient(
-                    gradient: Gradient(colors: [gradientColor.opacity(gradientOpacity), Color.clear]),
-                    center: .center,
-                    startRadius: 10,
-                    endRadius: gradientEndRadius
-                )
-                .frame(width: gradientSize, height: gradientSize)
-                .scaleEffect(pulseScale)
-                .opacity(pulseOpacity)
-                .blur(radius: gradientBlur)
-                .allowsHitTesting(false)
-                
-                // Secondary randomized gradient for extra flair
-                randomGradient
-                    .opacity(0.15)
-                    .frame(width: gradientSize * 0.8, height: gradientSize * 0.8)
-                    .blur(radius: 40)
-                    .scaleEffect(pulseScale * 0.9)
-                    .opacity(pulseOpacity * 0.7)
+            GeometryReader { proxy in
+                let availW = proxy.size.width
+                let availH = proxy.size.height
+
+                // Scale visuals to fit the current device
+                let glowSize = min(self.gradientSize, min(availW, availH) * 0.9)
+                let tierIconSize = min(self.iconSize, availW * 0.18)
+                let titleFontSize = min(self.titleSize, availW * 0.12)
+
+                // Constrain the card width, and cap height only if content exceeds it
+                let cardMaxWidth = min(availW - 32, 420)
+                let maxCardHeight = max(280, availH - 220)
+
+                ZStack {
+                    // Randomized gradient glow ring
+                    RadialGradient(
+                        gradient: Gradient(colors: [gradientColor.opacity(gradientOpacity), Color.clear]),
+                        center: .center,
+                        startRadius: 10,
+                        endRadius: gradientEndRadius
+                    )
+                    .frame(width: glowSize, height: glowSize)
+                    .scaleEffect(pulseScale)
+                    .opacity(pulseOpacity)
+                    .blur(radius: gradientBlur)
                     .allowsHitTesting(false)
 
-                VStack(spacing: tierSpacing) {
-                    // Tier-specific icon
-                    if let icon = tierIcon {
-                        Image(systemName: icon)
-                            .font(.system(size: iconSize))
-                            .foregroundStyle(iconGradient)
-                            .scaleEffect(iconScale)
-                            .rotationEffect(.degrees(iconRotation))
-                            .shadow(color: iconColor.opacity(0.5), radius: 10)
+                    // Secondary randomized gradient for extra flair
+                    randomGradient
+                        .opacity(0.15)
+                        .frame(width: glowSize * 0.8, height: glowSize * 0.8)
+                        .blur(radius: 40)
+                        .scaleEffect(pulseScale * 0.9)
+                        .opacity(pulseOpacity * 0.7)
+                        .allowsHitTesting(false)
+
+                    // Always use a scroll container, but size it to the measured content height
+                    ScrollView(.vertical, showsIndicators: false) {
+                        let spacing = (levelUp.tier == .jackpot ? max(8, tierSpacing - 10) : max(10, tierSpacing - 8))
+
+                        VStack(spacing: spacing) {
+                            // Tier-specific icon
+                            if let icon = tierIcon {
+                                Image(systemName: icon)
+                                    .font(.system(size: tierIconSize))
+                                    .foregroundStyle(iconGradient)
+                                    .scaleEffect(iconScale)
+                                    .rotationEffect(.degrees(iconRotation))
+                                    .shadow(color: iconColor.opacity(0.5), radius: 10)
+                            }
+
+                            // Randomized headline
+                            Text(randomHeadline)
+                                .font(.system(size: titleFontSize, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                                .shadow(color: shadowColor, radius: shadowRadius)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(1)
+                                .allowsTightening(true)
+                                .minimumScaleFactor(0.7)
+                                .padding(.horizontal, 8)
+
+                            // Level badge
+                            levelBadgeView
+                                .padding(.top, 2)
+
+                            // Subtitle (allow jackpot to wrap to two lines to avoid clipping)
+                            Text(tierSubtitle)
+                                .font(subtitleFont)
+                                .foregroundColor(.white.opacity(0.85))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(levelUp.tier == .jackpot ? 2 : 1)
+                                .allowsTightening(true)
+                                .minimumScaleFactor(levelUp.tier == .jackpot ? 0.9 : 0.8)
+                                .padding(.horizontal, 24)
+
+                            // Talent / Perk preview
+                            if grantsTalentPoint || !levelMeaning.isEmpty {
+                                talentPreviewCard
+                                    .padding(.horizontal, 8)
+                            }
+
+                            // Dismiss button
+                            Button(action: onDismiss) {
+                                Text(QuestChatStrings.FocusView.levelUpButtonTitle)
+                                    .font(.headline)
+                                    .padding(.horizontal, 32)
+                                    .padding(.vertical, 10)
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .background(buttonBackground)
+                            .foregroundColor(.black)
+                            .clipShape(Capsule())
+                            .shadow(color: buttonShadowColor, radius: buttonShadowRadius)
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        // Measure content height so the card hugs content on all devices
+                        .background(
+                            GeometryReader { geo in
+                                Color.clear.preference(key: ContentHeightPreference.self, value: geo.size.height)
+                            }
+                        )
                     }
+                    // Hug content: the ScrollView height = min(contentHeight, maxCardHeight)
+                    .frame(maxWidth: cardMaxWidth)
+                    .frame(height: contentHeight == 0 ? nil : min(contentHeight, maxCardHeight))
+                    .background(
+                        ZStack {
+                            // Subtle gradient behind the card
+                            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                .fill(randomGradient.opacity(0.12))
 
-                    // Randomized headline
-                    Text(randomHeadline)
-                        .font(.system(size: titleSize, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .shadow(color: shadowColor, radius: shadowRadius)
-
-                    // Level badge (separate, polished)
-                    levelBadgeView
-                        .padding(.top, 2)
-
-                    Text(tierSubtitle)
-                        .font(subtitleFont)
-                        .foregroundColor(.white.opacity(0.85))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-
-                    // Talent / Perk preview
-                    if grantsTalentPoint || !levelMeaning.isEmpty {
-                        talentPreviewCard
-                            .padding(.horizontal, 8)
-                    }
-
-                    Button(action: onDismiss) {
-                        Text(QuestChatStrings.FocusView.levelUpButtonTitle)
-                            .font(.headline)
-                            .padding(.horizontal, 40)
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .background(buttonBackground)
-                    .foregroundColor(.black)
-                    .clipShape(Capsule())
-                    .padding(.horizontal, 32)
-                    .shadow(color: buttonShadowColor, radius: buttonShadowRadius)
+                            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                .fill(Color.black.opacity(0.9))
+                        }
+                        .shadow(color: cardShadowColor, radius: cardShadowRadius, x: 0, y: 10)
+                    )
+                    .padding(.horizontal, 16)
+                    .transition(.scale.combined(with: .opacity))
                 }
-                .padding(.vertical, 32)
-                .padding(.horizontal, 24)
-                .background(
-                    ZStack {
-                        // Subtle gradient behind the card
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .fill(randomGradient.opacity(0.12))
-                        
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
-                            .fill(Color.black.opacity(0.9))
-                    }
-                    .shadow(color: cardShadowColor,
-                            radius: cardShadowRadius, x: 0, y: 10)
-                )
-                .padding(.horizontal, 24)
-                .transition(.scale.combined(with: .opacity))
+                .frame(width: availW, height: availH, alignment: .center)
+                .onPreferenceChange(ContentHeightPreference.self) { newHeight in
+                    // Update measured content height
+                    contentHeight = newHeight
+                }
             }
         }
         .onAppear {
@@ -141,10 +183,10 @@ struct LevelUpModalView: View {
                 showLevelBadge = true
             }
         }
-        .animation(.spring(response: 0.5,
-                           dampingFraction: 0.8,
-                           blendDuration: 0.2),
-                   value: levelUp.level)
+        .animation(
+            .spring(response: 0.5, dampingFraction: 0.8, blendDuration: 0.2),
+            value: levelUp.level
+        )
     }
 
     // MARK: - Tier-based styling properties
@@ -478,29 +520,37 @@ struct LevelUpModalView: View {
                     .background(Color.mint.opacity(0.18))
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .center, spacing: 2) {
                     Text(grantsTalentPoint ? "New talent point available" : "Perk update")
                         .font(.subheadline.weight(.semibold))
+                        .multilineTextAlignment(.center)
                     Text(levelMeaning)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
-
-                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, alignment: .center)
 
             if grantsTalentPoint, onOpenTalents != nil {
                 Button(action: { onOpenTalents?() }) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Image(systemName: "wand.and.stars")
+                            .font(.footnote.bold())
                         Text("Tap to spend it")
-                            .fontWeight(.semibold)
+                            .font(.footnote.weight(.semibold))
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(Color.mint.opacity(0.2))
+                    )
+                    .foregroundStyle(.mint)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.mint)
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
+                .multilineTextAlignment(.center)
             }
         }
         .padding(12)
@@ -615,3 +665,9 @@ struct LevelUpModalView: View {
     }
 }
 
+private struct ContentHeightPreference: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
