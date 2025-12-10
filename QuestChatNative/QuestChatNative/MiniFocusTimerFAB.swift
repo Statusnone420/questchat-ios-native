@@ -59,12 +59,12 @@ struct MiniFocusTimerFAB: View {
             LottieView(
                 animationName: "FocusRings",
                 loopMode: .loop,
-                animationSpeed: 0.45,
+                animationSpeed: 0.5,
                 contentMode: .scaleAspectFit,
                 animationTrigger: focusRingsTrigger,
                 freezeOnLastFrame: false
             )
-            .frame(width: 140, height: 140) // Sized so outer pulse hits inner edge of progress ring
+            .frame(width: 120, height: 120) // Sized so outer pulse hits inner edge of progress ring
             .opacity(0.6)
             .allowsHitTesting(false)
 
