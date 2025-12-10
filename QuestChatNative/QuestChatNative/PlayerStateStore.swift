@@ -14,6 +14,10 @@ final class PlayerStateStore: ObservableObject {
     @Published var activeDebuffs: [String]
     @Published var activeBuffs: [String]
     @Published var pendingLevelUp: PendingLevelUp?
+    
+    @Published var equippedBadgeID: String? {
+        didSet { saveEquippedBadge() }
+    }
 
     private let userDefaults: UserDefaults
     private let calendar = Calendar.current
@@ -53,6 +57,9 @@ final class PlayerStateStore: ObservableObject {
         self.xp = storedXP > 0 ? storedXP : xp
         self.level = storedLevel > 0 ? storedLevel : level
         self.pendingLevelUp = nil
+
+        let storedBadge = userDefaults.string(forKey: Keys.equippedBadgeID)
+        self.equippedBadgeID = storedBadge
 
         self.waterGoalXPGrantedToday = userDefaults.bool(forKey: Keys.waterGoalXPGrantedToday)
         self.sleepXPGrantedToday = userDefaults.bool(forKey: Keys.sleepXPGrantedToday)
@@ -168,6 +175,7 @@ private extension PlayerStateStore {
         static let trifectaGrantedToday = "trifecta_xp_granted_today"
         static let lastBuffResetDate = "last_buff_reset_date"
         static let activeBuffs = "player_active_buffs"
+        static let equippedBadgeID = "equippedBadgeID"
     }
 
     func addXPWithMultiplier(_ baseXP: Int) {
@@ -221,5 +229,9 @@ private extension PlayerStateStore {
     func persistProgress() {
         userDefaults.set(xp, forKey: Keys.xp)
         userDefaults.set(level, forKey: Keys.level)
+    }
+    
+    func saveEquippedBadge() {
+        userDefaults.set(equippedBadgeID, forKey: Keys.equippedBadgeID)
     }
 }

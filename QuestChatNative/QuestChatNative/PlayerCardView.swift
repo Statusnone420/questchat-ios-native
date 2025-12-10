@@ -327,6 +327,7 @@ struct PlayerCardView: View {
     @State private var avatarSpin: Double = 0
 
     @StateObject private var potionManager = PotionManager()
+    @StateObject private var badgeController = BadgeController(playerState: DependencyContainer.shared.playerStateStore)
     @State private var auraColor: Color? = nil
     
     @State private var showHealthPopover = false
@@ -822,25 +823,60 @@ struct PlayerCardView: View {
                     }
                     .buttonStyle(.plain)
 
-                    // Removed badges row from here
+                    if let equipped = badgeController.badges.first(where: { $0.isEquipped }) {
+                        HStack(spacing: 6) {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(colors: [.teal, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    )
+                                    .frame(width: 20, height: 20)
 
+                                Image(systemName: equipped.iconName)
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
+                            Text("Equipped badge")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
 
                 Spacer()
             }
 
-            let unlockedBadges = statsViewModel.seasonAchievements.filter { $0.isUnlocked }
-            if !unlockedBadges.isEmpty {
+            let badges = badgeController.badges.filter { $0.isUnlocked }
+            if !badges.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        ForEach(unlockedBadges) { item in
-                            SeasonAchievementBadgeView(
-                                title: item.title,
-                                iconName: item.iconName,
-                                isUnlocked: true,
-                                progressFraction: 1.0,
-                                isCompact: true
-                            )
+                        ForEach(badges) { badge in
+                            Button {
+                                badgeController.didTapBadge(id: badge.id)
+                            } label: {
+                                ZStack {
+                                    let isEquipped = badge.isEquipped
+                                    let size: CGFloat = isEquipped ? 42 : 32
+                                    let bg = isEquipped
+                                        ? AnyShapeStyle(LinearGradient(colors: [.teal, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        : AnyShapeStyle(Color(uiColor: .secondarySystemBackground).opacity(0.22))
+
+                                    Circle()
+                                        .fill(bg)
+                                        .frame(width: size, height: size)
+                                        .overlay(
+                                            Circle().stroke(isEquipped ? Color.white.opacity(0.6) : Color.white.opacity(0.12), lineWidth: isEquipped ? 2 : 1)
+                                        )
+
+                                    Image(systemName: badge.iconName)
+                                        .font(.system(size: isEquipped ? 18 : 14, weight: .bold))
+                                        .foregroundStyle(isEquipped ? .white : .secondary)
+                                }
+                                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: badge.isEquipped)
+                                .accessibilityLabel(badge.iconName)
+                                .accessibilityValue(badge.isEquipped ? "Equipped" : "Unlocked")
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -857,7 +893,6 @@ struct PlayerCardView: View {
                 )
                 .padding(.horizontal, 2)
                 .transition(.opacity.combined(with: .scale))
-                .animation(.spring(response: 0.45, dampingFraction: 0.8), value: unlockedBadges.count)
             }
 
             Text("Your real-life stats, achivements, badges, and titles.")
@@ -1233,6 +1268,53 @@ struct DailyVitalsSlidersView: View {
                 focusViewModel.activityLevel = HealthRatingMapper.activityLevel(for: newValue)
             }
         )
+    }
+}
+
+private struct BadgeItem: Identifiable, Equatable {
+    let id: String
+    let iconName: String
+    let isUnlocked: Bool
+    let isEquipped: Bool
+}
+
+private final class BadgeController: ObservableObject {
+    @Published var badges: [BadgeItem] = []
+
+    private let playerState: PlayerStateStore
+    private var cancellables = Set<AnyCancellable>()
+
+    init(playerState: PlayerStateStore) {
+        self.playerState = playerState
+
+        let achievementsStore = DependencyContainer.shared.seasonAchievementsStore
+
+        playerState.$equippedBadgeID
+            .combineLatest(achievementsStore.$progressById)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] equippedID, _ in
+                guard let self else { return }
+                let achievements = achievementsStore.achievements
+                let mapped: [BadgeItem] = achievements.map { a in
+                    let progress = achievementsStore.progress(for: a)
+                    return BadgeItem(
+                        id: a.id,
+                        iconName: a.iconName,
+                        isUnlocked: progress.isUnlocked,
+                        isEquipped: a.id == equippedID
+                    )
+                }
+                self.badges = mapped
+            }
+            .store(in: &cancellables)
+    }
+
+    func didTapBadge(id: String) {
+        if playerState.equippedBadgeID == id {
+            playerState.equippedBadgeID = nil
+        } else {
+            playerState.equippedBadgeID = id
+        }
     }
 }
 

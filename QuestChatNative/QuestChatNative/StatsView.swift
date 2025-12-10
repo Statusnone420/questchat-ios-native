@@ -138,7 +138,7 @@ struct StatsView: View {
                     PlayerNameplateView(
                         name: (UserDefaults.standard.string(forKey: "playerDisplayName") ?? "Player One"),
                         level: store.level,
-                        badgeSymbol: nil
+                        badgeSymbol: equippedBadgeSymbol()
                     )
                     Spacer()
                 }
@@ -260,6 +260,18 @@ struct StatsView: View {
             )
             .presentationDetents([.medium, .large])
         }
+    }
+
+    private func equippedBadgeSymbol() -> String? {
+        let playerState = DependencyContainer.shared.playerStateStore
+        guard let id = playerState.equippedBadgeID else { return nil }
+        let achievementsStore = DependencyContainer.shared.seasonAchievementsStore
+        if let achievement = achievementsStore.achievements.first(where: { $0.id == id }) {
+            let progress = achievementsStore.progress(for: achievement)
+            guard progress.isUnlocked else { return nil }
+            return achievement.iconName
+        }
+        return nil
     }
 
     private func healthDayRow(_ day: HealthDaySummary) -> some View {
@@ -1014,3 +1026,4 @@ private struct PlayerNameplateView: View {
         .shadow(color: Color.black.opacity(0.7), radius: 16, x: 0, y: 8)
     }
 }
+
