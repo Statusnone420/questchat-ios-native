@@ -29,14 +29,14 @@ struct AchievementUnlockOverlayView: View {
                     .opacity(animateIn ? 1 : 0)
                     .animation(.easeOut(duration: 0.25), value: animateIn)
                 
-                // Fist bump hero animation (plays once per unlock)
+                // Fist bump hero animation (loops continuously)
                 LottieView(
                     animationName: "FistBump",
-                    loopMode: .playOnce,
+                    loopMode: .loop,
                     animationSpeed: 1.0,
-                    freezeOnLastFrame: true
+                    freezeOnLastFrame: false
                 )
-                .frame(width: 140, height: 140)
+                .frame(width: 350, height: 350)
                 .scaleEffect(animateIn ? 1.0 : 0.5)
                 .opacity(animateIn ? 1.0 : 0.0)
                 .animation(.spring(response: 0.6, dampingFraction: 0.65).delay(0.15), value: animateIn)
