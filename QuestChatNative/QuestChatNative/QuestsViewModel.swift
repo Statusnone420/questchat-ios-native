@@ -1,5 +1,14 @@
 import Foundation
+import SwiftUI
 import Combine
+
+/// Combo celebration data for visual overlay
+struct ComboCelebration: Identifiable {
+    let id = UUID()
+    let title: String
+    let subtitle: String
+    let xpAmount: Int
+}
 
 /// Represents a quest shown in the UI. If a quest has a numeric requirement (minutes, sessions, days, cups, HP%), keep the subtitle explicit about the exact number and avoid jargon like “sprint”.
 struct Quest: Identifiable, Equatable {
@@ -91,9 +100,27 @@ final class QuestsViewModel: ObservableObject {
     
     // Added published dictionary to hold daily hints for quests
     @Published var dailyHints: [String: String] = [:]
+    
+    // Combo celebration overlay (like sip feedback)
+    @Published var comboCelebration: ComboCelebration? = nil
+    
+    // Track consecutive timers for C-C-COMBO BREAKER! bonus
+    private struct TimerCompletionRecord: Codable {
+        let completedAt: Date
+    }
+    
+    private var consecutiveTimersToday: [TimerCompletionRecord] = []
+    private var hasAwardedTimerStreakBonusToday = false
+    
+    /// Public accessor for UI to display combo progress
+    var consecutiveTimerCount: Int {
+        consecutiveTimersToday.count
+    }
 
     private var mysteryKey: String { "mystery-\(completionKey)" }
     private var chainHistoryKey: String { "chain-history-\(completionKey)" }
+    private var consecutiveTimersKey: String { "consecutive-timers-\(completionKey)" }
+    private var timerStreakBonusGrantedKey: String { "timer-streak-bonus-\(completionKey)" }
 
     private var isSyncScheduled = false
 
@@ -142,9 +169,6 @@ final class QuestsViewModel: ObservableObject {
     private var questChestReadyKey: String {
         "quest-chest-ready-\(completionKey)"
     }
-    
-    // Added timer combo bonus key
-    private var timerComboGrantedKey: String { "timer-combo-granted-\(completionKey)" }
 
     private var currentWeekKey: String {
         let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: dayReference)
@@ -192,10 +216,6 @@ final class QuestsViewModel: ObservableObject {
     private var hardQuestCountKey: String {
         "\(currentWeekKey)-hard-quests"
     }
-    
-    // Added helpers to check/set timer combo bonus grant state
-    private func hasGrantedTimerComboBonus() -> Bool { userDefaults.bool(forKey: timerComboGrantedKey) }
-    private func setGrantedTimerComboBonus() { userDefaults.set(true, forKey: timerComboGrantedKey) }
 
     private func loadLastDailyCompletion() -> LastDailyCompletion? {
         guard let data = userDefaults.data(forKey: lastCompletionKey) else { return nil }
@@ -288,6 +308,8 @@ final class QuestsViewModel: ObservableObject {
         loadDailySetupDays()
         loadWeekendTimerDays()
         weeklyHardQuestCount = userDefaults.integer(forKey: hardQuestCountKey)
+        loadConsecutiveTimers()
+        hasAwardedTimerStreakBonusToday = userDefaults.bool(forKey: timerStreakBonusGrantedKey)
         updateWeeklyHydrationQuestCompletion()
         updateWeeklyHPQuestCompletion()
         updateWeeklyDailyQuestCompletionProgress()
@@ -847,6 +869,13 @@ extension QuestsViewModel {
     func handleTimerCompletion(category: TimerCategory.Kind, durationMinutes: Int, endedAt: Date) {
         let startOfDay = calendar.startOfDay(for: endedAt)
 
+        // OPTION C: Passive Trickle XP for ANY completed timer
+        // Award XP based on duration (makes every timer feel rewarding!)
+        grantPassiveTimerXP(durationMinutes: durationMinutes, category: category)
+        
+        // Track consecutive timers for COMBO BREAKER bonus (3 timers in a row)
+        trackConsecutiveTimer(completedAt: endedAt, durationMinutes: durationMinutes)
+
         // Updated to match new streamlined daily quests
         if isWorkCategory(category) {
             if durationMinutes >= 10 { completeQuestIfNeeded(id: "DAILY_TIMER_QUICK_WORK") }
@@ -874,6 +903,39 @@ extension QuestsViewModel {
         }
 
         registerWeekendTimerIfNeeded(durationMinutes: durationMinutes, date: startOfDay)
+    }
+    
+    /// Awards passive XP for completing any timer (Option C implementation)
+    /// Scaled formula: more minutes = more XP, with bonus for longer sessions
+    private func grantPassiveTimerXP(durationMinutes: Int, category: TimerCategory.Kind) {
+        guard durationMinutes >= 1 else { return } // Track all timers, even 1-minute ones
+        
+        // Base formula: scaled rewards for different durations
+        let baseXP: Int
+        switch durationMinutes {
+        case 1..<5:
+            baseXP = 1  // Tiny timer: 1 XP
+        case 5..<10:
+            baseXP = 2  // Short timer: 2 XP
+        case 10..<25:
+            baseXP = 3  // Medium timer: 3 XP
+        case 25..<45:
+            baseXP = 5  // Focus session: 5 XP
+        case 45...:
+            baseXP = 8  // Deep work: 8 XP
+        default:
+            baseXP = 1
+        }
+        
+        // Optional: bonus XP for work/focus timers
+        let categoryBonus = isWorkCategory(category) ? 1 : 0
+        
+        let totalXP = baseXP + categoryBonus
+        statsStore.grantXP(totalXP, source: "passive-timer-\(durationMinutes)m")
+        
+        #if DEBUG
+        print("Passive Timer XP: \(totalXP) XP for \(durationMinutes)m timer (\(category))")
+        #endif
     }
 
     func isWorkCategory(_ category: TimerCategory.Kind) -> Bool { category == .focusMode || category == .create }
@@ -1010,17 +1072,6 @@ extension QuestsViewModel {
         // Mystery Buff: grant bonus XP when the mystery quest is completed
         if let mysteryId = mysteryQuestID, mysteryId == id {
             statsStore.grantXP(15, source: "DAILY_MYSTERY_BONUS")
-        }
-        
-        // One-time Timer Combo bonus: two timer quests in a day
-        if !hasGrantedTimerComboBonus() {
-            let completedTodayIDs = dailyQuests.filter { $0.isCompleted }.map { $0.id }
-            let defsByID = Dictionary(uniqueKeysWithValues: Self.activeDailyQuestPool.map { ($0.id, $0) })
-            let completedTimerCount = completedTodayIDs.compactMap { defsByID[$0] }.filter { $0.category == .timer }.count
-            if completedTimerCount >= 2 {
-                statsStore.grantXP(10, source: "DAILY_TIMER_COMBO_BONUS")
-                setGrantedTimerComboBonus()
-            }
         }
 
         if !hadCompletedQuests && id != "DAILY_EASY_FIRST_QUEST" {
@@ -1476,6 +1527,89 @@ extension QuestsViewModel {
     
     // Expose hint accessor for UI convenience
     func hint(for quest: Quest) -> String? { dailyHints[quest.id] }
+    
+    /// Triggers a combo celebration overlay with auto-dismiss
+    func triggerComboCelebration(title: String, subtitle: String, xpAmount: Int) {
+        comboCelebration = ComboCelebration(title: title, subtitle: subtitle, xpAmount: xpAmount)
+        
+        // Auto-dismiss after 3 seconds (longer than sip feedback since it's more important)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            withAnimation {
+                self?.comboCelebration = nil
+            }
+        }
+    }
+    
+    // MARK: - Consecutive Timer Tracking
+    
+    /// Track consecutive timer completions for COMBO BREAKER bonus
+    private func trackConsecutiveTimer(completedAt: Date, durationMinutes: Int) {
+        // Track ALL timers (no minimum duration requirement)
+        
+        // Add this completion to the list
+        consecutiveTimersToday.append(TimerCompletionRecord(completedAt: completedAt))
+        
+        // Clean up old entries (older than 2 hours = combo broken)
+        let comboWindow: TimeInterval = 2 * 60 * 60 // 2 hours
+        consecutiveTimersToday = consecutiveTimersToday.filter { 
+            completedAt.timeIntervalSince($0.completedAt) < comboWindow 
+        }
+        
+        // Persist the updated list
+        persistConsecutiveTimers()
+        
+        // Notify SwiftUI that the view needs to update
+        objectWillChange.send()
+        
+        // Check for 3-timer combo
+        if consecutiveTimersToday.count >= 3 && !hasAwardedTimerStreakBonusToday {
+            awardTimerStreakBonus()
+        }
+        
+        #if DEBUG
+        print("⏱️ Consecutive timers today: \(consecutiveTimersToday.count)")
+        #endif
+    }
+    
+    private func awardTimerStreakBonus() {
+        let bonusXP = 25 // Bigger bonus for 3 timers in a row!
+        statsStore.grantXP(bonusXP, source: "TIMER_STREAK_COMBO")
+        hasAwardedTimerStreakBonusToday = true
+        userDefaults.set(true, forKey: timerStreakBonusGrantedKey)
+        
+        // 🎮 EPIC COMBO CELEBRATION!
+        triggerComboCelebration(
+            title: "C-C-COMBO BREAKER!",
+            subtitle: "3 Timers Complete — Unstoppable!",
+            xpAmount: bonusXP
+        )
+        
+        #if DEBUG
+        print("🔥 COMBO BREAKER! Awarded \(bonusXP) XP for 3 consecutive timers!")
+        #endif
+    }
+    
+    private func loadConsecutiveTimers() {
+        guard let data = userDefaults.data(forKey: consecutiveTimersKey) else {
+            consecutiveTimersToday = []
+            return
+        }
+        
+        consecutiveTimersToday = (try? JSONDecoder().decode([TimerCompletionRecord].self, from: data)) ?? []
+        
+        // Clean up stale entries on load (older than 2 hours)
+        let now = Date()
+        let comboWindow: TimeInterval = 2 * 60 * 60
+        consecutiveTimersToday = consecutiveTimersToday.filter {
+            now.timeIntervalSince($0.completedAt) < comboWindow
+        }
+    }
+    
+    private func persistConsecutiveTimers() {
+        if let data = try? JSONEncoder().encode(consecutiveTimersToday) {
+            userDefaults.set(data, forKey: consecutiveTimersKey)
+        }
+    }
 }
 
 extension SessionStatsStore {

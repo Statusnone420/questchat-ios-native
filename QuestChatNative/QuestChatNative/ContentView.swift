@@ -102,7 +102,16 @@ struct ContentView: View {
                 .zIndex(100)
                 .transition(.opacity.combined(with: .scale))
             }
+            
+            // 🎮 COMBO CELEBRATION (app-wide for timer combos!)
+            if let combo = questsViewModel.comboCelebration {
+                comboCelebrationOverlay(combo: combo)
+                    .padding(.top, 100)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(99)
+            }
         }
+        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: questsViewModel.comboCelebration != nil)
         .onReceive(NotificationCenter.default.publisher(for: .openTalentsTabRequested)) { _ in
             withAnimation(.easeInOut(duration: 0.25)) {
                 selectedTab = .talents
@@ -168,6 +177,76 @@ struct ContentView: View {
         }
         .onAppear {
             focusViewModel.updateScenePhase(scenePhase)
+        }
+    }
+    
+    /// 🎮 Combo celebration overlay - epic full-width gaming-style popup!
+    @ViewBuilder
+    func comboCelebrationOverlay(combo: ComboCelebration) -> some View {
+        VStack(spacing: 16) {
+            // Epic title with gradient
+            Text(combo.title)
+                .font(.system(size: 42, weight: .black, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.orange, .red, .pink],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .shadow(color: .red.opacity(0.8), radius: 12, x: 0, y: 4)
+                .multilineTextAlignment(.center)
+            
+            // Subtitle
+            Text(combo.subtitle)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+            
+            // XP Reward
+            HStack(spacing: 8) {
+                Image(systemName: "star.fill")
+                    .font(.title2)
+                    .foregroundStyle(.yellow)
+                Text("+\(combo.xpAmount) XP")
+                    .font(.title.bold())
+                    .foregroundStyle(.yellow)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
+            .background(
+                Capsule()
+                    .fill(.black.opacity(0.7))
+                    .overlay(
+                        Capsule()
+                            .stroke(Color.yellow.opacity(0.9), lineWidth: 3)
+                    )
+            )
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 32)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.black.opacity(0.92))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [.orange, .red, .pink],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 4
+                        )
+                )
+        )
+        .padding(.horizontal, 16)
+        .shadow(color: .orange.opacity(0.8), radius: 30, x: 0, y: 12)
+        .scaleEffect(1.0)
+        .animation(.spring(response: 0.4, dampingFraction: 0.6), value: combo.id)
+        .onAppear {
+            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
         }
     }
 }

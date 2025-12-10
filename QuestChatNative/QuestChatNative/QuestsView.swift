@@ -278,13 +278,31 @@ private extension QuestsView {
                     
                     #if DEBUG
                     // Temporary: Test treasure chest animation
-                    Button("🎁 Test Chest Animation") {
+                    Button {
                         viewModel.hasQuestChestReady = true
+                    } label: {
+                        Text("🎁 Test Chest Animation")
+                            .font(.caption)
+                            .padding(8)
+                            .background(Color.orange.opacity(0.2))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
-                    .font(.caption)
-                    .padding(8)
-                    .background(Color.orange.opacity(0.2))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        viewModel.triggerComboCelebration(
+                            title: "C-C-COMBO BREAKER!",
+                            subtitle: "3 Timers Complete — Unstoppable!",
+                            xpAmount: 25
+                        )
+                    } label: {
+                        Text("🔥 Test Combo Celebration")
+                            .font(.caption)
+                            .padding(8)
+                            .background(Color.red.opacity(0.2))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
                     #endif
                 }
             }

@@ -15,6 +15,7 @@
 		89E44CEDEBE9438A8087E956 /* TalentsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCA726367C92483F9DBAEF65 /* TalentsViewModel.swift */; };
 		D80A60BD2EE1397D003C5262 /* QuestEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80A60BC2EE1397D003C5262 /* QuestEngine.swift */; };
 		D80A60E12EE13C6D003C5262 /* PlayerProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */; };
+		D819B0422EE9CA3000F4059A /* TIMER_COMBO_IMPLEMENTATION.md in Resources */ = {isa = PBXBuildFile; fileRef = D819B0412EE9CA3000F4059A /* TIMER_COMBO_IMPLEMENTATION.md */; };
 		D83AE0022EE38504000217E6 /* SleepHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83AE0012EE38504000217E6 /* SleepHistoryStore.swift */; };
 		D846BF842EE8A28F00E5A440 /* LottieView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D846BF832EE8A28F00E5A440 /* LottieView.swift */; };
 		D846BF872EE8A30D00E5A440 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = D846BF862EE8A30D00E5A440 /* Lottie */; };
@@ -113,6 +114,7 @@
 		7C05BAE34C71496AA2638D88 /* QuestCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestCatalog.swift; sourceTree = "<group>"; };
 		D80A60BC2EE1397D003C5262 /* QuestEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuestEngine.swift; sourceTree = "<group>"; };
 		D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProgress.swift; sourceTree = "<group>"; };
+		D819B0412EE9CA3000F4059A /* TIMER_COMBO_IMPLEMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TIMER_COMBO_IMPLEMENTATION.md; sourceTree = "<group>"; };
 		D83AE0012EE38504000217E6 /* SleepHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHistoryStore.swift; sourceTree = "<group>"; };
 		D846BF832EE8A28F00E5A440 /* LottieView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LottieView.swift; sourceTree = "<group>"; };
 		D846BF882EE8A4C900E5A440 /* TreasureChest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = TreasureChest.json; sourceTree = "<group>"; };
@@ -329,6 +331,7 @@
 				D8D444A82EE4C65F00CA06DE /* TalentTreeStore.swift */,
 				D8A1A0162EDE07B400A6A016 /* TodaySummaryView.swift */,
 				D846BF882EE8A4C900E5A440 /* TreasureChest.json */,
+				D819B0412EE9CA3000F4059A /* TIMER_COMBO_IMPLEMENTATION.md */,
 			);
 			path = QuestChatNative;
 			sourceTree = "<group>";
@@ -436,6 +439,7 @@
 				D846BF892EE8A4C900E5A440 /* TreasureChest.json in Resources */,
 				D846C0352EE90B1100E5A440 /* sakura_branch.json in Resources */,
 				D846C0392EE911CE00E5A440 /* FocusRings.json in Resources */,
+				D819B0422EE9CA3000F4059A /* TIMER_COMBO_IMPLEMENTATION.md in Resources */,
 				D8A200202EDE07B400A6A001 /* Assets.xcassets in Resources */,
 				D846C03F2EE920FF00E5A440 /* WaveLoop.json in Resources */,
 			);

@@ -701,27 +701,16 @@ struct FocusView: View {
     }
 
     private func comboPill(for category: TimerCategory) -> some View {
-        // Derive a simple combo heuristic from existing stats rather than missing APIs.
-        // Treat the daily focus goal as the combo completion for focus categories.
-        let goalMinutes = statsStore.dailyMinutesGoal ?? 40
-        let focusToday = statsStore.focusSecondsToday / 60
-        let selfCareToday = statsStore.selfCareSecondsToday / 60
-
-        // Determine progress source based on the category's mode.
-        let isFocusMode = category.id.mode == .focus
-        let progressMinutes = isFocusMode ? focusToday : selfCareToday
-
-        // Map progress to a 3-step combo (roughly thirds of the goal for focus; fixed steps for self-care).
-        let stepTarget: Int = max(1, isFocusMode ? max(10, goalMinutes / 3) : 5)
-        let stepsCompleted = max(0, min(3, progressMinutes / stepTarget))
-        let comboComplete = stepsCompleted >= 3
+        // Use actual consecutive timer count from QuestsViewModel
+        let consecutiveCount = questsViewModel.consecutiveTimerCount
+        let comboComplete = consecutiveCount >= 3
 
         return Group {
             if comboComplete {
                 Label(QuestChatStrings.FocusView.comboComplete, systemImage: "sparkles")
                     .labelStyle(.titleAndIcon)
             } else {
-                Label("\(QuestChatStrings.FocusView.comboProgressPrefix) \(stepsCompleted) / 3", systemImage: "repeat")
+                Label("\(QuestChatStrings.FocusView.comboProgressPrefix) \(consecutiveCount) / 3", systemImage: "repeat")
                     .labelStyle(.titleAndIcon)
             }
         }
