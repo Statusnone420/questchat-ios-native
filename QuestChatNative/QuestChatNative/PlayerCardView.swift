@@ -742,43 +742,7 @@ struct PlayerCardView: View {
             let avatarSize: CGFloat = 56 * avatarScale
 
             HStack(alignment: .top, spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: style.colors,
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: avatarSize, height: avatarSize)
-
-                    Image(systemName: style.symbolName)
-                        .font(.system(size: avatarSize * 0.42, weight: .semibold))
-                        .foregroundColor(.white)
-                        .rotationEffect(.degrees(avatarSpin))
-                        .scaleEffect(avatarSpin == 0 ? 1 : 1.06)
-                }
-                .onTapGesture { randomizeAvatar() }
-                .overlay(alignment: .topTrailing) {
-                    Button {
-                        randomizeAvatar()
-                    } label: {
-                        Image(systemName: "dice.fill")
-                            .font(.system(size: max(12, avatarSize * 0.10), weight: .bold))
-                            .foregroundStyle(.white)
-                            .padding(max(6, avatarSize * 0.04))
-                            .background(Color.black.opacity(0.35))
-                            .clipShape(Circle())
-                            .shadow(radius: 3)
-                            .contentShape(Circle())
-                            .accessibilityLabel("Randomize avatar")
-                            .accessibilityHint("Generates a new avatar style")
-                    }
-                    .buttonStyle(.plain)
-                    .offset(x: max(6, avatarSize * 0.11), y: -max(6, avatarSize * 0.11))
-                }
-
+                // LEFT: name + level + XP + boost + XP bar + title
                 VStack(alignment: .leading, spacing: 8) {
                     TextField(QuestChatStrings.PlayerCard.namePlaceholder, text: $playerDisplayName)
                         .font(.title2.weight(.bold))
@@ -858,28 +822,47 @@ struct PlayerCardView: View {
                         )
                     }
                     .buttonStyle(.plain)
-
-                    if let equipped = badgeController.badges.first(where: { $0.isEquipped }) {
-                        HStack(spacing: 6) {
-                            ZStack {
-                                Circle()
-                                    .fill(
-                                        LinearGradient(colors: DependencyContainer.shared.playerStateStore.equippedBadgeGradient, startPoint: .topLeading, endPoint: .bottomTrailing)
-                                    )
-                                    .frame(width: 20, height: 20)
-
-                                Image(systemName: equipped.iconName)
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundStyle(.white)
-                            }
-                            Text("Equipped badge")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
                 }
 
                 Spacer()
+
+                // RIGHT: avatar + dice
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: style.colors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: avatarSize, height: avatarSize)
+
+                    Image(systemName: style.symbolName)
+                        .font(.system(size: avatarSize * 0.42, weight: .semibold))
+                        .foregroundColor(.white)
+                        .rotationEffect(.degrees(avatarSpin))
+                        .scaleEffect(avatarSpin == 0 ? 1 : 1.06)
+                }
+                .onTapGesture { randomizeAvatar() }
+                .overlay(alignment: .topTrailing) {
+                    Button {
+                        randomizeAvatar()
+                    } label: {
+                        Image(systemName: "dice.fill")
+                            .font(.system(size: max(12, avatarSize * 0.10), weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(max(6, avatarSize * 0.04))
+                            .background(Color.black.opacity(0.35))
+                            .clipShape(Circle())
+                            .shadow(radius: 3)
+                            .contentShape(Circle())
+                            .accessibilityLabel("Randomize avatar")
+                            .accessibilityHint("Generates a new avatar style")
+                    }
+                    .buttonStyle(.plain)
+                    .offset(x: max(6, avatarSize * 0.11), y: -max(6, avatarSize * 0.11))
+                }
             }
 
             let badges = badgeController.badges.filter { $0.isUnlocked }
