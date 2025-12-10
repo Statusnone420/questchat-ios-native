@@ -596,13 +596,14 @@ struct StatsView: View {
                 LottieView(
                     animationName: "sakura_branch",
                     loopMode: .loop,
-                    animationSpeed: 0.4,
+                    animationSpeed: 1.0,
                     contentMode: .scaleAspectFill,
                     animationTrigger: sakuraTrigger,
                     freezeOnLastFrame: false
                 )
-                .frame(height: 90)
+                .frame(height: 120)
                 .opacity(0.25)
+                .offset(x: -16, y: -12)
                 .allowsHitTesting(false)
                 
                 // Header content
