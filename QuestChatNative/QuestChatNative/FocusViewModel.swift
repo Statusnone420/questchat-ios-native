@@ -1703,6 +1703,18 @@ final class FocusViewModel: ObservableObject {
         return min(max(value, 0), 1)
     }
 
+    var remainingTimeLabel: String {
+        let seconds = max(remainingSeconds, 0)
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        let secs = seconds % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, secs)
+        } else {
+            return String(format: "%d:%02d", minutes, secs)
+        }
+    }
+
     var isRunning: Bool { state == .running }
 
     func toggleHydrationNudges() {

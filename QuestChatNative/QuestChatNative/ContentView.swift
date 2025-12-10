@@ -35,6 +35,7 @@ struct ContentView: View {
     @StateObject private var healthBarViewModel = DependencyContainer.shared.healthBarViewModel
     @StateObject private var focusViewModel = DependencyContainer.shared.focusViewModel
     @StateObject private var questsViewModel = DependencyContainer.shared.questsViewModel
+    @State private var miniTimerOffset: CGSize = .zero
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -110,6 +111,23 @@ struct ContentView: View {
                     .padding(.top, 100)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(99)
+            }
+            
+            // Mini Focus Timer FAB overlay on all tabs
+            if focusViewModel.state == .running || focusViewModel.state == .paused, focusViewModel.remainingSeconds > 0 {
+                VStack { Spacer() }
+                    .overlay(
+                        MiniFocusTimerFAB(
+                            viewModel: focusViewModel,
+                            selectedTab: $selectedTab,
+                            dragOffset: $miniTimerOffset
+                        )
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 24),
+                        alignment: .bottomTrailing
+                    )
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                    .zIndex(20)
             }
             
             // Global session-complete toast (appears on any tab)

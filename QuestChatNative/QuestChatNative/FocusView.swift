@@ -526,7 +526,7 @@ struct FocusView: View {
                     animationTrigger: focusRingsTrigger,
                     freezeOnLastFrame: false
                 )
-                .frame(width: 330, height: 330)
+                .frame(width: 360, height: 360)
                 .opacity(0.6)
                 .allowsHitTesting(false)
                 

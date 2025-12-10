@@ -17,6 +17,7 @@
 		D80A60E12EE13C6D003C5262 /* PlayerProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */; };
 		D819B0422EE9CA3000F4059A /* TIMER_COMBO_IMPLEMENTATION.md in Resources */ = {isa = PBXBuildFile; fileRef = D819B0412EE9CA3000F4059A /* TIMER_COMBO_IMPLEMENTATION.md */; };
 		D819B0442EE9D1BB00F4059A /* SessionCompleteToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = D819B0432EE9D1BB00F4059A /* SessionCompleteToast.swift */; };
+		D819B0462EE9DA7200F4059A /* MiniFocusTimerFAB.swift in Sources */ = {isa = PBXBuildFile; fileRef = D819B0452EE9DA7200F4059A /* MiniFocusTimerFAB.swift */; };
 		D83AE0022EE38504000217E6 /* SleepHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D83AE0012EE38504000217E6 /* SleepHistoryStore.swift */; };
 		D846BF842EE8A28F00E5A440 /* LottieView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D846BF832EE8A28F00E5A440 /* LottieView.swift */; };
 		D846BF872EE8A30D00E5A440 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = D846BF862EE8A30D00E5A440 /* Lottie */; };
@@ -117,6 +118,7 @@
 		D80A60E02EE13C6D003C5262 /* PlayerProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProgress.swift; sourceTree = "<group>"; };
 		D819B0412EE9CA3000F4059A /* TIMER_COMBO_IMPLEMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TIMER_COMBO_IMPLEMENTATION.md; sourceTree = "<group>"; };
 		D819B0432EE9D1BB00F4059A /* SessionCompleteToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionCompleteToast.swift; sourceTree = "<group>"; };
+		D819B0452EE9DA7200F4059A /* MiniFocusTimerFAB.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniFocusTimerFAB.swift; sourceTree = "<group>"; };
 		D83AE0012EE38504000217E6 /* SleepHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHistoryStore.swift; sourceTree = "<group>"; };
 		D846BF832EE8A28F00E5A440 /* LottieView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LottieView.swift; sourceTree = "<group>"; };
 		D846BF882EE8A4C900E5A440 /* TreasureChest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = TreasureChest.json; sourceTree = "<group>"; };
@@ -335,6 +337,7 @@
 				D846BF882EE8A4C900E5A440 /* TreasureChest.json */,
 				D819B0412EE9CA3000F4059A /* TIMER_COMBO_IMPLEMENTATION.md */,
 				D819B0432EE9D1BB00F4059A /* SessionCompleteToast.swift */,
+				D819B0452EE9DA7200F4059A /* MiniFocusTimerFAB.swift */,
 			);
 			path = QuestChatNative;
 			sourceTree = "<group>";
@@ -502,6 +505,7 @@
 				399C54D99232406C91BC2260 /* QuestCatalog.swift in Sources */,
 				D8DEF71A2EE5241700DDDEA9 /* DesignSystem.swift in Sources */,
 				D819B0442EE9D1BB00F4059A /* SessionCompleteToast.swift in Sources */,
+				D819B0462EE9DA7200F4059A /* MiniFocusTimerFAB.swift in Sources */,
 				D8A2000A2EDE07B400A6A001 /* HealthBarViewModel.swift in Sources */,
 				D8F1A0022F1234567890ABCD /* HealthBarView.swift in Sources */,
 				D8A200092EDE07B400A6A001 /* AppCoordinator.swift in Sources */,
