@@ -114,6 +114,7 @@ struct StatsView: View {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(Color(uiColor: .secondarySystemBackground))
             )
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
     }
 

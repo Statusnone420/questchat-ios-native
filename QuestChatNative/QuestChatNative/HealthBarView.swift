@@ -110,6 +110,7 @@ struct HealthBarView: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color(uiColor: .secondarySystemBackground))
         )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     @ViewBuilder
