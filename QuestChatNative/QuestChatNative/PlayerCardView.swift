@@ -313,6 +313,71 @@ struct BuffBarView: View {
     }
 }
 
+/// RPG-style XP progress bar
+struct RPGXPBar: View {
+    let currentXP: Int
+    let level: Int
+    
+    // Simple linear progression: 100 XP per level
+    // Level 1->2 needs 100 XP, Level 2->3 needs 100 XP, etc.
+    private var xpNeededForNextLevel: Int {
+        100
+    }
+    
+    // How much XP into the current level
+    private var xpInCurrentLevel: Int {
+        currentXP % xpNeededForNextLevel
+    }
+    
+    private var progress: Double {
+        guard xpNeededForNextLevel > 0 else { return 0 }
+        let prog = Double(xpInCurrentLevel) / Double(xpNeededForNextLevel)
+        return min(max(prog, 0), 1)
+    }
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                // Background
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(uiColor: .tertiarySystemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                    )
+                
+                // Glowing XP fill with gradient
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.cyan.opacity(0.9),
+                                Color.blue.opacity(0.9),
+                                Color.purple.opacity(0.8)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: geometry.size.width * progress)
+                    .shadow(color: Color.cyan.opacity(0.5), radius: 4)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
+                
+                // XP text overlay
+                HStack {
+                    Spacer()
+                    Text("\(xpInCurrentLevel) / \(xpNeededForNextLevel) XP")
+                        .font(.system(.caption, design: .rounded, weight: .bold))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
+                        .padding(.trailing, 8)
+                }
+            }
+        }
+        .frame(height: 20)
+    }
+}
+
 struct PlayerCardView: View {
     @ObservedObject var store: SessionStatsStore
     @ObservedObject var statsViewModel: StatsViewModel
@@ -559,23 +624,6 @@ struct PlayerCardView: View {
             }
             .accessibilityElement(children: .contain)
 
-            VStack(alignment: .leading, spacing: 12) {
-                statRow(label: QuestChatStrings.PlayerCard.levelLabel, value: "\(store.level)", tint: .mint)
-                statRow(label: QuestChatStrings.PlayerCard.totalXPLabel, value: "\(store.xp)", tint: .cyan)
-                statRow(label: QuestChatStrings.PlayerCard.streakLabel, value: "\(store.currentStreakDays) days", tint: .orange)
-            }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(uiColor: .secondarySystemBackground).opacity(0.16))
-            .cornerRadius(16)
-
-            HStack {
-                Text(store.statusLine)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-
             statusSection
 
             Spacer(minLength: 0)
@@ -737,12 +785,12 @@ struct PlayerCardView: View {
                         .textFieldStyle(.plain)
                         .layoutPriority(1)
 
-                    HStack(spacing: 0) {
-                        Text("Level \(store.level)")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: true, vertical: false)
+                    // Compact info line: Level, XP
+                    Text("Level \(store.level) • \(store.xp) XP")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
 
+                    HStack(spacing: 0) {
                         if let label = statsViewModel.xpBoostLabel {
                             HStack(spacing: 4) {
                                 Image(systemName: "sparkles")
@@ -774,28 +822,16 @@ struct PlayerCardView: View {
                             )
                             .foregroundColor(.white)
                             .fixedSize(horizontal: true, vertical: true)
-                            .padding(.leading, 8)
                             .transition(.scale.combined(with: .opacity))
                         }
-
-                        Spacer(minLength: 8)
-
-                        Text("\(healthBarViewModel.currentHP) / \(healthBarViewModel.maxHP) HP")
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: true, vertical: false)
                     }
                     .frame(height: 24)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: statsViewModel.xpBoostLabel != nil)
 
-                    RPGStatBar(
-                        iconName: "heart.fill",
-                        label: "HP",
-                        color: .red,
-                        progress: healthBarViewModel.hpProgress,
-                        segments: healthBarViewModel.hpSegments
+                    RPGXPBar(
+                        currentXP: store.xp,
+                        level: store.level
                     )
-                    .frame(height: 36)
 
                     Button {
                         isTitlePickerPresented = true
@@ -917,17 +953,6 @@ struct PlayerCardView: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(Color.white.opacity(0.06), lineWidth: 1)
         )
-    }
-
-    private func statRow(label: String, value: String, tint: Color) -> some View {
-        HStack {
-            Label(label, systemImage: "sparkles")
-                .font(.headline)
-                .foregroundStyle(tint)
-            Spacer()
-            Text(value)
-                .font(.title3.bold())
-        }
     }
 
     private func potionButton(label: String, systemImage: String, color: Color, action: @escaping () -> Void) -> some View {
@@ -1318,7 +1343,7 @@ private final class BadgeController: ObservableObject {
     }
 }
 
-#Preview {
+#Preview("Player Card") {
     let container = DependencyContainer.shared
     PlayerCardView(
         store: container.sessionStatsStore,
@@ -1326,6 +1351,32 @@ private final class BadgeController: ObservableObject {
         healthBarViewModel: container.healthBarViewModel,
         focusViewModel: container.focusViewModel
     )
+}
+
+#Preview("XP Bar Levels") {
+    VStack(spacing: 20) {
+        VStack(spacing: 8) {
+            Text("Level 1 - 0 XP").font(.caption).foregroundStyle(.secondary)
+            RPGXPBar(currentXP: 0, level: 1)
+        }
+        
+        VStack(spacing: 8) {
+            Text("Level 1 - 50 XP (halfway)").font(.caption).foregroundStyle(.secondary)
+            RPGXPBar(currentXP: 50, level: 1)
+        }
+        
+        VStack(spacing: 8) {
+            Text("Level 2 - 150 XP").font(.caption).foregroundStyle(.secondary)
+            RPGXPBar(currentXP: 150, level: 2)
+        }
+        
+        VStack(spacing: 8) {
+            Text("Level 5 - 800 XP").font(.caption).foregroundStyle(.secondary)
+            RPGXPBar(currentXP: 800, level: 5)
+        }
+    }
+    .padding()
+    .background(Color.black)
 }
 
 // Avatar now uses a UUID-based rolled SF Symbol + gradient style.
