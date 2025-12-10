@@ -75,7 +75,7 @@ struct ContentView: View {
 
                 appCoordinator.makeTalentsView()
                     .tabItem {
-                        Image(systemName: "wand.and.stars")
+                        Image(systemName: "tree.fill")
                         Text("Talents")
                     }
                     .tag(MainTab.talents)
