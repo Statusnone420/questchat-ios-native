@@ -828,7 +828,7 @@ struct PlayerCardView: View {
                             ZStack {
                                 Circle()
                                     .fill(
-                                        LinearGradient(colors: [.teal, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                        LinearGradient(colors: DependencyContainer.shared.playerStateStore.equippedBadgeGradient, startPoint: .topLeading, endPoint: .bottomTrailing)
                                     )
                                     .frame(width: 20, height: 20)
 
@@ -858,7 +858,7 @@ struct PlayerCardView: View {
                                     let isEquipped = badge.isEquipped
                                     let size: CGFloat = isEquipped ? 42 : 32
                                     let bg = isEquipped
-                                        ? AnyShapeStyle(LinearGradient(colors: [.teal, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                        ? AnyShapeStyle(LinearGradient(colors: DependencyContainer.shared.playerStateStore.equippedBadgeGradient, startPoint: .topLeading, endPoint: .bottomTrailing))
                                         : AnyShapeStyle(Color(uiColor: .secondarySystemBackground).opacity(0.22))
 
                                     Circle()

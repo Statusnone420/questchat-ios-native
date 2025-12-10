@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import SwiftUI
 
 /// Observable object representing the player's current state within QuestChat.
 final class PlayerStateStore: ObservableObject {
@@ -21,6 +22,17 @@ final class PlayerStateStore: ObservableObject {
 
     private let userDefaults: UserDefaults
     private let calendar = Calendar.current
+
+    /// Gradient used for the player's level chip and equipped badge visuals.
+    /// If a badge is equipped, we currently use a consistent purple/blue gradient to match the badge row styling.
+    /// Otherwise, we fall back to the default teal/purple gradient.
+    var equippedBadgeGradient: [Color] {
+        if equippedBadgeID != nil {
+            return [Color.purple, Color.blue]
+        } else {
+            return [Color.teal, Color.purple]
+        }
+    }
 
     // Daily flags
     private var waterGoalXPGrantedToday: Bool
@@ -235,3 +247,4 @@ private extension PlayerStateStore {
         userDefaults.set(equippedBadgeID, forKey: Keys.equippedBadgeID)
     }
 }
+

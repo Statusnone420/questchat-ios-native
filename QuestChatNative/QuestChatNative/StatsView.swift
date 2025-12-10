@@ -138,7 +138,8 @@ struct StatsView: View {
                     PlayerNameplateView(
                         name: (UserDefaults.standard.string(forKey: "playerDisplayName") ?? "Player One"),
                         level: store.level,
-                        badgeSymbol: equippedBadgeSymbol()
+                        badgeSymbol: equippedBadgeSymbol(),
+                        gradientColors: DependencyContainer.shared.playerStateStore.equippedBadgeGradient
                     )
                     Spacer()
                 }
@@ -966,6 +967,7 @@ private struct PlayerNameplateView: View {
     let name: String
     let level: Int
     let badgeSymbol: String? // placeholder for real badge later
+    let gradientColors: [Color]
 
     private var displayName: String {
         name.isEmpty ? "Player One" : name
@@ -975,18 +977,44 @@ private struct PlayerNameplateView: View {
         HStack(spacing: 10) {
             // Level badge on the left
             ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.teal, Color.purple],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+                if let symbol = badgeSymbol {
+                    // Badge icon becomes the actual fill via masking
+                    LinearGradient(
+                        colors: gradientColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
                     .frame(width: 30, height: 30)
+                    .mask(
+                        Image(systemName: symbol)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 28, height: 28)
+                    )
+                    .overlay(
+                        Circle().stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.6), radius: 8, x: 0, y: 4)
+                } else {
+                    // Fallback: normal gradient circle
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: gradientColors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .overlay(
+                            Circle().stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.6), radius: 8, x: 0, y: 4)
+                        .frame(width: 30, height: 30)
+                }
 
+                // Level number on top
                 Text("\(level)")
-                    .font(.system(size: 14, weight: .black, design: .rounded))
+                    .font(.system(size: 16, weight: .black, design: .rounded))
                     .foregroundColor(.white)
             }
 
@@ -1026,4 +1054,3 @@ private struct PlayerNameplateView: View {
         .shadow(color: Color.black.opacity(0.7), radius: 16, x: 0, y: 8)
     }
 }
-
