@@ -139,7 +139,8 @@ struct StatsView: View {
                         name: (UserDefaults.standard.string(forKey: "playerDisplayName") ?? "Player One"),
                         level: store.level,
                         badgeSymbol: equippedBadgeSymbol(),
-                        gradientColors: DependencyContainer.shared.playerStateStore.equippedBadgeGradient
+                        gradientColors: DependencyContainer.shared.playerStateStore.equippedBadgeGradient,
+                        subtitle: DependencyContainer.shared.statsViewModel.activeTitle
                     )
                     Spacer()
                 }
@@ -968,6 +969,7 @@ private struct PlayerNameplateView: View {
     let level: Int
     let badgeSymbol: String? // placeholder for real badge later
     let gradientColors: [Color]
+    let subtitle: String?
 
     private var displayName: String {
         name.isEmpty ? "Player One" : name
@@ -1018,17 +1020,22 @@ private struct PlayerNameplateView: View {
                     .foregroundColor(.white)
             }
 
-            // Player name
-            Text(displayName)
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(displayName)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .allowsTightening(true)
+                    .minimumScaleFactor(0.85)
 
-            // Optional badge icon on the right (will be real badge later)
-            if let badgeSymbol {
-                Image(systemName: badgeSymbol)
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.9))
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .allowsTightening(true)
+                        .minimumScaleFactor(0.9)
+                }
             }
         }
         .padding(.horizontal, 18)
