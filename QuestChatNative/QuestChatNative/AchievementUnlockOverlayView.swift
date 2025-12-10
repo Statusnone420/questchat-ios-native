@@ -1,4 +1,5 @@
 import SwiftUI
+import Lottie
 
 struct AchievementUnlockOverlayView: View {
     let achievement: StatsViewModel.SeasonAchievementItemViewModel
@@ -27,6 +28,18 @@ struct AchievementUnlockOverlayView: View {
                     .foregroundStyle(.secondary)
                     .opacity(animateIn ? 1 : 0)
                     .animation(.easeOut(duration: 0.25), value: animateIn)
+                
+                // Fist bump hero animation (plays once per unlock)
+                LottieView(
+                    animationName: "FistBump",
+                    loopMode: .playOnce,
+                    animationSpeed: 1.0,
+                    freezeOnLastFrame: true
+                )
+                .frame(width: 140, height: 140)
+                .scaleEffect(animateIn ? 1.0 : 0.5)
+                .opacity(animateIn ? 1.0 : 0.0)
+                .animation(.spring(response: 0.6, dampingFraction: 0.65).delay(0.15), value: animateIn)
                 
                 SeasonAchievementBadgeView(
                     title: achievement.title,
