@@ -270,7 +270,7 @@ struct FocusView: View {
             LottieView(
                 animationName: "WaveLoop",
                 loopMode: .loop,
-                animationSpeed: 0.5,
+                animationSpeed: 1.0,
                 contentMode: .scaleAspectFill,
                 animationTrigger: momentumWaveTrigger,
                 freezeOnLastFrame: false,

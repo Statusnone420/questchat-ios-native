@@ -96,7 +96,7 @@ struct StatsView: View {
                 LottieView(
                     animationName: "WaveLoop",
                     loopMode: .loop,
-                    animationSpeed: 0.5,
+                    animationSpeed: 1.0,
                     contentMode: .scaleAspectFill,
                     animationTrigger: statsWaveTrigger,
                     freezeOnLastFrame: false,
