@@ -1480,7 +1480,7 @@ extension QuestsViewModel {
 
 extension SessionStatsStore {
     // Global XP multiplier (tweakable)
-    private var xpGlobalMultiplier: Double { 1.5 } // Season 1 XP Boost (+50%)
+    private var xpGlobalMultiplier: Double { 2.0 } // Season 1 XP Boost (+100%) - Includes daily boost + weekly supercharge
 
     var xpBoostLabel: String? {
         guard xpGlobalMultiplier > 1.0 else { return nil }
