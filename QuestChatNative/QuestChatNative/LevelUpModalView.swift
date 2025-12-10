@@ -201,7 +201,7 @@ struct LevelUpModalView: View {
         case .milestone:
             "🎯 Milestone Achievement! Keep grinding!"
         case .jackpot:
-            "💎 JACKPOT! You're a legend!"
+            "SPECIAL LEVEL UP ACHIVEMENT SCREEN THINGY! YAY!"
         }
     }
     
