@@ -987,11 +987,11 @@ struct DailySetupSheet: View {
     private func energyDetails(for level: EnergyLevel) -> (icon: String, shortLabel: String, minutes: Int) {
         switch level {
         case .low:
-            return ("moon.zzz.fill", "Low", 20)
+            return ("battery.25percent", "Low", 20)
         case .medium:
-            return ("cloud.sun.fill", "Medium", 40)
+            return ("battery.50percent", "Medium", 40)
         case .high:
-            return ("sun.max.fill", "High", 60)
+            return ("battery.100percent", "High", 60)
         }
     }
 
