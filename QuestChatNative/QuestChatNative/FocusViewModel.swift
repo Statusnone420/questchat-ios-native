@@ -1265,6 +1265,7 @@ final class FocusViewModel: ObservableObject {
     @Published var lastLevelUp: SessionStatsStore.LevelUpResult?
     private var isAppInForeground: Bool = true
     private var pendingBackgroundReminder: (event: ReminderEvent, message: String)?
+    private var reminderQueue: [(event: ReminderEvent, message: String)] = []
     @Published var sleepQuality: SleepQuality = .okay {
         didSet {
             guard !isLoadingSleepData else { return }
@@ -2867,22 +2868,9 @@ final class FocusViewModel: ObservableObject {
             statsStore.questEventHandler?(.postureReminderFired)
         }
 
-        // If there's already an active reminder, delay this one to avoid collision
-        if let currentEvent = activeReminderEvent {
-            // First dismiss the current one immediately
-            withAnimation(.easeInOut(duration: 0.2)) {
-                activeReminderEvent = nil
-                activeReminderMessage = nil
-            }
-            
-            // Then show the new one after a brief delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                guard let self else { return }
-                // Double check nothing else snuck in
-                if self.activeReminderEvent == nil {
-                    self.presentInAppReminder(event: event, message: message ?? self.reminderBody(for: type))
-                }
-            }
+        // If there's already an active reminder or items in queue, add to queue
+        if activeReminderEvent != nil || !reminderQueue.isEmpty {
+            reminderQueue.append((event, message ?? reminderBody(for: type)))
         } else {
             presentInAppReminder(event: event, message: message ?? reminderBody(for: type))
         }
@@ -2903,15 +2891,29 @@ final class FocusViewModel: ObservableObject {
             activeReminderMessage = message
         }
 
-        // Auto-dismiss after 30 seconds if not acknowledged
+        // Auto-dismiss after 30 seconds if not acknowledged, then show next in queue
         DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in
             guard let self else { return }
             // Only dismiss if this is still the active reminder
             if self.activeReminderEvent?.id == event.id {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    self.activeReminderEvent = nil
-                    self.activeReminderMessage = nil
-                }
+                self.dismissActiveReminderAndShowNext()
+            }
+        }
+    }
+    
+    private func dismissActiveReminderAndShowNext() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            activeReminderEvent = nil
+            activeReminderMessage = nil
+        }
+        
+        // Process next reminder in queue after a brief delay
+        if !reminderQueue.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self else { return }
+                guard let next = self.reminderQueue.first else { return }
+                self.reminderQueue.removeFirst()
+                self.presentInAppReminder(event: next.event, message: next.message)
             }
         }
     }
@@ -3145,18 +3147,12 @@ extension FocusViewModel {
             statsStore.questEventHandler?(.postureReminderAcknowledged)
         }
         
-        withAnimation(.easeInOut(duration: 0.2)) {
-            activeReminderEvent = nil
-            activeReminderMessage = nil
-        }
+        dismissActiveReminderAndShowNext()
     }
     
     func dismissReminder() {
         // Dismiss without marking as responded - for swipe dismissal
-        withAnimation(.easeInOut(duration: 0.2)) {
-            activeReminderEvent = nil
-            activeReminderMessage = nil
-        }
+        dismissActiveReminderAndShowNext()
     }
     
     func updateScenePhase(_ phase: ScenePhase) {
@@ -3168,7 +3164,13 @@ extension FocusViewModel {
             pendingBackgroundReminder = nil
             // Small delay to let the app settle
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-                self?.presentInAppReminder(event: pending.event, message: pending.message)
+                guard let self else { return }
+                // If there's already an active reminder or queue, add to queue
+                if self.activeReminderEvent != nil || !self.reminderQueue.isEmpty {
+                    self.reminderQueue.append(pending)
+                } else {
+                    self.presentInAppReminder(event: pending.event, message: pending.message)
+                }
             }
         }
     }
@@ -3191,6 +3193,29 @@ extension FocusViewModel {
     func logHydrationSip() {
         // Minimal, 1 oz increment for banner taps.
         recordHydration(ounces: 1)
+        
+        // Post quest event to track hydration progress
+        updateWaterIntakeTotals()
+        let mlPerOunce = 29.57
+        let amountMl = Int((1.0 * mlPerOunce).rounded())  // 1 oz in ml
+        let totalMl = Int((Double(totalWaterOuncesToday) * mlPerOunce).rounded())
+        let percentOfGoal = waterGoalToday > 0 ? Double(totalWaterOuncesToday) / Double(waterGoalToday) : 0
+        statsStore.questEventHandler?(
+            .hydrationLogged(
+                amountMl: amountMl,
+                totalMlToday: totalMl,
+                percentOfGoal: percentOfGoal
+            )
+        )
+        healthStatsStore.update(from: healthBarViewModel?.inputs ?? DailyHealthInputs(
+            hydrationCount: 0,
+            selfCareSessions: 0,
+            focusSprints: 0,
+            gutStatus: .none,
+            moodStatus: .none
+        ))
+        syncPlayerHP()
+        evaluateHealthXPBonuses()
     }
 }
 
