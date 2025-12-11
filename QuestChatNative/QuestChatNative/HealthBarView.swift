@@ -145,7 +145,7 @@ struct HealthBarView: View {
                     showPlayerCard = true
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: "atom")
+                        Image(systemName: "person.text.rectangle.fill")
                             .font(.headline)
                         Text("Player Card")
                             .font(.subheadline.weight(.semibold))
