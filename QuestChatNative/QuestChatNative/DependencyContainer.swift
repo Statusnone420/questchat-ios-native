@@ -108,6 +108,7 @@ final class DependencyContainer {
             dailyRatingsStore: dailyHealthRatingsStore,
             healthBarViewModel: healthBarViewModel,
             focusViewModel: focusViewModel,
+            playerStateStore: playerStateStore,
             onCompletion: onCompletion
         )
     }

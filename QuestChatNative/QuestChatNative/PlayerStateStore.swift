@@ -261,7 +261,11 @@ private extension PlayerStateStore {
 
         if level > previousLevel {
             let tier = LevelUpTier.compute(oldLevel: previousLevel, newLevel: level)
-            pendingLevelUp = PendingLevelUp(level: level, tier: tier)
+            // Don't show level-up modal during onboarding
+            let hasCompletedOnboarding = userDefaults.bool(forKey: "hasCompletedOnboarding")
+            if hasCompletedOnboarding {
+                pendingLevelUp = PendingLevelUp(level: level, tier: tier)
+            }
         }
     }
 

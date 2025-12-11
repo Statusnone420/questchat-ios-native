@@ -2773,6 +2773,10 @@ final class FocusViewModel: ObservableObject {
 
         guard hasGutStatus, hasMoodStatus, hasLoggedSleepQualityToday else { return }
 
+        // Don't trigger quest completion during onboarding
+        let hasCompletedOnboarding = userDefaults.bool(forKey: "hasCompletedOnboarding")
+        guard hasCompletedOnboarding else { return }
+
         hpCheckinQuestSentDate = today
         userDefaults.set(today, forKey: HealthTrackingStorageKeys.hpCheckinQuestDate)
         statsStore.questEventHandler?(.hpCheckinCompleted)

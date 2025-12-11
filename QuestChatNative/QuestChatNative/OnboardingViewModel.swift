@@ -24,6 +24,7 @@ final class OnboardingViewModel: ObservableObject {
     let dailyRatingsStore: DailyHealthRatingsStore
     let healthBarViewModel: HealthBarViewModel
     let focusViewModel: FocusViewModel
+    let playerStateStore: PlayerStateStore
     private let userDefaults: UserDefaults
     private let onCompletion: (() -> Void)?
 
@@ -32,6 +33,7 @@ final class OnboardingViewModel: ObservableObject {
         dailyRatingsStore: DailyHealthRatingsStore,
         healthBarViewModel: HealthBarViewModel,
         focusViewModel: FocusViewModel,
+        playerStateStore: PlayerStateStore,
         userDefaults: UserDefaults = .standard,
         onCompletion: (() -> Void)? = nil
     ) {
@@ -39,6 +41,7 @@ final class OnboardingViewModel: ObservableObject {
         self.dailyRatingsStore = dailyRatingsStore
         self.healthBarViewModel = healthBarViewModel
         self.focusViewModel = focusViewModel
+        self.playerStateStore = playerStateStore
         self.userDefaults = userDefaults
         self.onCompletion = onCompletion
 
@@ -86,9 +89,50 @@ final class OnboardingViewModel: ObservableObject {
 
         seedDailyVitalsIfNeeded()
 
+        // Mark onboarding as complete FIRST, before granting XP
         hasCompletedOnboarding = true
         userDefaults.set(true, forKey: Keys.hasCompletedOnboarding)
+        
+        // Manually trigger quest completion for vitals set during onboarding
+        // This ensures quests complete even if vitals were set before bindings fired
+        triggerVitalsQuestCompletion()
+        
+        // Grant welcome bonus XP after onboarding is marked complete
+        // This ensures quest checks and level-up modals work properly
+        grantWelcomeBonusXP()
+        
         onCompletion?()
+    }
+    
+    /// Grant XP for completing onboarding setup.
+    /// This triggers after onboarding is marked complete, so quest checks and modals work.
+    private func grantWelcomeBonusXP() {
+        // Award 100 XP as a "getting started" bonus
+        // This typically brings a new player to level 2 (0 → 100 XP → level 2)
+        playerStateStore.grantQuestXP(amount: 100)
+    }
+    
+    /// Manually trigger quest completion for vitals that were set during onboarding.
+    /// This ensures quests complete even if values were set/changed during onboarding
+    /// without going through the PlayerCardView bindings.
+    private func triggerVitalsQuestCompletion() {
+        let ratings = dailyRatingsStore.ratings()
+        
+        // Complete individual vitals quests if values are set
+        if ratings.mood != nil {
+            DependencyContainer.shared.questsViewModel.completeQuestIfNeeded(id: "DAILY_HB_MORNING_CHECKIN")
+        }
+        if ratings.gut != nil {
+            DependencyContainer.shared.questsViewModel.completeQuestIfNeeded(id: "DAILY_HB_GUT_CHECK")
+        }
+        if ratings.sleep != nil {
+            DependencyContainer.shared.questsViewModel.completeQuestIfNeeded(id: "DAILY_HB_SLEEP_LOG")
+        }
+        
+        // If all three core vitals are set, trigger the HP checkin completed event
+        if ratings.mood != nil && ratings.gut != nil && ratings.sleep != nil {
+            DependencyContainer.shared.questsViewModel.handleQuestEvent(.hpCheckinCompleted)
+        }
     }
 
     func seedDailyVitalsIfNeeded(defaultRating: Int = 3) {
