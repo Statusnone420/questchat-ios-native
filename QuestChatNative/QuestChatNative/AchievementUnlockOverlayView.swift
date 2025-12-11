@@ -45,7 +45,9 @@ struct AchievementUnlockOverlayView: View {
                     title: achievement.title,
                     iconName: achievement.iconName,
                     isUnlocked: true,
-                    progressFraction: 1.0
+                    progressFraction: 1.0,
+                    isCompact: true,
+                    size: .hero
                 )
                 .scaleEffect(animateIn ? 1.0 : 0.2)
                 .opacity(animateIn ? 1.0 : 0.0)
