@@ -367,7 +367,7 @@ struct FocusView: View {
     private func heroCard(for category: TimerCategory) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                HStack(alignment: .center, spacing: 12) {
                     Image(systemName: category.id.systemImageName)
                         .font(.system(size: 30))
                         .foregroundStyle(Color.accentColor)
