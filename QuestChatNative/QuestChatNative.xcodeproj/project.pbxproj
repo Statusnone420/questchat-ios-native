@@ -84,6 +84,7 @@
 		D8F1B0012F0A2F1B00D6C8E9 /* ReminderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */; };
 		D8F1C0032F0A2F1B00D6C8EA /* FocusSharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F1C0022F0A2F1B00D6C8EA /* FocusSharedComponents.swift */; };
 		D8F1D4012F2B000100D6C8EB /* HydrationReminderManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8F1D4002F2B000100D6C8EB /* HydrationReminderManager.swift */; };
+		D8FA1E5B2EEB3C2000BA71D7 /* WaterLoading.json in Resources */ = {isa = PBXBuildFile; fileRef = D8FA1E5A2EEB3C2000BA71D7 /* WaterLoading.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -187,6 +188,7 @@
 		D8F1B0002F0A2F1B00D6C8E9 /* ReminderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderModels.swift; sourceTree = "<group>"; };
 		D8F1C0022F0A2F1B00D6C8EA /* FocusSharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusSharedComponents.swift; sourceTree = "<group>"; };
 		D8F1D4002F2B000100D6C8EB /* HydrationReminderManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HydrationReminderManager.swift; sourceTree = "<group>"; };
+		D8FA1E5A2EEB3C2000BA71D7 /* WaterLoading.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = WaterLoading.json; sourceTree = "<group>"; };
 		DCA726367C92483F9DBAEF65 /* TalentsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalentsViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -282,10 +284,9 @@
 				D8A1A0062EDE07B400A6A006 /* DependencyContainer.swift */,
 				D8DEF7192EE5241000DDDEA9 /* DesignSystem.swift */,
 				D8A1A01B2EDE07B400A6A01B /* DurationWheelPickerView.swift */,
+				D89D85032EEA3C32008BA3A4 /* FistBump.json */,
 				D87C18BB2EDFB72100438C3A /* FocusLiveActivityManager.swift */,
 				D846C0382EE911CE00E5A440 /* FocusRings.json */,
-				D89D85032EEA3C32008BA3A4 /* FistBump.json */,
-				D89D84DB2EEA17E2008BA3A4 /* HeroDogSword.json */,
 				D8F1C0022F0A2F1B00D6C8EA /* FocusSharedComponents.swift */,
 				D8A1A0122EDE07B400A6A012 /* FocusTimerLiveActivity.swift */,
 				D8A1A0032EDE07B400A6A003 /* FocusView.swift */,
@@ -300,6 +301,7 @@
 				D8A1A00A2EDE07B400A6A00A /* HealthBarViewModel.swift */,
 				D8F0A1032F12345000AAAAAA /* HealthRatingMapper.swift */,
 				D8A1A0102EDE07B400A6A010 /* HealthTrackingStorageKeys.swift */,
+				D89D84DB2EEA17E2008BA3A4 /* HeroDogSword.json */,
 				D8F1D4002F2B000100D6C8EB /* HydrationReminderManager.swift */,
 				D8A1A0192EDE07B400A6A019 /* HydrationSettingsStore.swift */,
 				D8A1A00E2EDE07B400A6A00E /* LevelUpModalView.swift */,
@@ -343,6 +345,7 @@
 				D819B0412EE9CA3000F4059A /* TIMER_COMBO_IMPLEMENTATION.md */,
 				D8A1A0162EDE07B400A6A016 /* TodaySummaryView.swift */,
 				D846BF882EE8A4C900E5A440 /* TreasureChest.json */,
+				D8FA1E5A2EEB3C2000BA71D7 /* WaterLoading.json */,
 				D846C03E2EE920FF00E5A440 /* WaveLoop.json */,
 			);
 			path = QuestChatNative;
@@ -455,6 +458,7 @@
 				D819B0422EE9CA3000F4059A /* TIMER_COMBO_IMPLEMENTATION.md in Resources */,
 				D8A200202EDE07B400A6A001 /* Assets.xcassets in Resources */,
 				D846C03F2EE920FF00E5A440 /* WaveLoop.json in Resources */,
+				D8FA1E5B2EEB3C2000BA71D7 /* WaterLoading.json in Resources */,
 				D89D85042EEA3C33008BA3A4 /* FistBump.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -93,7 +93,23 @@ struct HealthBarView: View {
     }
 
     private var hpHeaderWithWave: some View {
-        ZStack {
+        ZStack(alignment: .leading) {
+            // 1) New water fill behind everything — slower and left-biased
+            LottieView(
+                animationName: "WaterLoading",
+                loopMode: .loop,
+                animationSpeed: 0.5, // slower: “alive but chill”
+                contentMode: .scaleAspectFill,
+                animationTrigger: hpWaveTrigger,
+                freezeOnLastFrame: false,
+                tintColor: UIColor.systemTeal
+            )
+            .frame(width: 140, height: 80, alignment: .leading) // narrower, tied to the left
+            .offset(x: 16)                                       // nudge toward the “HP” text
+            .opacity(0.18)
+            .allowsHitTesting(false)
+
+            // 2) Existing wave/dots on top of water (full width)
             LottieView(
                 animationName: "WaveLoop",
                 loopMode: .loop,
@@ -107,6 +123,7 @@ struct HealthBarView: View {
             .opacity(0.22)
             .allowsHitTesting(false)
             
+            // 3) Foreground content
             HStack {
                 Text("HP")
                     .font(.title2.bold())

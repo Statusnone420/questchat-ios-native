@@ -61,7 +61,7 @@ struct ContentView: View {
                     selectedTab: $selectedTab
                 )
                     .environmentObject(questsViewModel)
-                    .tabItem { Label("HP", systemImage: "heart.fill") }
+                    .tabItem { Label("Player", systemImage: "person.crop.circle.dashed") }
                     .tag(MainTab.health)
 
                 QuestsView(viewModel: questsViewModel)
