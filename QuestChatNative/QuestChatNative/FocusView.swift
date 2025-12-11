@@ -153,6 +153,8 @@ struct FocusView: View {
         }
         .sheet(isPresented: $viewModel.isShowingDurationPicker) {
             durationPickerSheet()
+                .presentationDetents([.height(400)])
+                .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView(
@@ -514,28 +516,51 @@ struct FocusView: View {
 
     @ViewBuilder
     private func durationPickerSheet() -> some View {
-        NavigationView {
-            VStack {
-                DurationWheelPickerView(totalSeconds: $viewModel.pendingDurationSeconds)
-                    .frame(maxHeight: 250)
-
+        VStack(spacing: 0) {
+            // Compact header
+            HStack {
+                Button(QuestChatStrings.FocusView.cancelButtonTitle) {
+                    viewModel.isShowingDurationPicker = false
+                }
+                .foregroundStyle(.secondary)
+                
                 Spacer()
-            }
-            .navigationTitle("Set timer")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(QuestChatStrings.FocusView.cancelButtonTitle) {
-                        viewModel.isShowingDurationPicker = false
-                    }
+                
+                Text("Set Timer")
+                    .font(.headline)
+                
+                Spacer()
+                
+                Button(QuestChatStrings.FocusView.doneButtonTitle) {
+                    viewModel.setDurationForSelectedCategory(viewModel.pendingDurationSeconds)
+                    viewModel.isShowingDurationPicker = false
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(QuestChatStrings.FocusView.doneButtonTitle) {
-                        viewModel.setDurationForSelectedCategory(viewModel.pendingDurationSeconds)
-                        viewModel.isShowingDurationPicker = false
-                    }
-                }
+                .foregroundStyle(.mint)
+                .fontWeight(.semibold)
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            
+            Divider()
+            
+            // Picker content
+            VStack(spacing: 20) {
+                DurationWheelPickerView(totalSeconds: $viewModel.pendingDurationSeconds)
+                    .frame(height: 200)
+                
+                // Preview of selected duration
+                Text(viewModel.formattedDuration(viewModel.pendingDurationSeconds))
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Color.mint.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+            .padding(.top, 20)
+            .padding(.bottom, 30)
         }
+        .background(Color(uiColor: .systemBackground))
         .onAppear {
             viewModel.pendingDurationSeconds = viewModel.durationForSelectedCategory()
         }
