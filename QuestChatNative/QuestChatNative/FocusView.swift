@@ -174,7 +174,7 @@ struct FocusView: View {
                 questsViewModel.markCoreQuests(for: focusArea)
             }
             .presentationDetents([.medium])
-            .interactiveDismissDisabled()
+            .interactiveDismissDisabled(statsStore.todayPlan == nil) // Allow swipe only if already set up
         }
         .onAppear {
             statsStore.refreshDailySetupIfNeeded()
@@ -806,10 +806,14 @@ struct DailySetupSheet: View {
                         Text("Set today's vibe")
                             .font(.title2.bold())
                             .foregroundColor(.primary)
-                        Text("This sets your daily minute goal and helps track your weekly streak.")
-                            .font(.footnote)
+                        Text("Sets your daily goal and keeps your streak alive.")
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true) // ensure wrapping without vertical compression
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     Spacer()
                 }
                 .padding(.horizontal, 20)
@@ -853,7 +857,7 @@ struct DailySetupSheet: View {
                         ForEach(FocusArea.allCases) { area in
                             let details = focusDetails(for: area)
                             CompactFocusModeButton(
-                                emoji: details.emoji,
+                                systemImage: details.symbol,
                                 label: area.displayName,
                                 isSelected: selectedFocusArea == area
                             ) {
@@ -880,8 +884,12 @@ struct DailySetupSheet: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.yellow.opacity(0.15))
-                .cornerRadius(12)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                )
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
@@ -923,16 +931,16 @@ struct DailySetupSheet: View {
         }
     }
 
-    private func focusDetails(for area: FocusArea) -> (emoji: String, hint: String) {
+    private func focusDetails(for area: FocusArea) -> (symbol: String, hint: String) {
         switch area {
         case .work:
-            return ("💼", "Productive tasks")
+            return ("briefcase.fill", "Productive tasks")
         case .selfCare:
-            return ("🧘", "Recovery mode")
+            return ("figure.cooldown", "Recovery mode")
         case .chill:
-            return ("😌", "Light activities")
+            return ("cloud.moon.fill", "Light activities")
         case .grind:
-            return ("🔥", "Maximum output")
+            return ("flame.fill", "Maximum output")
         }
     }
 
@@ -974,7 +982,7 @@ struct DailySetupSheet: View {
     }
     
     private struct CompactFocusModeButton: View {
-        let emoji: String
+        let systemImage: String
         let label: String
         let isSelected: Bool
         let action: () -> Void
@@ -982,8 +990,9 @@ struct DailySetupSheet: View {
         var body: some View {
             Button(action: action) {
                 VStack(spacing: 6) {
-                    Text(emoji)
+                    Image(systemName: systemImage)
                         .font(.title2)
+                        .foregroundStyle(isSelected ? Color.cyan : .secondary)
                     
                     Text(label)
                         .font(.caption.weight(.semibold))
@@ -1091,4 +1100,3 @@ private struct FocusModeRow: View {
         .background(Color.black)
         .previewDevice("iPhone 17 Pro Max")
 }
-

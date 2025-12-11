@@ -255,7 +255,7 @@ struct StatsView: View {
                 questsViewModel.markCoreQuests(for: focusArea)
             }
             .presentationDetents([.medium])
-            .interactiveDismissDisabled()
+            .interactiveDismissDisabled(store.todayPlan == nil) // Allow swipe only if already set up
         }
         .sheet(item: $selectedAchievement) { achievement in
             SeasonAchievementDetailView(
