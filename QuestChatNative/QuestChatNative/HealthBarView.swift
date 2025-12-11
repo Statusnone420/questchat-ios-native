@@ -94,19 +94,26 @@ struct HealthBarView: View {
 
     private var hpHeaderWithWave: some View {
         ZStack(alignment: .leading) {
-            // 1) New water fill behind everything — slower and left-biased
+            // 1) New water fill behind everything — slower, ping-pong, and left-biased with a soft top fade
             LottieView(
                 animationName: "WaterLoading",
-                loopMode: .loop,
-                animationSpeed: 0.5, // slower: “alive but chill”
+                loopMode: .autoReverse,     // ping-pong: 0→1→0→1…
+                animationSpeed: 0.5,        // “alive but chill”
                 contentMode: .scaleAspectFill,
                 animationTrigger: hpWaveTrigger,
                 freezeOnLastFrame: false,
                 tintColor: UIColor.systemTeal
             )
             .frame(width: 140, height: 80, alignment: .leading) // narrower, tied to the left
-            .offset(x: 16)                                       // nudge toward the “HP” text
-            .opacity(0.18)
+            .offset(x: 16)                                 // nudge toward “HP” and slightly down
+            .opacity(0.14)                                      // a bit softer at full
+            .mask(                                              // fade the top edge to avoid a hard “full” cap
+                LinearGradient(
+                    colors: [.clear, .white, .white],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
             .allowsHitTesting(false)
 
             // 2) Existing wave/dots on top of water (full width)
@@ -125,8 +132,9 @@ struct HealthBarView: View {
             
             // 3) Foreground content
             HStack {
-                Text("HP")
+                Image(systemName: "waterbottle")
                     .font(.title2.bold())
+                    .symbolRenderingMode(.hierarchical)
                 Spacer()
                 Button {
                     showPlayerCard = true
