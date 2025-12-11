@@ -22,16 +22,13 @@ struct StatsView: View {
     private var selfCareMinutesToday: Int { store.selfCareSecondsToday / 60 }
     private var dailyGoalMinutes: Int { store.todayPlan?.focusGoalMinutes ?? 40 }
     private var dailyGoalProgress: Int { store.todayProgress?.focusMinutes ?? store.dailyMinutesProgress }
-    private var focusAreaLabel: String? {
-        guard let area = store.todayPlan?.focusArea else { return nil }
-        return "\(area.icon) \(area.displayName)"
-    }
+    private var focusArea: FocusArea? { store.todayPlan?.focusArea }
     private var reachedFocusGoal: Bool { store.todayProgress?.reachedFocusGoal ?? false }
     private var scopeTitle: String { selectedScope == .today ? "Today" : "Yesterday" }
     private var dailyGoalMinutesForScope: Int { dailyGoalMinutes }
     private var dailyGoalProgressForScope: Int { dailyGoalProgress }
     private var reachedFocusGoalForScope: Bool { reachedFocusGoal }
-    private var focusAreaLabelForScope: String? { focusAreaLabel }
+    private var focusAreaForScope: FocusArea? { focusArea }
     private var focusGoalLabel: String { QuestChatStrings.StatsView.todaysFocusGoal }
     private var focusGoalProgressText: String {
         QuestChatStrings.StatsView.dailyGoalProgress(current: dailyGoalProgressForScope, total: dailyGoalMinutesForScope)
@@ -127,7 +124,7 @@ struct StatsView: View {
                 focusMinutes: focusMinutesToday,
                 focusGoalMinutes: dailyGoalMinutes,
                 reachedFocusGoal: reachedFocusGoal,
-                focusAreaLabel: focusAreaLabel,
+                focusArea: focusArea,
                 currentStreakDays: store.currentStreakDays
             )
 
@@ -844,8 +841,8 @@ struct StatsView: View {
                     .font(.headline)
                     .foregroundStyle(.mint)
                 Spacer()
-                if let label = focusAreaLabelForScope {
-                    Text(label)
+                if let area = focusAreaForScope {
+                    Label(area.displayName, systemImage: area.icon)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }

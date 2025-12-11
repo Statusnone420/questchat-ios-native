@@ -7,7 +7,7 @@ struct TodaySummaryView: View {
     let focusMinutes: Int
     let focusGoalMinutes: Int
     let reachedFocusGoal: Bool
-    let focusAreaLabel: String?
+    let focusArea: FocusArea?
     let currentStreakDays: Int
 
     private var questProgress: Double {
@@ -37,8 +37,8 @@ struct TodaySummaryView: View {
                     .font(.headline)
                     .foregroundStyle(.mint)
                 Spacer()
-                if let focusAreaLabel {
-                    Text(focusAreaLabel)
+                if let area = focusArea {
+                    Label(area.displayName, systemImage: area.icon)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -95,7 +95,7 @@ struct TodaySummaryView: View {
         focusMinutes: 32,
         focusGoalMinutes: 40,
         reachedFocusGoal: true,
-        focusAreaLabel: "💼 Work",
+        focusArea: .work,
         currentStreakDays: 3
     )
     .padding()

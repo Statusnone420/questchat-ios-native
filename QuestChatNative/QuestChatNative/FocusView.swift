@@ -998,11 +998,11 @@ struct DailySetupSheet: View {
     private func focusDetails(for area: FocusArea) -> (symbol: String, hint: String) {
         switch area {
         case .work:
-            return ("briefcase.fill", "Productive tasks")
+            return ("laptopcomputer", "Productive tasks")
         case .selfCare:
             return ("figure.cooldown", "Recovery mode")
         case .chill:
-            return ("cloud.moon.fill", "Light activities")
+            return ("waveform", "Light activities")
         case .grind:
             return ("flame.fill", "Maximum output")
         }

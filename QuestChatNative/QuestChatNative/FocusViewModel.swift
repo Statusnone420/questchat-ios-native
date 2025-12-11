@@ -180,10 +180,10 @@ enum FocusArea: CaseIterable, Codable, Equatable, Identifiable, Hashable {
 
     var icon: String {
         switch self {
-        case .work: return "💼"
-        case .selfCare: return "🧘"
-        case .chill: return "😌"
-        case .grind: return "🔥"
+        case .work: return "laptopcomputer"
+        case .selfCare: return "figure.cooldown"
+        case .chill: return "waveform"
+        case .grind: return "flame.fill"
         }
     }
 
