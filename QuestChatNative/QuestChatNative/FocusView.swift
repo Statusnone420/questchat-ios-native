@@ -669,9 +669,9 @@ struct FocusView: View {
                 .foregroundStyle(.mint)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Tip: Tap the active timer while it's running to minimize.")
+                Text("Tip: Tap the active timer to minimize.")
                     .font(.subheadline.weight(.semibold))
-                Text("Expand again anytime to see details or adjust settings.")
+                Text("Tap again to expand anytime to adjust timer settings.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
