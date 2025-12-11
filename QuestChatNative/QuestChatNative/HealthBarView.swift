@@ -94,28 +94,6 @@ struct HealthBarView: View {
 
     private var hpHeaderWithWave: some View {
         ZStack(alignment: .leading) {
-            // 1) New water fill behind everything — slower, ping-pong, and left-biased with a soft top fade
-            LottieView(
-                animationName: "WaterLoading",
-                loopMode: .autoReverse,     // ping-pong: 0→1→0→1…
-                animationSpeed: 0.5,        // “alive but chill”
-                contentMode: .scaleAspectFill,
-                animationTrigger: hpWaveTrigger,
-                freezeOnLastFrame: false,
-                tintColor: UIColor.systemTeal
-            )
-            .frame(width: 140, height: 80, alignment: .leading) // narrower, tied to the left
-            .offset(x: 16)                                 // nudge toward “HP” and slightly down
-            .opacity(0.14)                                      // a bit softer at full
-            .mask(                                              // fade the top edge to avoid a hard “full” cap
-                LinearGradient(
-                    colors: [.clear, .white, .white],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-            .allowsHitTesting(false)
-
             // 2) Existing wave/dots on top of water (full width)
             LottieView(
                 animationName: "WaveLoop",
@@ -132,9 +110,36 @@ struct HealthBarView: View {
             
             // 3) Foreground content
             HStack {
-                Image(systemName: "waterbottle")
-                    .font(.title2.bold())
-                    .symbolRenderingMode(.hierarchical)
+                ZStack {
+                    LottieView(
+                        animationName: "WaterLoading",
+                        loopMode: .autoReverse,
+                        animationSpeed: 0.45,
+                        contentMode: .scaleAspectFill,
+                        animationTrigger: hpWaveTrigger,
+                        freezeOnLastFrame: false,
+                        tintColor: UIColor.systemTeal
+                    )
+                    .frame(width: 120, height: 120)
+                    .opacity(0.18)
+                    .allowsHitTesting(false)
+                    .mask(
+                        LinearGradient(
+                            colors: [.clear, .white.opacity(0.9), .white],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+
+                    Image(systemName: "waterbottle")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width:44, height: 44)
+                        .font(.title3.weight(.semibold))
+                        .symbolRenderingMode(.hierarchical)
+                }
+                .frame(width: 56, height: 56)
+
                 Spacer()
                 Button {
                     showPlayerCard = true
