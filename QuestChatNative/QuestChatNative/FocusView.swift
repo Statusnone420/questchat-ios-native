@@ -798,15 +798,25 @@ struct DailySetupSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 16) {
-                header
+        ZStack {
+            LinearGradient(
+                colors: [Color.black.opacity(0.85), Color(.sRGB, red: 0.06, green: 0.08, blue: 0.14, opacity: 1)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
+            VStack(alignment: .leading, spacing: 16) {
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        header
+                        planSummary
                         focusAreaSection
                         energySection
+                        tipCard
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 20)
                 }
 
                 Button {
@@ -816,43 +826,78 @@ struct DailySetupSheet: View {
                     Text(QuestChatStrings.FocusView.saveTodayButtonTitle)
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Color.accentColor)
+                        .frame(height: 56)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.accentColor, Color.accentColor.opacity(0.7)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                         .foregroundColor(.black)
-                        .cornerRadius(20)
+                        .cornerRadius(18)
                 }
-                .padding(.top, 8)
-                .padding(.bottom, 4)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(Color.white.opacity(0.06))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-            )
-            .padding(.horizontal, 8)
-            .padding(.top, 8)
-            .padding(.bottom, 16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.black.opacity(0.6).ignoresSafeArea())
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(QuestChatStrings.FocusView.dailySetupTitle)
-                .font(.title2.bold())
-                .foregroundColor(.white)
-            Text("Pick today's focus and energy. We'll set a realistic goal for today.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: "sparkles")
+                    .font(.headline)
+                    .foregroundStyle(Color.accentColor)
+                    .padding(8)
+                    .background(Circle().fill(Color.accentColor.opacity(0.18)))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(QuestChatStrings.FocusView.dailySetupTitle)
+                        .font(.title2.bold())
+                        .foregroundColor(.white)
+                    Text("Pick today's focus and energy. We'll set a realistic goal for today.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Divider()
+                .background(Color.white.opacity(0.1))
         }
+    }
+
+    private var planSummary: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Today's plan")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                summaryChip(
+                    title: "Focus",
+                    value: selectedFocusArea.displayName,
+                    icon: focusDetails(for: selectedFocusArea).icon
+                )
+
+                summaryChip(
+                    title: "Energy",
+                    value: energyDetails(for: selectedEnergy).label,
+                    icon: energyDetails(for: selectedEnergy).icon
+                )
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color.white.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
     }
 
     private var focusAreaSection: some View {
@@ -861,10 +906,10 @@ struct DailySetupSheet: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            VStack(spacing: 10) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 ForEach(FocusArea.allCases) { area in
                     let details = focusDetails(for: area)
-                    FocusModeRow(
+                    FocusModeCard(
                         title: area.displayName,
                         subtitle: details.subtitle,
                         systemImageName: details.icon,
@@ -883,12 +928,13 @@ struct DailySetupSheet: View {
                 .font(.subheadline.weight(.semibold))
                 .padding(.top, 12)
 
-            HStack(spacing: 8) {
+            VStack(spacing: 10) {
                 ForEach(EnergyLevel.allCases) { level in
                     let details = energyDetails(for: level)
-                    EnergyLevelChip(
+                    EnergyLevelCard(
                         systemImageName: details.icon,
                         title: details.label,
+                        description: energyPacing(for: level),
                         isSelected: selectedEnergy == level
                     ) {
                         selectedEnergy = level
@@ -896,6 +942,34 @@ struct DailySetupSheet: View {
                 }
             }
         }
+    }
+
+    private var tipCard: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "scope")
+                .font(.headline)
+                .foregroundStyle(Color.accentColor)
+                .padding(10)
+                .background(Circle().fill(Color.accentColor.opacity(0.14)))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Better day, less guesswork")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.primary)
+                Text("We’ll set a realistic focus target based on your energy. You can adjust it later from Today if you need to.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.white.opacity(0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
     }
 
     private func energyDetails(for level: EnergyLevel) -> (icon: String, label: String) {
@@ -906,6 +980,17 @@ struct DailySetupSheet: View {
             return ("cloud.sun.fill", "Medium – 40 min")
         case .high:
             return ("sun.max.fill", "High – 60 min")
+        }
+    }
+
+    private func energyPacing(for level: EnergyLevel) -> String {
+        switch level {
+        case .low:
+            return "Gentle pace. Short win to keep momentum."
+        case .medium:
+            return "Balanced push with room for breaks."
+        case .high:
+            return "Deep focus day. Protect your time and avoid back-to-back switches."
         }
     }
 
@@ -922,34 +1007,81 @@ struct DailySetupSheet: View {
         }
     }
 
-    private struct EnergyLevelChip: View {
-        let systemImageName: String
-        let title: String
-        let isSelected: Bool
-        let action: () -> Void
+    private func summaryChip(title: String, value: String, icon: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.subheadline)
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(Color.accentColor.opacity(0.16)))
 
-        var body: some View {
-            Button(action: action) {
-                HStack(spacing: 6) {
-                    Image(systemName: systemImageName)
-                    Text(title)
-                }
-                .font(.footnote.weight(.medium))
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .padding(.horizontal, 12)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? Color.accentColor.opacity(0.25) : Color(.secondarySystemBackground))
-                )
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundColor(.primary)
             }
-            .buttonStyle(.plain)
+
+            Spacer()
         }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.secondarySystemBackground).opacity(0.4))
+        )
     }
 }
 
-private struct FocusModeRow: View {
+private struct EnergyLevelCard: View {
+    let systemImageName: String
+    let title: String
+    let description: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: systemImageName)
+                    .font(.headline)
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 42, height: 42)
+                    .background(Circle().fill(Color.accentColor.opacity(0.18)))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.body.weight(.semibold))
+                        .foregroundColor(.primary)
+                    Text(description)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.white.opacity(isSelected ? 0.08 : 0.04))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(isSelected ? Color.accentColor.opacity(0.4) : Color.white.opacity(0.08), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct FocusModeCard: View {
     let title: String
     let subtitle: String
     let systemImageName: String
@@ -958,38 +1090,39 @@ private struct FocusModeRow: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(alignment: .center, spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color.accentColor.opacity(0.16))
-                        .frame(width: 40, height: 40)
-
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
                     Image(systemName: systemImageName)
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.accentColor)
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(Color.accentColor.opacity(0.16)))
+
+                    Spacer()
+
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(title)
                         .font(.body.weight(.semibold))
                         .foregroundStyle(.primary)
                     Text(subtitle)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Color.accentColor)
+                        .multilineTextAlignment(.leading)
                 }
             }
-            .padding(12)
+            .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(isSelected ? Color.accentColor.opacity(0.18) : Color(.secondarySystemBackground))
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.white.opacity(isSelected ? 0.12 : 0.06))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isSelected ? Color.accentColor.opacity(0.45) : Color.white.opacity(0.08), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
