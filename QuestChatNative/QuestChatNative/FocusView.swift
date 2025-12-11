@@ -39,6 +39,7 @@ struct FocusView: View {
     @State private var isShowingSettings = false
     @State private var focusRingsTrigger = UUID()
     @State private var momentumWaveTrigger = UUID()
+    @State private var showDurationPreviewPill = false
 
     @Namespace private var categoryAnimation
 
@@ -406,12 +407,6 @@ struct FocusView: View {
                 }
 
                 comboPill(for: category)
-                
-                // Hint for tapping duration
-                Text("Tap duration above to adjust")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary.opacity(0.7))
-                    .padding(.top, 2)
             }
 
             timerRing
@@ -547,15 +542,23 @@ struct FocusView: View {
             VStack(spacing: 20) {
                 DurationWheelPickerView(totalSeconds: $viewModel.pendingDurationSeconds)
                     .frame(height: 200)
-                
-                // Preview of selected duration
-                Text(viewModel.formattedDuration(viewModel.pendingDurationSeconds))
-                    .font(.title2.weight(.bold))
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(Color.mint.opacity(0.12))
-                    .clipShape(Capsule())
+
+                // Tip under the picker
+                Text("Tip: Scroll minutes and seconds to set your timer")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                // Preview of selected duration (animated pop-in)
+                if showDurationPreviewPill {
+                    Text(viewModel.formattedDuration(viewModel.pendingDurationSeconds))
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.mint.opacity(0.12))
+                        .clipShape(Capsule())
+                        .transition(.opacity.combined(with: .scale))
+                }
             }
             .padding(.top, 20)
             .padding(.bottom, 30)
@@ -563,6 +566,17 @@ struct FocusView: View {
         .background(Color(uiColor: .systemBackground))
         .onAppear {
             viewModel.pendingDurationSeconds = viewModel.durationForSelectedCategory()
+            // Reset then animate the pill in
+            showDurationPreviewPill = false
+            DispatchQueue.main.async {
+                withAnimation(.easeOut(duration: 0.15)) {
+                    showDurationPreviewPill = true
+                }
+            }
+        }
+        .onDisappear {
+            // Prepare for next presentation
+            showDurationPreviewPill = false
         }
     }
 
